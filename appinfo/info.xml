@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<info xmlns:xsi= "http://www.w3.org/2001/XMLSchema-instance"
+      xsi:noNamespaceSchemaLocation="https://apps.nextcloud.com/schema/apps/info.xsd">
+    <!--
+    SPDX-FileCopyrightText: Sendent B.V. <l.vandebroek@sendent.com>
+    SPDX-License-Identifier: CC0-1.0
+    -->
+    <id>sendentsynchroniser</id>
+    <name>Sendent Synchroniser</name>
+    <summary>Synchronise your Calendar and Contacts with Nextcloud</summary>
+    <description><![CDATA[Synchronise your Office 365 calendar and contacts with Nextcloud Caldav and Carddav so you can view and edit everything from Nextcloud.]]></description>
+    <version>0.0.2</version>
+    <licence>agpl</licence>
+    <author mail="l.vandebroek@sendent.com" homepage="https://www.sendent.com">Sendent B.V.</author>
+    <namespace>SendentSynchroniser</namespace>
+    <category>integration</category>
+    <category>office</category>
+    <category>tools</category>
+    <bugs>https://sendent.freshsales.com</bugs>
+    <dependencies>
+        <nextcloud min-version="25" max-version="25"/>
+    </dependencies>
+    <settings>
+        <admin>OCA\SendentSynchroniser\Settings\SendentSynchroniserSettings</admin>
+        <admin-section>OCA\SendentSynchroniser\Settings\SendentSynchroniserSection</admin-section>
+    </settings>
+</info>

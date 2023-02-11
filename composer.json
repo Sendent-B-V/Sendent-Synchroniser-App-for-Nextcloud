@@ -1,0 +1,24 @@
+{
+    "name": "sendent/serverapp",
+    "description": "Test",
+    "type": "project",
+    "license": "GPL-3.0-or-later",
+    "authors": [
+        {
+            "name": "Léon van de Broek"
+        }
+    ],
+    "scripts": {
+        "test": "phpunit -c phpunit.xml",
+        "cs:check": "php-cs-fixer fix --dry-run --diff",
+        "cs:fix": "php-cs-fixer fix",
+        "lint": "find . -name \\*.php -not -path './vendor/*' -exec php -l \"{}\" \\;"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^8.5 || ^9.3",
+        "nextcloud/coding-standard": "^0.5.0",
+        "friendsofphp/php-cs-fixer": "^2.18",
+        "christophwurst/nextcloud": "^20.0 || ^21.0 || ^22.0",
+        "vimeo/psalm": "^4.5"
+    }
+}
