@@ -2,8 +2,9 @@
 import GroupCalls from "./GroupCalls";
 import CalDavCalls from "./CalDavCalls";
 import MultiInputList from "./MultiInputList";
-
-
+import {API} from "../common/api";
+import {GroupItem} from "../common/GroupItem";
+import {UserItem} from "../common/UserItem";
 
 export default class SettingFormHandler {
 
@@ -19,11 +20,13 @@ export default class SettingFormHandler {
 f
 private calls: GroupCalls;
 private caldavCalls: CalDavCalls;
+private apiCalls: API;
 private logoUrl: string;
 
     private constructor() {
         this.calls = new GroupCalls();
         this.caldavCalls = new CalDavCalls();
+        this.apiCalls = new API();
         this.logoUrl = $('#header .logo').css('background-image').replace(/url\(("|')(.+)("|')\)/gi, '$2').trim();
     }
 
@@ -38,45 +41,17 @@ private logoUrl: string;
             const value = inputElement.val()?.toString();
             const valueType = inputElement.prop('type');
 
-            if (!key || !name || !templateId || !valueType || typeof value !== 'string' || !groupId) {
+            if (!key || !name || !templateId || !valueType ||  !groupId) {
                 return;
             }
+            else{
+                console.log("setting: " + name);
 
-            // const setting = resultFromGetAllUsernames.filter(candidate => candidate.settingkeyid.toString() === key);
-
-            // if (setting.length < 1) {
-            //     this.saveSetting($(element).parents('.personal-settings-setting-box'));
-            // }
-
-            // this.updateUI($(element));
-
-            // inputElement.on('change', () => {
-            //     this.saveSetting($(element).parents('.personal-settings-setting-box'));
-
-            //     this.updateUI($(element));
-            // });
-
-            // //when settingkey is present: populate UI
-            // try {
-            //     inputElement.val(setting[0].value);
-
-            //     if (inputElement.hasClass('theming-color')) {
-            //         this.refreshColorPicker(element);
-            //     }
-            // } catch (err) {
-            //     console.warn(key);
-            //     console.warn(name);
-            //     console.warn(setting[0]);
-            //     console.warn(err.message);
-
-            //     //when no settingkey is present
-            //     this.initSettingKey(element, key, name, valueType, templateId, value, groupId);
-            // }
-            
             this.handleMultiInput(inputElement, element);
-            $("#btnRefreshGroupSet").on('click', () => {
-                this.handleRefreshMemberSet();
+            $("#btnRefreshGroupSet").on('click', async () => {
+                this.handleRefreshGroupsSet(await this.apiCalls.getGroups());
             });
+        }
         });
 
         this.setShowHideAllSettings();
@@ -86,39 +61,33 @@ private logoUrl: string;
         if (inputElement.hasClass('multiValueInput')) {
             const multiInputContainer = $(element).find('.multiInputContainer');
             //const currentValue = setting.length > 0 ? setting[0].value : '';
-            const groups = await this.calls.list();
+            const groups = await this.apiCalls.getGroups();
             let groupNameString = '';
             groups.forEach(group => {
                 groupNameString = groupNameString + ';' + group.id;
+                console.log("group added to groupNameString:         " + group.id);
             });
             // remove the first ';'
             groupNameString = groupNameString.substring(1, groupNameString.length);
             new MultiInputList(multiInputContainer, groupNameString, inputElement);
         }
     }
-    private async handleRefreshMemberSet()
+    private async handleRefreshGroupUserSet(userItems: UserItem[])
     {
-            let username = $("#useraccount").val() as string;
+        let username = $("#useraccount").val() as string;
 
-            const memberships = await this.caldavCalls.getGroupMemberships(username);
+    }
+    private async handleRefreshGroupsSet(groupList: GroupItem[])
+    {
             let membershipList = '';
-            memberships.forEach(group => {
-                membershipList = membershipList + '<li>' + group.replace('principals\/users\/','') + '</li>';
+            groupList.forEach(group => {
+                membershipList = membershipList + '<li>' + group.id + '</li>';
+                console.log("group added to membershipList:         " + group.id);
             });
-            $("#membershipresult").html('<ul class="settingkeyvalueinput" name="settingkeyvalueinput" id="membershipresult"></ul>');
-            $("#membershipresult").append(membershipList);
+            $("#groupForSynchronisation").html('<ul class="settingkeyvalueinput" name="settingkeyvalueinput" id="membershipresult"></ul>');
+            $("#groupForSynchronisation").append(membershipList);
         }
-    private refreshColorPicker(element: HTMLElement): void {
-        new (<any>window).jscolor($(element).find(".settingkeyvalueinput.theming-color")[0], { hash: true });
-    }
-
-    private async initSettingKey(element: HTMLElement, key: string, name: string, valueType: string, templateId: string, value: string, groupId: string) {
-        //const data = await this.calls.create(key, name, valueType, templateId);
-
-       // $(element).find("[name='settingkeyid']").val(data.key);
-
-        
-    }
+    
 
     public async saveSetting(settingbox: JQuery<HTMLElement>): Promise<boolean> {
         const settingkeyvalueblock = $(settingbox).find(".settingkeyvalue")[0]; //@TODO

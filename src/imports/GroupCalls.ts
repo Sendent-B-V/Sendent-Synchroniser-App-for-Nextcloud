@@ -13,6 +13,10 @@ export default class GroupCalls {
 
         return response.data;
     }
+    public async listUsersByGroup(gropuId: string): Promise<any> {
+        const response = await axios.get(this.endpoint + '/' + gropuId);
 
+        return response.data;
+    }
     
 }

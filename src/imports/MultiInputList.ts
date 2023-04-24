@@ -1,8 +1,14 @@
 /* eslint-disable @nextcloud/no-deprecations */
 import { translate as t, translatePlural as p } from '@nextcloud/l10n';
-
+import {API} from '../common/api';
+import {UserItem} from '../common/UserItem';
+import {GroupItem} from '../common/GroupItem';
 export default class MultiInputList {
+
+    private apiCalls: API;
+
     constructor(private container: JQuery<HTMLElement>, value: string, private target: JQuery<HTMLElement>) {
+        this.apiCalls = new API();
         const values = value.split(';').map(value => value.trim());
 
         this.appendListToggle();
@@ -51,37 +57,46 @@ export default class MultiInputList {
 
     private appendInput(value = '') {
         const rowElement = $('<div class="multiInputRow">');
-        const valueElement = $('<input type="text" placeholder="Enter username to enable synchronisation for"/>');
-        const deleteElement = $('<button type="button"><span class="icon-delete icon-visible"></span></button>');
-
+        const valueElement = $('<p id="value-element" >'+value+'</p>');
+        const checkboxElement = $('<input type="checkbox"></input>');
         valueElement.val(value);
         valueElement.on('change', () => this.updateValue());
-        valueElement.on('input', () => {
-            if (rowElement.is(':last-child')) {
-                this.appendInput();
-            }
-        })
-        valueElement.appendTo(rowElement);
 
-
-        deleteElement.on('click', () => {
-            rowElement.remove();
-
-            if (this.container.find('input').length === 0) {
+        checkboxElement.on('click', () => {
+            // TODO: Api call to php backend to disable group synchronisation
+            if (this.container.find('#value-element').length === 0) {
                 this.appendInput();
             }
 
             this.updateValue();
         });
-        deleteElement.appendTo(rowElement);
+        valueElement.on('click', async () => {
+            // TODO: Api call to get users and 
+            const userListElement = $('<ul id="usersForGroup" />')
+            const userList = await this.apiCalls.getUsersForGroup(value);
 
-        rowElement.appendTo(this.container);
+            userList.forEach(group => {
+                console.log(group.users.length + ' users retreived from api for group: ' + value);
+                group.users.forEach(user => {
+                    const userElement = $('<li class="list-item" id="useritem-"' + user.name + '">' + user.name + '</li>');
+                    userElement.appendTo(userListElement);
+                    console.log('User added to elementlist: ' + user.name);
+                });
+                
+            });
+            userListElement.appendTo(this.container);
+            this.updateValue();
+        });
+        checkboxElement.appendTo(rowElement);
+        valueElement.appendTo(rowElement);
+
+        rowElement.prependTo(this.container);
     }
 
     private updateValue() {
-        const changedValues = this.container.find('input').map((_, inputElement) => $(inputElement).val()).get();
-        const newValue = changedValues.map(value => value.toString().trim()).filter(value => !!value).join(';');
+        // const changedValues = this.container.find('#value-element').map((_, inputElement) => $(inputElement).val()).get();
+        // const newValue = changedValues.map(value => value.toString().trim()).filter(value => !!value).join(';');
 
-        this.target.val(newValue).trigger('change');
+        // this.target.val(newValue).trigger('change');
     }
 }
