@@ -4,27 +4,28 @@ namespace OCA\SendentSynchroniser\Service;
 
 use Exception;
 use OCA\SendentSynchroniser\AppInfo\Application;
-use OCA\SendentSynchroniser\Db\SettingKey;
-use OCA\SendentSynchroniser\Db\SettingKeyMapper;
+use OCA\SendentSynchroniser\Service\SyncGroupService;
+use OCA\SendentSynchroniser\Service\UserGroupService;
 use OCP\App\IAppManager;
 use OCP\IConfig;
 use OCP\PreConditionNotMetException;
 
 class InitialLoadManager {
-	private $SettingKeyMapper;
-	private $SettingGroupValueMapper;
-	private $SendentFileStorageManager;
+	private $syncGroupService;
+	private $externalUserGroupService;
 	private $config;
 
 	/** @var IAppManager */
 	private $appManager;
 
 	public function __construct(
-		SettingKeyMapper $SettingKeyMapper,
+		UserGroupService $externalUserGroupService,
+		SyncGroupService $syncGroupService,
 		IConfig $config,
 		IAppManager $appManager) {
-		$this->SettingKeyMapper = $SettingKeyMapper;
-		$this->config = $config;
+			$this->externalUserGroupService = $externalUserGroupService;
+			$this->syncGroupService = $syncGroupService;
+			$this->config = $config;
 		$this->appManager = $appManager;
 
 		$this->checkUpdateNeeded010();

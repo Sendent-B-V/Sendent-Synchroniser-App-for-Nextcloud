@@ -11,11 +11,12 @@
  use OCP\Security\ICrypto;
  use OCP\Security\ISecureRandom;
  use \OCP\ILogger;
-
+ use OCA\SendentSynchroniser\Service\SyncGroupService;
  use OCA\SendentSynchroniser\Service\UserGroupService;
 
  class GroupController extends ApiController {
- 	private $service;
+	private $externalUserService;
+	private $syncGroupService;
 
 	/** @var IUserManager */
 	protected $userManager;
@@ -27,14 +28,15 @@
 	private $crypto;
 	private $logger;
 
-	public function __construct(ILogger $logger, $appName,IUserManager $userManager,
+	public function __construct(ILogger $logger, $appName, IUserManager $userManager,
 	 IProvider $tokenProvider,
 	 ISecureRandom $random,
 	 ICrypto $crypto,
 	 IRequest $request,
-	 UserGroupService $service) {
+	 UserGroupService $externalUserService,
+	 SyncGroupService $syncGroupService) {
  		parent::__construct($appName, $request);
- 		$this->service = $service;
+ 		$this->externalUserService = $externalUserService;
 		 $this->tokenProvider = $tokenProvider;
 		$this->userManager = $userManager;
 		$this->random = $random;
@@ -50,7 +52,7 @@
  	 */
 	public function generateAppPasswordsForGroup($groupid)
 	{
-		$groupusers = $this->service->GetGroupUsers($groupid);
+		$groupusers = $this->externalUserService->GetGroupUsers($groupid);
 		$usersInGroup = $groupusers[0]->users;
 		$arrayResults = array();
 
@@ -82,23 +84,25 @@
 
 		}
 		return new DataResponse($arrayResults);
-
 	}
+
+
  	/**
  	 * @NoAdminRequired
  	 * @NoCSRFRequired
  	 * @return DataResponse
  	 */
- 	public function getGroups(): DataResponse {
- 		return new DataResponse($this->service->getGroups());
+ 	public function getExternalGroups(): DataResponse {
+ 		return new DataResponse($this->externalUserService->getGroups());
  	}
+
  	/**
  	 * @NoAdminRequired
  	 * @NoCSRFRequired
  	 * @param string $groupid
  	 * @return DataResponse
  	 */
-	  public function getGroupUsers(string $groupid): DataResponse {
-		return new DataResponse($this->service->GetGroupUsers($groupid));
+	  public function getExternalGroupUsers(string $groupid): DataResponse {
+		return new DataResponse($this->externalUserService->GetGroupUsers($groupid));
 	}
 }

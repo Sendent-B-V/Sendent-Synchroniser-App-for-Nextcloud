@@ -8,30 +8,12 @@ use OCP\AppFramework\Db\QBMapper;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
-class SettingKeyMapper extends QBMapper {
+class SyncUserMapper extends QBMapper {
 	public $db;
 
 	public function __construct(IDBConnection $db) {
-		parent::__construct($db, 'sndnt_stngky', SettingKey::class);
+		parent::__construct($db, 'sndnt_syncusr', SyncUser::class);
 		$this->db = $db;
-	}
-
-	/**
-	 * @throws \OCP\AppFramework\Db\DoesNotExistException if not found
-	 * @throws \OCP\AppFramework\Db\MultipleObjectsReturnedException if more than one result
-	 *
-	 * @return \OCP\AppFramework\Db\Entity
-	 */
-	public function find(int $id): \OCP\AppFramework\Db\Entity {
-		$qb = $this->db->getQueryBuilder();
-
-		$qb->select('*')
-		   ->from('sndnt_stngky')
-		   ->where(
-			   $qb->expr()->eq('key', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT))
-		   );
-
-		return $this->findEntity($qb);
 	}
 
 	/**
@@ -44,7 +26,7 @@ class SettingKeyMapper extends QBMapper {
 		$qb = $this->db->getQueryBuilder();
 
 		$qb->select('*')
-		   ->from('sndnt_stngky')
+		   ->from('sndnt_syncusr')
 		   ->where(
 			   $qb->expr()->eq('id', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT))
 		   );
@@ -58,38 +40,34 @@ class SettingKeyMapper extends QBMapper {
 	 *
 	 * @return \OCP\AppFramework\Db\Entity
 	 */
-	public function findByKey(string $key): \OCP\AppFramework\Db\Entity {
+	public function findByUsername(string $username): \OCP\AppFramework\Db\Entity {
 		$qb = $this->db->getQueryBuilder();
 
 		$qb->select('*')
-		   ->from('sndnt_stngky')
+		   ->from('sndnt_syncusr')
 		   ->where(
-			   $qb->expr()->eq('key', $qb->createNamedParameter($key, IQueryBuilder::PARAM_INT))
+			   $qb->expr()->eq('username', $qb->createNamedParameter($username, IQueryBuilder::PARAM_INT))
 		   );
 
 		return $this->findEntity($qb);
 	}
-
 	/**
 	 * @throws \OCP\AppFramework\Db\DoesNotExistException if not found
 	 * @throws \OCP\AppFramework\Db\MultipleObjectsReturnedException if more than one result
 	 *
-	 * @return \OCP\AppFramework\Db\Entity[]
-	 *
-	 * @psalm-return array<\OCP\AppFramework\Db\Entity>
+	 * @return \OCP\AppFramework\Db\Entity
 	 */
-	public function findByTemplateId(int $id): array {
+	public function findByGroupId(string $groupId): \OCP\AppFramework\Db\Entity {
 		$qb = $this->db->getQueryBuilder();
 
 		$qb->select('*')
-		   ->from('sndnt_stngky')
+		   ->from('sndnt_syncusr')
 		   ->where(
-			   $qb->expr()->eq('templateid', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT))
+			   $qb->expr()->eq('groupId', $qb->createNamedParameter($groupId, IQueryBuilder::PARAM_INT))
 		   );
 
-		return $this->findEntities($qb);
+		return $this->findEntity($qb);
 	}
-
 	/**
 	 * @return \OCP\AppFramework\Db\Entity[]
 	 *
@@ -99,20 +77,20 @@ class SettingKeyMapper extends QBMapper {
 		$qb = $this->db->getQueryBuilder();
 
 		$qb->select('*')
-		   ->from('sndnt_stngky')
+		   ->from('sndnt_syncusr')
 		   ->setMaxResults($limit)
 		   ->setFirstResult($offset);
 
 		return $this->findEntities($qb);
 	}
 
-	public function settingKeyCount($key) {
+	public function syncUserCount($username) {
 		$qb = $this->db->getQueryBuilder();
 
 		$qb->selectAlias($qb->createFunction('COUNT(*)'), 'count')
-		   ->from('sndnt_stngky')
+		   ->from('sndnt_syncusr')
 		   ->where(
-			   $qb->expr()->eq('key', $qb->createNamedParameter($key, IQueryBuilder::PARAM_STR))
+			   $qb->expr()->eq('username', $qb->createNamedParameter($username, IQueryBuilder::PARAM_STR))
 		   );
 
 		$cursor = $qb->execute();
