@@ -47,7 +47,6 @@ use OCP\IUserManager;
  	}
 
 	/**
- 	 * @NoAdminRequired
  	 * @NoCSRFRequired
      * @param string $groupid
  	 * @return DataResponse
@@ -95,7 +94,6 @@ use OCP\IUserManager;
 		return new DataResponse($arrayResults);
 	}
 	/**
- 	 * @NoAdminRequired
  	 * @NoCSRFRequired
      * @param string $username
  	 * @return DataResponse
