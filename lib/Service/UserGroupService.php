@@ -48,7 +48,9 @@ class UserGroupService {
 
 				/** @var IUser $user */
 				$userItem = new UserItem();
-				$userItem->name = $user->GetuId();
+				$userItem->name = $user->getDisplayName();
+				$userItem->email = $user->getEMailAddress();
+				$userItem->id = $user->GetuId();
 				array_push($newUsers, $userItem);
 			}
 			

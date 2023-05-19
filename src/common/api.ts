@@ -7,8 +7,14 @@ import {GroupItem} from "../common/GroupItem";
 
 export class API {
 
-    public async getGroups() : Promise<GroupItem[]> {
-        const url = generateUrl('apps/sendentsynchroniser/api/1.0/groups');
+    public async getSyncGroups() : Promise<GroupItem[]> {
+        const url = generateUrl('apps/sendentsynchroniser/api/1.0/groups/sync');
+        const response = await axios.get<GroupItem[]>(url);
+
+        return response.data;
+    }
+    public async getExternalGroups() : Promise<GroupItem[]> {
+        const url = generateUrl('apps/sendentsynchroniser/api/1.0/groups/external');
         const response = await axios.get<GroupItem[]>(url);
 
         return response.data;

@@ -19,8 +19,10 @@ return [
 		['name' => 'caldav#getGroupMemberSet', 'url' => '/api/1.0/caldav/groupmembership/{username}', 'verb' => 'GET'],
 		['name' => 'caldav#setGroupMemberSet', 'url' => '/api/1.0/caldav/groupmembership/{username}/{serviceaccount}', 'verb' => 'GET'],
 
-		['name' => 'group#getExternalGroups', 'url' => '/api/1.0/groups/', 'verb' => 'GET'],
-		['name' => 'group#generateAppPasswordsForGroup', 'url' => '/api/1.0/groups/generateAppPasswordsForGroup/{groupid}', 'verb' => 'GET'],
+		['name' => 'group#getExternalGroups', 'url' => '/api/1.0/groups/external', 'verb' => 'GET'],
+		['name' => 'group#getSyncGroups', 'url' => '/api/1.0/groups/sync', 'verb' => 'GET'],
+		['name' => 'group#generateAppPasswordsForGroup', 'url' => '/api/1.0/groups/appPasswords/{groupid}', 'verb' => 'GET'],
+		['name' => 'group#generateAppPasswordsForUser', 'url' => '/api/1.0/groups/appPassword/{username}', 'verb' => 'GET'],
 		['name' => 'group#getExternalGroupUsers', 'url' => '/api/1.0/groups/{groupid}/users', 'verb' => 'GET'],
 
 		['name' => 'serviceaccount#index', 'url' => '/api/1.0/serviceaccounts', 'verb' => 'GET'],

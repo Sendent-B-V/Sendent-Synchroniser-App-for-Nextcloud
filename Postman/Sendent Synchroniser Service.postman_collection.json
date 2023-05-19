@@ -1,0 +1,247 @@
+{
+	"info": {
+		"_postman_id": "71459579-8bd1-485c-8572-e426c5a06465",
+		"name": "Sendent Synchroniser Service",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "11241360"
+	},
+	"item": [
+		{
+			"name": "Add Syncgroup",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "leonvandebroek",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:5000/index.php/apps/sendentsynchroniser/api/1.0/groups/admin/users",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"index.php",
+						"apps",
+						"sendentsynchroniser",
+						"api",
+						"1.0",
+						"groups",
+						"admin",
+						"users"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Syncgroup",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "leonvandebroek",
+							"type": "string"
+						}
+					]
+				},
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "localhost:5000/index.php/apps/sendentsynchroniser/api/1.0/syncgroups/1",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"index.php",
+						"apps",
+						"sendentsynchroniser",
+						"api",
+						"1.0",
+						"syncgroups",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Syncgroups",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "leonvandebroek",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:5000/index.php/apps/sendentsynchroniser/api/1.0/groups/sync",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"index.php",
+						"apps",
+						"sendentsynchroniser",
+						"api",
+						"1.0",
+						"groups",
+						"sync"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get NC Groups",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "leonvandebroek",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:5000/index.php/apps/sendentsynchroniser/api/1.0/groups/external",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"index.php",
+						"apps",
+						"sendentsynchroniser",
+						"api",
+						"1.0",
+						"groups",
+						"external"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Generate AppPassword for specific user",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "leonvandebroek",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:5000/index.php/apps/sendentsynchroniser/api/1.0/groups/appPassword/leonvandebroek",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"index.php",
+						"apps",
+						"sendentsynchroniser",
+						"api",
+						"1.0",
+						"groups",
+						"appPassword",
+						"leonvandebroek"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Generate AppPassword for all users in group",
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "leonvandebroek",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "localhost:5000/index.php/apps/sendentsynchroniser/api/1.0/groups/generateAppPasswordsForGroup/admin",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"index.php",
+						"apps",
+						"sendentsynchroniser",
+						"api",
+						"1.0",
+						"groups",
+						"generateAppPasswordsForGroup",
+						"admin"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

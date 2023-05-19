@@ -49,7 +49,7 @@ private logoUrl: string;
 
             this.handleMultiInput(inputElement, element);
             $("#btnRefreshGroupSet").on('click', async () => {
-                this.handleRefreshGroupsSet(await this.apiCalls.getGroups());
+                this.handleRefreshGroupsSet(await this.apiCalls.getExternalGroups());
             });
         }
         });
@@ -61,10 +61,26 @@ private logoUrl: string;
         if (inputElement.hasClass('multiValueInput')) {
             const multiInputContainer = $(element).find('.multiInputContainer');
             //const currentValue = setting.length > 0 ? setting[0].value : '';
-            const groups = await this.apiCalls.getGroups();
+            const groups = await this.apiCalls.getExternalGroups();
+            const syncGroups = await this.apiCalls.getSyncGroups();
             let groupNameString = '';
             groups.forEach(group => {
-                groupNameString = groupNameString + ';' + group.id;
+                var checked = false;
+                syncGroups.forEach(syncGroup => {
+                    if(syncGroup.id == group.id)
+                    {
+                        checked = true;
+                    }
+                });
+                const valueElement = $('<p id="value-element" >'+group.id+'</p>');
+                const checkboxElement = $('<input type="checkbox" value="'+ checked +'"></input>');
+                valueElement.val(group.id);
+                //valueElement.on('change', () => this.updateValue());
+
+                checkboxElement.on('click', () => {
+                    // TODO: Api call to php backend to disable group synchronisation
+                    
+        });
                 console.log("group added to groupNameString:         " + group.id);
             });
             // remove the first ';'

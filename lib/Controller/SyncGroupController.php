@@ -8,7 +8,7 @@
 
  use OCA\SendentSynchroniser\Service\SyncGroupService;
 
- class SyncGroupApiController extends ApiController {
+ class SyncgroupController extends ApiController {
  	private $service;
 
  	public function __construct($appName,

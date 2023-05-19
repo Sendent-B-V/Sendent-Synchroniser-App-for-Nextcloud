@@ -7,6 +7,8 @@ use JsonSerializable;
 
 class UserItem implements JsonSerializable {
 	public $name;
+	public $id;
+	public $email;
 
 	public function __construct() {
 		// add types in constructor
@@ -14,7 +16,9 @@ class UserItem implements JsonSerializable {
 
 	public function jsonSerialize() {
 		return [
-			'name' => $this->name
+			'id' => $this->id,
+			'name' => $this->name,
+			'email' => $this->email
 		];
 	}
 }
