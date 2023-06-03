@@ -75,10 +75,11 @@ private logoUrl: string;
                 const valueElement = $('<p id="value-element" >'+group.id+'</p>');
                 const checkboxElement = $('<input type="checkbox" value="'+ checked +'"></input>');
                 valueElement.val(group.id);
+
                 //valueElement.on('change', () => this.updateValue());
 
                 checkboxElement.on('click', () => {
-                    // TODO: Api call to php backend to disable group synchronisation
+                    
                     
         });
                 console.log("group added to groupNameString:         " + group.id);

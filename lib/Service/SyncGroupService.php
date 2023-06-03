@@ -33,8 +33,8 @@ class SyncGroupService {
 		}
 	}
 
-	public function findByName(string $username) {
-		return $this->mapper->findByName($username);
+	public function findByName(string $name) {
+		return $this->mapper->findByName($name);
 	}
 
 	public function find(int $id) {
@@ -49,20 +49,35 @@ class SyncGroupService {
 			$this->handleException($e);
 		}
 	}
-
+	
 	public function create(string $name): \OCP\AppFramework\Db\Entity {
 		$syncGroup = new SyncGroup();
 		$syncGroup->setName($name);
 		return $this->mapper->insert($syncGroup);
 	}
 
+	public function updateSyncGroupList($newSendentGroups){
+		$sendentGroups = $this->mapper->findAll();
+		foreach ($sendentGroups as $groupToDelete) {
+			$this->mapper->delete($groupToDelete);
+		}
+		//error_log($newGroups);
+
+		foreach($newSendentGroups as $newGroup)
+		{
+			$syncGroup = new SyncGroup();
+			$syncGroup->setName($newGroup);
+			$this->mapper->insert($syncGroup);
+		}
+		return $this->mapper->findAll();
+	}
 	public function update(int $id, string $name): \OCP\AppFramework\Db\Entity {
 		try {
 			$syncGroup = $this->mapper->find($id);
 		} catch (Exception $e) {
 			$this->handleException($e);
 		}
-		$syncGroup->setName($username);
+		$syncGroup->setName($name);
 		return $this->mapper->update($syncGroup);
 	}
 

@@ -7,10 +7,10 @@ script('sendentsynchroniser', 'settings');
 style('sendentsynchroniser', ['style']);
 ?>
 
-<form class="form" method="post" id="settingsform">
+<div class="Settingspage" id="sendent_settings" style="display:block">
 
-    <?php print_unescaped($this->inc('sections/general')); ?>
+	<form class="form" method="post" id="settingsform">
 
-</form>
-
+	    <?php print_unescaped($this->inc('sections/groupsManagement')); ?>
+    </form>
 </div>

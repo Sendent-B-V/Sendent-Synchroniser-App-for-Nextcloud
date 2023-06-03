@@ -55,7 +55,14 @@
  	public function create(string $name) {
  		return $this->service->create($name);
  	}
-
+	/**
+ 	 * @NoAdminRequired
+ 	 * @NoCSRFRequired
+	 * @param string $newSendentGroups
+	 */
+	  public function updateFromNewList($newSendentGroups) {
+		return $this->service->updateSyncGroupList($newSendentGroups);
+	}
  	/**
  	 * @NoAdminRequired
  	 * @NoCSRFRequired

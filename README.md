@@ -1,5 +1,5 @@
-# What is Sendent app for Nextcloud
-Sendent allows you to securely exchange files and emails. Sendent is linked to Microsoft Outlook, so you can continue to work from your trusted email program while you mail more easily and securely. Very useful, for example, to share privacy-sensitive documents or content or to send attachments that are normally too large to email. All files are uploaded to your personal Nextcloud environment from which you determine who has access to them.
+# What is Sendent Synchronizer for Nextcloud
+Easy to use synchronization configurtion management using groups.
 
 # Installation
 The easiest way to install this app is by using the [Nextcloud app store](https://apps.nextcloud.com/apps/sendent). If you like to build from source, please continue reading. For the installation you need node, yarn, php and composer.

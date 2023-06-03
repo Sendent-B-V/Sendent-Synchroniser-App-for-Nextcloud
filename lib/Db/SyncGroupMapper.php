@@ -37,7 +37,6 @@ class SyncGroupMapper extends QBMapper {
 	/**
 	 * @throws \OCP\AppFramework\Db\DoesNotExistException if not found
 	 * @throws \OCP\AppFramework\Db\MultipleObjectsReturnedException if more than one result
-	 *
 	 * @return \OCP\AppFramework\Db\Entity
 	 */
 	public function findByName(string $name): \OCP\AppFramework\Db\Entity {
@@ -46,7 +45,7 @@ class SyncGroupMapper extends QBMapper {
 		$qb->select('*')
 		   ->from('sndnt_syncgrp')
 		   ->where(
-			   $qb->expr()->eq('name', $qb->createNamedParameter($key, IQueryBuilder::PARAM_INT))
+			   $qb->expr()->eq('name', $qb->createNamedParameter($name, IQueryBuilder::PARAM_STR))
 		   );
 
 		return $this->findEntity($qb);

@@ -34,9 +34,10 @@ return [
 
 		['name' => 'syncgroup#index', 'url' => '/api/1.0/syncgroups', 'verb' => 'GET'],
 		['name' => 'syncgroup#show', 'url' => '/api/1.0/syncgroups/{id}', 'verb' => 'GET'],
-		['name' => 'syncgroup#showByUsername', 'url' => '/api/1.0/syncgroups/byName/{name}', 'verb' => 'GET'],
+		['name' => 'syncgroup#showByName', 'url' => '/api/1.0/syncgroups/byName/{name}', 'verb' => 'GET'],
 		['name' => 'syncgroup#create', 'url' => '/api/1.0/syncgroups', 'verb' => 'POST'],
 		['name' => 'syncgroup#update', 'url' => '/api/1.0/syncgroups/{id}', 'verb' => 'PUT'],
+		['name' => 'syncgroup#updateFromNewList', 'url' => '/api/1.0/syncgroups/updateFromNewList', 'verb' => 'POST'],
 		['name' => 'syncgroup#destroy', 'url' => '/api/1.0/syncgroups/{id}', 'verb' => 'DELETE'],
 
 		['name' => 'syncuser#index', 'url' => '/api/1.0/syncusers', 'verb' => 'GET'],
@@ -47,7 +48,9 @@ return [
 		['name' => 'syncuser#update', 'url' => '/api/1.0/syncusers/{id}', 'verb' => 'PUT'],
 		['name' => 'syncuser#destroy', 'url' => '/api/1.0/syncusers/{id}', 'verb' => 'DELETE'],
 
-		['name' => 'caldav#preflighted_cors', 'url' => '/api/0.1/{path}',
+		['name' => 'caldav#preflighted_cors', 'url' => '/api/1.0/{path}',
+			'verb' => 'OPTIONS', 'requirements' => ['path' => '.+']],
+			['name' => 'syncgroup#preflighted_cors', 'url' => '/api/1.0/{path}',
 			'verb' => 'OPTIONS', 'requirements' => ['path' => '.+']]
 	]
 ];

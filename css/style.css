@@ -1,10 +1,7 @@
 #hello {
 	color: red;
 }
-.personal-settings-setting-box{
-	position:relative;
-}
-.license-settings-setting-box{
+.personal-settings-setting-box, .license-settings-setting-box, .dependency-settings-setting-box{
 	position:relative;
 }
 .settingkeyvalueinput{
@@ -13,12 +10,45 @@
 	grid-area:b;
 	vertical-align: middle;
 }
+.settingkeyvalueinherited {
+	display:flex !important;
+	position: relative;
+		align-items: center;
+	margin-left: 5px;
+}
+.settingkeyvalueinheritedcheckbox {
+	position: relative;
+	vertical-align: middle;
+	align-items: center;
+	margin-top:10px !important;
+	grid-area:e;
+	margin-left: 5px;
+}
+.settingkeyvalueinheritedlabel{
+	position: relative;
+	vertical-align: middle;
+	align-items: center;
+	margin-top:-14px;
+	grid-area:d;
+	margin-left: 5px;
+}
+.multiInputContainer input {
+		min-width: 300px;
+		max-width:300px;
+		display: inline-flex;
+}
+.multiInputContainer button {
+	display: inline-flex;
+}
+.multiInputContainer{
+	min-width:300px;
+}
 .multiInputContainer a,
 .settingkeyvalue summary {
 	line-height: 34px;
 	margin-top: 4px;
-	width:200px;
 	font-style: italic;
+	min-width:300px;
 }
 .multiInputContainer .multiInputRow:last-child {
 	margin-bottom: 1em;
@@ -29,17 +59,54 @@
 .multiInputContainer.collapsed .multiInputRow {
 	display: none;
 }
-.multiInputRow {
-	display: flex;
-	width:500px;
+.section {
+	z-index: -1;
 }
-.multiInputRow > Input{
-	width:100%;
+
+.tabmenu {
+	position: fixed;
+	z-index: 100;
+	width: 100%;
+	height: 50px;
+	padding: 35px 35px 44px 19px;
+	border-bottom: 1px solid #ccc;
+	background-color: var(--color-main-background);
 }
-.debug {
-	background-color:lightblue;
-	margin-top:30px;
+.tablink {
+	display: inline-flex;
+	font-size:medium;
+	border-radius: var(--border-radius-large) var(--border-radius-large) 0px 0px;
+	background: white;
+	min-width: 110px !important;
+	max-width: 220px;
+	min-height: 40px;
+	max-height: 50px; 
+	text-align:top;
+	padding:10px;
 }
+.tablink.active {
+	display: inline-flex;
+	font-weight: bold;
+	font-size:medium;
+	border-bottom: 1px solid black;
+	border-radius: var(--border-radius-large) var(--border-radius-large) 0px 0px;
+	background: whitesmoke;
+	min-width: 110px !important;
+	max-width: 220px;
+	min-height: 40px;
+	max-height: 50px; 
+	text-align:top;
+	padding:10px;
+}
+
+.Settingspage {
+	padding-top: 30px;
+}
+
+.TermsAgreement  {
+	margin-top: 80px;
+}
+
 select{
 	width:100%;
 }
@@ -79,12 +146,32 @@ textarea{
 	width: 300px;
 }
 
+.defaultList, .connectedSortable {
+    min-width: 270px;
+	margin-right: 5px;
+	padding: 2px;
+	border: 1px solid #eee;
+}
+.connectedSortable li {
+	padding-left: 2px;
+}
+.defaultList .ui-selected, .connectedSortable .ui-selected {
+	background: var(--color-primary);
+	color: var(--color-primary-text);
+}
+
+.ui-state-default {
+	padding: 5px;
+}
+.ui-state-default.ui-immutable {
+	background:lightgray;
+}
 label{
 	grid-area: a;
 }
 .labelFullWidth{
 	grid-column-start: a;
-	grid-column-end:c;
+	grid-column-end:e;
 }
 .errorStatus{
 	color:darkred;
