@@ -1,6 +1,6 @@
 {
   "name": "sendentsynchroniser",
-  "version": "1.0.0",
+  "version": "1.22.10",
   "repository": "git@ssh.dev.azure.com:v3/sendent/Sendent/Sendent-Synchroniser-App-for-Nextcloud",
   "author": "Sendent",
   "license": "agpl",
