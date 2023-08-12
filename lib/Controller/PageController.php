@@ -31,4 +31,12 @@ class PageController extends Controller {
 	public function index(): TemplateResponse {
 		return new TemplateResponse('sendentsynchroniser', 'index');  // templates/index.php
 	}
+	/**
+	 * @NoAdminRequired
+	 * @NoCSRFRequired
+	 * @return string
+	 */
+	public function health(){
+		return "OK";
+	}
 }

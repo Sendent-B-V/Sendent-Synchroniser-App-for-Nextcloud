@@ -16,6 +16,7 @@ return [
 	],
 	'routes' => [
 		['name' => 'page#index', 'url' => '/', 'verb' => 'GET'],
+		['name' => 'page#health', 'url' => '/health', 'verb' => 'GET'],
 		['name' => 'caldav#getGroupMemberSet', 'url' => '/api/1.0/caldav/groupmembership/{username}', 'verb' => 'GET'],
 		['name' => 'caldav#setGroupMemberSet', 'url' => '/api/1.0/caldav/groupmembership/{username}/{serviceaccount}', 'verb' => 'GET'],
 
@@ -39,6 +40,8 @@ return [
 		['name' => 'syncgroup#update', 'url' => '/api/1.0/syncgroups/{id}', 'verb' => 'PUT'],
 		['name' => 'syncgroup#updateFromNewList', 'url' => '/api/1.0/syncgroups/updateFromNewList', 'verb' => 'POST'],
 		['name' => 'syncgroup#destroy', 'url' => '/api/1.0/syncgroups/{id}', 'verb' => 'DELETE'],
+
+
 
 		['name' => 'syncuser#index', 'url' => '/api/1.0/syncusers', 'verb' => 'GET'],
 		['name' => 'syncuser#show', 'url' => '/api/1.0/syncusers/{id}', 'verb' => 'GET'],

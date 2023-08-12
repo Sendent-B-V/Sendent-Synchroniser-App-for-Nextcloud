@@ -46,6 +46,7 @@ use OCP\IUserManager;
 		$this->logger = $logger;
  	}
 
+
 	/**
  	 * @NoCSRFRequired
      * @param string $groupid
@@ -134,7 +135,7 @@ use OCP\IUserManager;
 		  
 		  return new DataResponse($arrayResults);
 	  }
-
+	
  	/**
  	 * @NoAdminRequired
  	 * @NoCSRFRequired
