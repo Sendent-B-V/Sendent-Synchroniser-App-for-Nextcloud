@@ -16,7 +16,7 @@ return [
 	],
 	'routes' => [
 		['name' => 'page#index', 'url' => '/', 'verb' => 'GET'],
-		['name' => 'page#health', 'url' => '/health', 'verb' => 'GET'],
+		['name' => 'page#health', 'url' => '/api/1.0/health', 'verb' => 'GET'],
 		['name' => 'caldav#getGroupMemberSet', 'url' => '/api/1.0/caldav/groupmembership/{username}', 'verb' => 'GET'],
 		['name' => 'caldav#setGroupMemberSet', 'url' => '/api/1.0/caldav/groupmembership/{username}/{serviceaccount}', 'verb' => 'GET'],
 

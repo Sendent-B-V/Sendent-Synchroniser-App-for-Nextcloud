@@ -34,7 +34,6 @@ class PageController extends Controller {
 	/**
 	 * @NoAdminRequired
 	 * @NoCSRFRequired
-	 * @return string
 	 */
 	public function health(){
 		return "OK";
