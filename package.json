@@ -14,7 +14,7 @@
   },
   "devDependencies": {
     "@eastdesire/jscolor": "^2.4.5",
-    "@nextcloud/axios": "^1.6.0",
+    "@nextcloud/axios": "^1.11.0",
     "@nextcloud/eslint-plugin": "^2.0.0",
     "@nextcloud/router": "^2.0.0",
     "@types/jquery": "^3.3.6",
@@ -24,7 +24,7 @@
     "@typescript-eslint/parser": "^5.10.0",
     "css-loader": "^6.5.1",
     "eslint": "^8.7.0",
-    "eslint-config-standard": "^16.0.3",
+    "eslint-config-standard": "^17.1",
     "eslint-import-resolver-webpack": "^0.13.2",
     "eslint-plugin-import": "^2.20.2",
     "eslint-plugin-node": "^11.1.0",
@@ -53,6 +53,6 @@
     "typescript-formatter": "^7.2.2"
   },
   "engines": {
-    "node": "^14.0.0"
+    "node": "^16.10.0"
   }
 }
