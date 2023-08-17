@@ -177,4 +177,12 @@ use Exception;
 	  public function getExternalGroupUsers(string $groupid): DataResponse {
 		return new DataResponse($this->externalUserService->GetGroupUsers($groupid));
 	}
+		/**
+ 	 * @NoAdminRequired
+ 	 * @NoCSRFRequired
+	 * @param string $newSendentGroups
+	 */
+	public function updateFromNewList($newSendentGroups) {
+		return $this->syncGroupService->updateSyncGroupList($newSendentGroups);
+	}
 }

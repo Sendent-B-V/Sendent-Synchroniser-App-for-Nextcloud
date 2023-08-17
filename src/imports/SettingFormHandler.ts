@@ -1,6 +1,4 @@
 /* eslint-disable @nextcloud/no-deprecations */
-import GroupCalls from "./GroupCalls";
-import CalDavCalls from "./CalDavCalls";
 import MultiInputList from "./MultiInputList";
 import {API} from "../common/api";
 import {GroupItem} from "../common/GroupItem";
@@ -18,14 +16,10 @@ export default class SettingFormHandler {
         return this.instance;
     }
 f
-private calls: GroupCalls;
-private caldavCalls: CalDavCalls;
 private apiCalls: API;
 private logoUrl: string;
 
     private constructor() {
-        this.calls = new GroupCalls();
-        this.caldavCalls = new CalDavCalls();
         this.apiCalls = new API();
         this.logoUrl = $('#header .logo').css('background-image').replace(/url\(("|')(.+)("|')\)/gi, '$2').trim();
     }
