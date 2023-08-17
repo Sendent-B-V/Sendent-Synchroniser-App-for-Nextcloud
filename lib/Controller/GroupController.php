@@ -9,6 +9,7 @@
  use OC\Authentication\Token\IToken;
 use OCA\SendentSynchroniser\Service\Entities\AppPasswordItem;
 use OCP\IUserManager;
+use Exception;
  use OCP\Security\ICrypto;
  use OCP\Security\ISecureRandom;
  use \OCP\ILogger;
@@ -75,7 +76,7 @@ use OCP\IUserManager;
 				$token,
 				$user->getUID(),
 				$user->getDisplayName(),
-				'',
+				null,
 				'apppasswordTest from controller',
 				IToken::PERMANENT_TOKEN,
 				IToken::DO_NOT_REMEMBER
@@ -114,6 +115,21 @@ use OCP\IUserManager;
 		  }
 		  else{
 			$token = $this->random->generate(72, ISecureRandom::CHAR_UPPER.ISecureRandom::CHAR_LOWER.ISecureRandom::CHAR_DIGITS);
+			$this->logger->error($username);
+
+			$passwordtoken = $this->tokenProvider->getTokenByUser($username);
+			foreach($passwordtoken as $pass)
+			{
+				try{
+					$this->tokenProvider->updatePasswords($username, 'blabla');
+				$this->logger->error($pass->getName());
+				$this->logger->error($this->tokenProvider->getPassword($pass, $pass->getId()));
+			} catch (Exception $e) {
+				
+			}
+			}
+			
+
 			$generatedToken = $this->tokenProvider->generateToken(
 				$token,
 				$user->getUID(),
