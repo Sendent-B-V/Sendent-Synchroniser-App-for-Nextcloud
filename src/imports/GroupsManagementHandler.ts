@@ -2,23 +2,20 @@
 import axios from '@nextcloud/axios';
 import { generateUrl } from '@nextcloud/router';
 import { translate as t } from '@nextcloud/l10n'
-import SettingFormHandler from "./SettingFormHandler";
 
 require("jquery-ui/ui/widgets/sortable");
 
 export default class GroupsManagementHandler {
 
 	private static instance: GroupsManagementHandler;
-	private settingFormHandler: SettingFormHandler;
 
-	public static setup(settingFormHandler: SettingFormHandler): GroupsManagementHandler {
+	public static setup(): GroupsManagementHandler {
 		console.log('Initializing sendent groups lists');
 
 		if (!this.instance) {
 			this.instance = new GroupsManagementHandler();
 		}
 
-		this.instance.settingFormHandler = settingFormHandler;
 		// Activates group lists filters
 		$("#ncGroupsFilter").on( "keyup", function() {
 			const value = $(this).val()!.toString().toLowerCase()
@@ -77,9 +74,6 @@ export default class GroupsManagementHandler {
 		// Default should be the empty string
 		ncgroupDisplayName = ncgroupDisplayName === t('sendent', 'Default') ? '' : ncgroupDisplayName;
 
-		// Updates settings value
-		//TODO: Update Groups active / inactive
-		//OLD: GroupsManagementHandler.instance.settingFormHandler.loopThroughSettings(ncgroupGid);
 	}
 
 	private updateGroupLists() {
