@@ -1,6 +1,6 @@
 <div class="settingTemplateDetailInclude section" id="groupsManagement">
     <h2>
-        <?php p($l->t('Sendent Synchronizer')); ?>
+        <?php p($l->t('Active groups')); ?>
     </h2>
 
 	<div class="license-settings-setting-box">

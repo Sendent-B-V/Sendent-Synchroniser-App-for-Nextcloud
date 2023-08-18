@@ -56,7 +56,7 @@ class PageController extends Controller {
 	 *
 	 */
 	public function permit() {
-		$this->logger->error('Permit function triggered');
+		$this->logger->info('Permit function triggered');
 
 		// We do not allow the creation of new tokens if this is an app password
 		if ($this->session->exists('app_password')) {
@@ -90,7 +90,7 @@ class PageController extends Controller {
 			IToken::PERMANENT_TOKEN,
 			IToken::DO_NOT_REMEMBER
 		);
-		
+
 		$this->logger->error('Token created and is: ' . $token);
 
 		$this->eventDispatcher->dispatchTyped(
