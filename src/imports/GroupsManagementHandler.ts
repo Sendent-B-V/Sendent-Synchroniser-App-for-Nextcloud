@@ -56,7 +56,7 @@ export default class GroupsManagementHandler {
 
 		// Update backend
 		console.log('Updating backend with groups: ' +  newSendentGroups);
-		const url = generateUrl('/apps/sendentsynchroniser/api/1.0/groups/updateFromNewList');
+		const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/activeGroups');
 		return axios.post(url, {newSendentGroups});
 
 	}

@@ -71,6 +71,7 @@ class SyncGroupService {
 		}
 		return $this->mapper->findAll();
 	}
+	
 	public function update(int $id, string $name): \OCP\AppFramework\Db\Entity {
 		try {
 			$syncGroup = $this->mapper->find($id);

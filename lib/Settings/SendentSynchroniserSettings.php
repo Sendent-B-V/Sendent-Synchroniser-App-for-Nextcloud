@@ -2,7 +2,6 @@
 
 namespace OCA\SendentSynchroniser\Settings;
 
-use OCA\SendentSynchroniser\Service\SyncGroupService;
 use OCP\App\IAppManager;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Services\IAppConfig;
@@ -14,9 +13,6 @@ class SendentSynchroniserSettings implements ISettings {
 
 	/** @var IAppManager */
 	private $appManager;
-
-	/** @var SyncGroupService */
-	private $syncGroupService;
 
 	/** @var IGroupManager */
 	private $groupManager;
@@ -30,15 +26,14 @@ class SendentSynchroniserSettings implements ISettings {
 	public function __construct(
 		IAppManager $appManager,
 		IGroupManager $groupManager,
-		SyncGroupService $syncGroupService,
 		IInitialState $initialState,
-		IAppConfig $appConfig
-			) {
+		IAppConfig $appConfig) {
+
 		$this->appManager = $appManager;
 		$this->groupManager = $groupManager;
-		$this->syncGroupService = $syncGroupService;
 		$this->initialState = $initialState;
 		$this->appConfig = $appConfig;
+
 	}
 
 	/**
@@ -49,10 +44,10 @@ class SendentSynchroniserSettings implements ISettings {
 	private function initializeGroups() {
 
 		// Gets groups used in the app
-		$sendentGroups = $this->syncGroupService->findAll();
+		$sendentGroups = $this->appConfig->getAppValue('activeGroups', '');
+		$sendentGroups = $sendentGroups !== '' ? json_decode($sendentGroups) : [];
 		$sendentGroups = array_map(function ($gid) {
-			error_log(print_r("evaluating syncGroup:" . $gid->getName(), true));
-			$group = $this->groupManager->get($gid->getName());
+			$group = $this->groupManager->get($gid);
 			if (!is_null($group)) {
 				return array(
 					"displayName" => $group->getDisplayName(),
@@ -83,6 +78,9 @@ class SendentSynchroniserSettings implements ISettings {
 
 		$params['ncGroups'] = $NCGroups;
 		$params['sendentGroups'] = $sendentGroups;
+
+		$params['notificationMethod'] = $this->appConfig->getAppValue('notificationMethod', '1');
+		$params['sharedSecret'] = $this->appConfig->getAppValue('sharedSecret', '');
 
 		return $params;
 	}

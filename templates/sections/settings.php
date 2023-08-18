@@ -15,10 +15,10 @@
             </label>
             <div class="status-error icon-error error hidden"></div>
             <div class="status-ok icon-checkmark ok hidden"></div>
-            <select class="settingkeyvalueinput" type="select" name="settingkeyvalueinput" id="setlanguage">
-                <option value="1" selected>Show in Mail, Calendar, Contacts, and Tasks</option>
-                <option value="2">Show in Files</option>
-                <option value="3">Show everywhere (options 1 and 2 combined)</option>
+            <select class="settingkeyvalueinput" type="select" id="setNotificationMethod">
+                <option value="1" <?php ($_['notificationMethod']==1) ? p('selected') : ''; ?> >Show in Mail, Calendar, Contacts, and Tasks</option>
+                <option value="2" <?php ($_['notificationMethod']==2) ? p('selected') : ''; ?> >Show in Files</option>
+                <option value="3" <?php ($_['notificationMethod']==3) ? p('selected') : ''; ?> >Show everywhere (options 1 and 2 combined)</option>
             </select>
         </div>
     </div>
@@ -30,7 +30,7 @@
             </label>
             <div class="status-error icon-error error hidden"></div>
             <div class="status-ok icon-checkmark ok hidden"></div>
-            <input class="settingkeyvalueinput" name="licensekeyvalueinput" id="licenseEmail" value="" autocapitalize="none" autocorrect="off">
+			<input class="settingkeyvalueinput" id="setSharedSecret" value="<?php p($_['sharedSecret']); ?>" autocapitalize="none" autocorrect="off">
         </div>
     </div>
 </div>

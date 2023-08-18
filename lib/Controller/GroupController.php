@@ -1,24 +1,24 @@
 <?php
 
- namespace OCA\SendentSynchroniser\Controller;
+namespace OCA\SendentSynchroniser\Controller;
 
- use OCP\IRequest;
- use OCP\AppFramework\Http\DataResponse;
- use OCP\AppFramework\ApiController;
- use OC\Authentication\Token\IProvider;
- use OC\Authentication\Token\IToken;
-use OCA\SendentSynchroniser\Service\Entities\AppPasswordItem;
-use OCP\IUserManager;
 use Exception;
- use OCP\Security\ICrypto;
- use OCP\Security\ISecureRandom;
- use \OCP\ILogger;
- use OCA\SendentSynchroniser\Service\SyncGroupService;
- use OCA\SendentSynchroniser\Service\UserGroupService;
+use OC\Authentication\Token\IToken;
+use OCP\IRequest;
+use OCP\AppFramework\ApiController;
+use OCP\AppFramework\Http\DataResponse;
+use OCP\AppFramework\Services\IAppConfig;
+use OC\Authentication\Token\IProvider;
+use OCP\IUserManager;
+use OCP\Security\ICrypto;
+use OCP\Security\ISecureRandom;
+use \OCP\ILogger;
+use OCA\SendentSynchroniser\Service\Entities\AppPasswordItem;
+use OCA\SendentSynchroniser\Service\UserGroupService;
 
- class GroupController extends ApiController {
+class GroupController extends ApiController {
+
 	private $externalUserService;
-	private $syncGroupService;
 
 	/** @var IUserManager */
 	protected $userManager;
@@ -28,23 +28,27 @@ use Exception;
 	private $random;
 	/** @var ICrypto */
 	private $crypto;
+	/** @var ILogger */
 	private $logger;
 
 	public function __construct(ILogger $logger, $appName, IUserManager $userManager,
-	 IProvider $tokenProvider,
-	 ISecureRandom $random,
-	 ICrypto $crypto,
-	 IRequest $request,
-	 UserGroupService $externalUserService,
-	 SyncGroupService $syncGroupService) {
+		IAppConfig $appConfig,
+		IProvider $tokenProvider,
+		ISecureRandom $random,
+	 	ICrypto $crypto,
+	 	IRequest $request,
+	 	UserGroupService $externalUserService) {
+
  		parent::__construct($appName, $request);
+
+		$this->appConfig = $appConfig;
  		$this->externalUserService = $externalUserService;
-		 $this->tokenProvider = $tokenProvider;
+		$this->tokenProvider = $tokenProvider;
 		$this->userManager = $userManager;
-		$this->syncGroupService = $syncGroupService;
 		$this->random = $random;
 		$this->crypto = $crypto;
 		$this->logger = $logger;
+
  	}
 
 
@@ -160,14 +164,7 @@ use Exception;
  	public function getExternalGroups(): DataResponse {
  		return new DataResponse($this->externalUserService->getGroups());
  	}
-	/**
- 	 * @NoAdminRequired
- 	 * @NoCSRFRequired
- 	 * @return DataResponse
- 	 */
-	  public function getSyncGroups(): DataResponse {
-		return new DataResponse($this->syncGroupService->findAll());
-	}
+
  	/**
  	 * @NoAdminRequired
  	 * @NoCSRFRequired
@@ -177,12 +174,16 @@ use Exception;
 	  public function getExternalGroupUsers(string $groupid): DataResponse {
 		return new DataResponse($this->externalUserService->GetGroupUsers($groupid));
 	}
-		/**
- 	 * @NoAdminRequired
- 	 * @NoCSRFRequired
+
+	/**
+	 * 
+	 * Saves new active groups list
+	 * 
 	 * @param string $newSendentGroups
+	 * 
 	 */
 	public function updateFromNewList($newSendentGroups) {
-		return $this->syncGroupService->updateSyncGroupList($newSendentGroups);
+		$this->appConfig->setAppValue('activeGroups', json_encode($newSendentGroups));
+		return;
 	}
 }

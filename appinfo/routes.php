@@ -18,14 +18,15 @@ return [
 		['name' => 'page#permit', 'url' => '/api/1.0/permit', 'verb' => 'GET'],
 		['name' => 'page#health', 'url' => '/api/1.0/health', 'verb' => 'GET'],
 
-		['name' => 'group#getSyncGroups', 'url' => '/api/1.0/groups/sync', 'verb' => 'GET'],
 		['name' => 'group#generateAppPasswordsForUser', 'url' => '/api/1.0/groups/appPassword/{username}', 'verb' => 'GET'],
 		['name' => 'group#getExternalGroupUsers', 'url' => '/api/1.0/groups/{groupid}/users', 'verb' => 'GET'],
 		['name' => 'group#getExternalGroups', 'url' => '/api/1.0/groups/external', 'verb' => 'GET'],
 		['name' => 'group#generateAppPasswordsForGroup', 'url' => '/api/1.0/groups/appPasswords/{groupid}', 'verb' => 'GET'],
-		['name' => 'group#updateFromNewList', 'url' => '/api/1.0/groups/updateFromNewList', 'verb' => 'POST'],
 
-			['name' => 'syncgroup#preflighted_cors', 'url' => '/api/1.0/{path}',
-			'verb' => 'OPTIONS', 'requirements' => ['path' => '.+']]
+		['name' => 'settings#setActiveGroups', 'url' => '/api/1.0/settings/activeGroups', 'verb' => 'POST'],
+		['name' => 'settings#setNotificationMethod', 'url' => '/api/1.0/settings/notificationMethod', 'verb' => 'POST'],
+		['name' => 'settings#setSharedSecret', 'url' => '/api/1.0/settings/sharedSecret', 'verb' => 'POST'],
+
+		['name' => 'syncgroup#preflighted_cors', 'url' => '/api/1.0/{path}', 'verb' => 'OPTIONS', 'requirements' => ['path' => '.+']]
 	]
 ];
