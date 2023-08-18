@@ -15,7 +15,6 @@ return [
 	'resources' => [
 	],
 	'routes' => [
-		['name' => 'page#index', 'url' => '/', 'verb' => 'GET'],
 		['name' => 'page#permit', 'url' => '/permit', 'verb' => 'GET'],
 		['name' => 'page#health', 'url' => '/api/1.0/health', 'verb' => 'GET'],
 

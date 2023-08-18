@@ -45,24 +45,6 @@ class PageController extends Controller {
 		$this->externalUserService = $externalUserService;
 		$this->urlGenerator = $urlGenerator;
 	}
-
-	/**
-	 * 	 * CAUTION: the @Stuff turns off security checks; for this page no admin is
-	 * 	 *          required and no CSRF check. If you don't know what CSRF is, read
-	 * 	 *          it up in the docs or you might create a security hole. This is
-	 * 	 *          basically the only required method to add this exemption, don't
-	 * 	 *          add it to any other method if you don't exactly know what it does
-	 * 	 *
-	 *
-	 * @NoAdminRequired
-	 *
-	 * @NoCSRFRequired
-	 *
-	 * @return TemplateResponse
-	 */
-	public function index(): TemplateResponse {
-		return new TemplateResponse('sendentsynchroniser', 'index');  // templates/index.php
-	}
 	
 	/**
 	 * 	 * CAUTION: the @Stuff turns off security checks; for this page no admin is
@@ -121,6 +103,7 @@ class PageController extends Controller {
 
 		return new TemplateResponse('sendentsynchroniser', 'successForToken');  // templates/index.php
 	}
+	
 	/**
 	 * @NoAdminRequired
 	 * @NoCSRFRequired
