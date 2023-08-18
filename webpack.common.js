@@ -8,6 +8,9 @@ module.exports = {
 		settings: [
 			path.join(__dirname, 'src', 'settings.ts'),
 		],
+		main: [
+			path.join(__dirname, 'src', 'main.js'),
+		],
 	},
 	output: {
 		path: path.resolve(__dirname, './js'),
