@@ -1,7 +1,6 @@
 /* eslint-disable @nextcloud/no-deprecations */
 import axios from '@nextcloud/axios';
 import { generateUrl } from '@nextcloud/router';
-import { translate as t } from '@nextcloud/l10n'
 
 require("jquery-ui/ui/widgets/sortable");
 
@@ -33,47 +32,16 @@ export default class GroupsManagementHandler {
 		$("#ncGroups").sortable({
 			items: "li:not(.ui-state-disabled",
 			connectWith: ".connectedSortable"
-		}).find( "li" )
-		.on( "click", this.instance.showSettingsForGroup)
+		})
 		$("#sendentGroups").sortable({
 			connectWith: ".connectedSortable",
 			update: () => this.instance.updateGroupLists()
-		}).find( "li" )
-		.on( "click", this.instance.showSettingsForGroup)
+		})
 		$("#defaultGroup").sortable({
 			cancel: ".unsortable",
-		}).find( "li" )
-		.on( "click", this.instance.showSettingsForGroup)
+		})
 
 		return this.instance;
-	}
-
-	private showSettingsForGroup(event) {
-
-		// Don't do anything if the clicked group is not a Sendent group
-		if (event.target.parentNode.id === "ncGroups") {
-			return;
-		}
-
-		// Unselect all other previously selected groups
-		$('#groupsManagement div ul li').each(function() {
-			if (this !== event.target) {
-				$(this).removeClass('ui-selected');
-			} else {
-				$(this).addClass('ui-selected');
-			}
-		});
-
-		// Gets group for which settings are to be shown
-		let ncgroupDisplayName = event.target.textContent
-		const ncgroupGid = event.target.dataset.gid;
-
-		// Changes currently selected group information
-		$('#currentGroup').text(ncgroupDisplayName);
-
-		// Default should be the empty string
-		ncgroupDisplayName = ncgroupDisplayName === t('sendent', 'Default') ? '' : ncgroupDisplayName;
-
 	}
 
 	private updateGroupLists() {

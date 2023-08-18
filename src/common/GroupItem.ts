@@ -1,4 +1,4 @@
-import {UserItem} from "../common/UserItem";
+import {UserItem} from "./UserItem";
 
 export interface GroupItem {
     id: string,
