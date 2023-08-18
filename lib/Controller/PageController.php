@@ -47,18 +47,13 @@ class PageController extends Controller {
 	}
 	
 	/**
-	 * 	 * CAUTION: the @Stuff turns off security checks; for this page no admin is
-	 * 	 *          required and no CSRF check. If you don't know what CSRF is, read
-	 * 	 *          it up in the docs or you might create a security hole. This is
-	 * 	 *          basically the only required method to add this exemption, don't
-	 * 	 *          add it to any other method if you don't exactly know what it does
-	 * 	 *
 	 *
+	 * This method creates an application token for the user
+	 * 
 	 * @NoAdminRequired
 	 *
-	 * @NoCSRFRequired
+ 	 * @return DataResponse
 	 *
-	 * @return TemplateResponse
 	 */
 	public function permit() {
 		$this->logger->error('Permit function triggered');
@@ -81,7 +76,7 @@ class PageController extends Controller {
 			$password = $credentials->getPassword();
 		} catch (PasswordUnavailableException $e) {
 			$password = null;
-			$this->logger->error('password is null on line 68');
+			$this->logger->error('password is null');
 		}
 
 		$token = $this->random->generate(72, ISecureRandom::CHAR_UPPER.ISecureRandom::CHAR_LOWER.ISecureRandom::CHAR_DIGITS);
@@ -95,15 +90,16 @@ class PageController extends Controller {
 			IToken::PERMANENT_TOKEN,
 			IToken::DO_NOT_REMEMBER
 		);
+		
 		$this->logger->error('Token created and is: ' . $token);
 
 		$this->eventDispatcher->dispatchTyped(
 			new AppPasswordCreatedEvent($generatedToken)
 		);
 
-		return new TemplateResponse('sendentsynchroniser', 'successForToken');  // templates/index.php
+		return new DataResponse(True);
 	}
-	
+
 	/**
 	 * @NoAdminRequired
 	 * @NoCSRFRequired

@@ -15,7 +15,7 @@ return [
 	'resources' => [
 	],
 	'routes' => [
-		['name' => 'page#permit', 'url' => '/permit', 'verb' => 'GET'],
+		['name' => 'page#permit', 'url' => '/api/1.0/permit', 'verb' => 'GET'],
 		['name' => 'page#health', 'url' => '/api/1.0/health', 'verb' => 'GET'],
 
 		['name' => 'group#getSyncGroups', 'url' => '/api/1.0/groups/sync', 'verb' => 'GET'],

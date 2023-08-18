@@ -1,4 +1,10 @@
-<div class="settingTemplateDetailInclude section" id="groupsManagement">
+<?php
+script('sendentsynchroniser', '3rdparty/jscolor/jscolor');
+script('sendentsynchroniser', 'settings');
+style('sendentsynchroniser', ['style']);
+?>
+
+<div class="settingTemplateDetailInclude section">
     <h2>
         <?php p($l->t('Sendent Synchronizer')); ?>
     </h2>
@@ -7,14 +13,15 @@
         <div class="settingkeyvalue">
 			<div class="labelFullWidth">
             <div style="margin-bottom:10px;" class="labelFullWidth">
-			<p> 
-				<?php p($l->t("We want to ask for your permission to sync Outlook content with Nextcloud to give you a unified user experience.")); ?>
-			</p>
+			<p><?php p($l->t("We want to ask for your permission to sync Outlook content with Nextcloud to give you a unified user experience.")); ?></p>
+			<p id="startConsentFlowText"><?php p($l->t('Please click on the "Start consent flow" button hereunder to start giving your permission.')); ?></p>
+			<p id="giveAccessCalendarText" style="display:none;"><?php p($l->t('Please click on the "Give access button" button hereunder to give your permission to synchronise your appointments, contacts, and tasks.')); ?></p>
 			</div>      
         </div>
 		</div>
     </div>
 	<div class="actionSection">
-		<a href="/index.php/apps/sendentsynchroniser/permit" id="StartConsentFlow">Give permission to sync your content</a>
+		<input type="button" id="startConsentFlowButton" value="Start consent flow"/>
+		<input type="button" id="giveAccessCalendarButton" style="display:none" value="Give access"/>
 	</div>
 </div>

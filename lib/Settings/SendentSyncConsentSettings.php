@@ -62,12 +62,11 @@ class SendentSyncConsentSettings implements ISettings {
 	public function getForm() {
 		if($this->isSyncUser() == false)
 		{
-			$this->logger->error('user is NO syncuser');
-			return new TemplateResponse('sendentsynchroniser', 'noSyncUser');  // templates/index.php
+			$this->logger->info('user is not allowed to setup synchronisation');
+			return new TemplateResponse('sendentsynchroniser', 'noSyncUser');
 		}
 		else{
-			$this->logger->error('user IS A syncuser');
-			return new TemplateResponse('sendentsynchroniser', 'permissionForToken');  // templates/index.php
+			return new TemplateResponse('sendentsynchroniser', 'permissionForToken');
 		}
 	}
 

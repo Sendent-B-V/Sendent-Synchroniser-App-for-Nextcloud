@@ -1,15 +1,28 @@
 /* eslint-disable @nextcloud/no-deprecations */
+import axios from '@nextcloud/axios';
+import { generateUrl } from '@nextcloud/router';
 import GroupsManagementHandler from "./imports/GroupsManagementHandler";
 
 $(() => {
-    console.log('Sendentsynchroniser Setting script loaded');
+    console.log('Sendentsynchroniser settings script loaded')
 
-	GroupsManagementHandler.setup();
+	if ($("#groupsManagement").length) {
+		// Admin settings page
+		GroupsManagementHandler.setup()
+	} else {
+		// Personal settings page
+		$('#startConsentFlowButton').on('click', function(e) {
+			console.log('Starting consent flow')
+			$('#startConsentFlowText').hide()
+			$('#startConsentFlowButton').hide()
+			$('#giveAccessCalendarText').show()
+			$('#giveAccessCalendarButton').show()
+		})
 
-    $('#settingsform').on('submit', function (ev) {
-        ev.preventDefault();
-        //I had an issue that the forms were submitted in geometrical progression after the next submit.
-        // This solved the problem.
-        ev.stopImmediatePropagation();
-    });
+		$('#giveAccessCalendarButton').on('click', function(e) {
+			console.log('Creating an app token to give synchroniser app access to nextcloud user data')
+			const url = generateUrl('/apps/sendentsynchroniser/api/1.0/permit');
+			axios.get(url)
+		})
+	}
 })
