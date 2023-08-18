@@ -32,7 +32,7 @@ class InitialLoadManager {
 	}
 
 	/**
-	 * Return true if this is the first time a user is acessing their instance with deck enabled
+	 * Return true if this is the first time a user is acessing their instance with sendentsynchroniser enabled
 	 *
 	 * @param $userId
 	 * @return bool
@@ -52,8 +52,8 @@ class InitialLoadManager {
 
 		return false;
 	}
+
 	public function initialLoading(): void {
-		
 	}
 
 }
