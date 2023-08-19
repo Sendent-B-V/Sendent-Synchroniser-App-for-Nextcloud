@@ -6,9 +6,9 @@ use OCP\IL10N;
 use OCP\IURLGenerator;
 use OCP\Settings\IIconSection;
 
-class SendentSyncConsentSection implements IIconSection {
+class AdminSection implements IIconSection {
 
-		/** @var IL10N */
+	/** @var IL10N */
 	private $l;
 
 	/** @var IURLGenerator */
@@ -40,7 +40,7 @@ class SendentSyncConsentSection implements IIconSection {
 	 * @return string
 	 */
 	public function getName() {
-		return $this->l->t('Sendent Sync Consent');
+		return $this->l->t('Sendent Synchroniser');
 	}
 
 	/**

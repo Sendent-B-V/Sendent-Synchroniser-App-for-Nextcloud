@@ -5,11 +5,11 @@ namespace OCA\SendentSynchroniser\Settings;
 use OCP\App\IAppManager;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Services\IAppConfig;
-use OCP\IGroupManager;
 use OCP\AppFramework\Services\IInitialState;
+use OCP\IGroupManager;
 use OCP\Settings\ISettings;
 
-class SendentSynchroniserSettings implements ISettings {
+class Admin implements ISettings {
 
 	/** @var IAppManager */
 	private $appManager;
@@ -45,7 +45,7 @@ class SendentSynchroniserSettings implements ISettings {
 
 		// Gets groups used in the app
 		$sendentGroups = $this->appConfig->getAppValue('activeGroups', '');
-		$sendentGroups = $sendentGroups !== '' ? json_decode($sendentGroups) : [];
+		$sendentGroups = ($sendentGroups !== '' && $sendentGroups !== 'null') ? json_decode($sendentGroups) : [];
 		$sendentGroups = array_map(function ($gid) {
 			$group = $this->groupManager->get($gid);
 			if (!is_null($group)) {

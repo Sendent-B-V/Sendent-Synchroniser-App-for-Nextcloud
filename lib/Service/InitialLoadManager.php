@@ -4,8 +4,6 @@ namespace OCA\SendentSynchroniser\Service;
 
 use Exception;
 use OCA\SendentSynchroniser\AppInfo\Application;
-use OCA\SendentSynchroniser\Service\SyncGroupService;
-use OCA\SendentSynchroniser\Service\UserGroupService;
 use OCP\App\IAppManager;
 use OCP\IConfig;
 use OCP\PreConditionNotMetException;
@@ -19,19 +17,17 @@ class InitialLoadManager {
 	private $appManager;
 
 	public function __construct(
-		UserGroupService $externalUserGroupService,
-		SyncGroupService $syncGroupService,
 		IConfig $config,
 		IAppManager $appManager) {
-			$this->externalUserGroupService = $externalUserGroupService;
-			$this->syncGroupService = $syncGroupService;
-			$this->config = $config;
+
+		$this->config = $config;
 		$this->appManager = $appManager;
 
 		$this->checkUpdateNeeded010();
 	}
 
 	/**
+	 *
 	 * Return true if this is the first time a user is acessing their instance with sendentsynchroniser enabled
 	 *
 	 * @param $userId

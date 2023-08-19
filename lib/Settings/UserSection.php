@@ -6,7 +6,7 @@ use OCP\IL10N;
 use OCP\IURLGenerator;
 use OCP\Settings\IIconSection;
 
-class SendentSynchroniserSection implements IIconSection {
+class UserSection implements IIconSection {
 
 		/** @var IL10N */
 	private $l;

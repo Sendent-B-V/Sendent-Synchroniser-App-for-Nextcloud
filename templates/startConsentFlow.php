@@ -13,8 +13,13 @@ style('sendentsynchroniser', ['style']);
         <div class="settingkeyvalue">
 			<div class="labelFullWidth">
             <div style="margin-bottom:10px;" class="labelFullWidth">
-			<p><?php p($l->t("We want to ask for your permission to sync Outlook content with Nextcloud to give you a unified user experience.")); ?></p>
-			<p id="startConsentFlowText"><?php p($l->t('Please click on the "Start consent flow" button hereunder to start giving your permission.')); ?></p>
+			<?php if ($_['activeUser']) { ?>
+				<p><?php p($l->t("You are an active user of Sendent synchroniser. You shouldn't need to do anything.")); ?></p>
+				<p id="startConsentFlowText"><?php p($l->t('If you want to renew your consent click on the "Start consent flow" button hereunder.')); ?></p>
+			<?php } else { ?>
+				<p><?php p($l->t("We want to ask for your permission to sync Outlook content with Nextcloud to give you a unified user experience.")); ?></p>
+				<p id="startConsentFlowText"><?php p($l->t('Please click on the "Start consent flow" button hereunder to start giving your permission.')); ?></p>
+			<?php } ?>
 			<p id="giveAccessCalendarText" style="display:none;"><?php p($l->t('Please click on the "Give access button" button hereunder to give your permission to synchronise your appointments, contacts, and tasks.')); ?></p>
 			</div>      
         </div>

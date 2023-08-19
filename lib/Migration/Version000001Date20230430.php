@@ -18,56 +18,24 @@
   		/** @var ISchemaWrapper $schema */
   		$schema = $schemaClosure();
 
-  		if (!$schema->hasTable('sndnt_srvacc')) {
-  			$table = $schema->createTable('sndnt_srvacc');
-  			$table->addColumn('id', 'integer', [
-  				'autoincrement' => true,
-  				'notnull' => true,
-  			]);
-
-
-  			$table->addColumn('username', 'string', [
-  				'notnull' => false,
-  				'length' => 254,
-  			]);
-  			$table->setPrimaryKey(['id']);
-  			$table->addUniqueIndex(['username'], 'sendent_srvacc_unique_index');
-  		}
-		
-		if (!$schema->hasTable('sndnt_syncgrp')) {
-			$table = $schema->createTable('sndnt_syncgrp');
+		if (!$schema->hasTable('sndntsync_users')) {
+			$table = $schema->createTable('sndntsync_users');
 			$table->addColumn('id', 'integer', [
 				'autoincrement' => true,
 				'notnull' => true,
 			]);
 
-
-			$table->addColumn('name', 'string', [
-				'notnull' => false,
-				'length' => 254,
-			]);
-			$table->setPrimaryKey(['id']);
-			$table->addUniqueIndex(['name'], 'sendent_syncgrp_unique_index');
-		}
-
-		if (!$schema->hasTable('sndnt_syncusr')) {
-			$table = $schema->createTable('sndnt_syncusr');
-			$table->addColumn('id', 'integer', [
-				'autoincrement' => true,
+			$table->addColumn('uid', 'string', [
 				'notnull' => true,
+				'default' => '',
+				'length' => 64,
 			]);
-
-			$table->addColumn('username', 'string', [
-				'notnull' => false,
-				'length' => 254,
+			$table->addColumn('active', 'smallint', [
+				'notnull' => true,
+				'default' => 0,
 			]);
-			$table->addColumn('groupId', 'string', [
-				'notnull' => false,
-				'length' => 254,
-			]);
-
 			$table->setPrimaryKey(['id']);
-			$table->addUniqueIndex(['username', 'groupId'], 'sendent_syncusr_unique_index');
+			$table->addUniqueIndex(['uid'],'sendentsync_uid_idx');
 		}
 
   		return $schema;

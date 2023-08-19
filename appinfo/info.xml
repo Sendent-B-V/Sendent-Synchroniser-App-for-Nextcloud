@@ -21,9 +21,9 @@
         <nextcloud min-version="25" max-version="26"/>
     </dependencies>
     <settings>
-        <admin>OCA\SendentSynchroniser\Settings\SendentSynchroniserSettings</admin>
-        <admin-section>OCA\SendentSynchroniser\Settings\SendentSynchroniserSection</admin-section>
-        <personal>OCA\SendentSynchroniser\Settings\SendentSyncConsentSettings</personal>
-        <personal-section>OCA\SendentSynchroniser\Settings\SendentSyncConsentSection</personal-section>
+        <admin>OCA\SendentSynchroniser\Settings\Admin</admin>
+        <admin-section>OCA\SendentSynchroniser\Settings\AdminSection</admin-section>
+        <personal>OCA\SendentSynchroniser\Settings\User</personal>
+        <personal-section>OCA\SendentSynchroniser\Settings\UserSection</personal-section>
     </settings>
 </info>

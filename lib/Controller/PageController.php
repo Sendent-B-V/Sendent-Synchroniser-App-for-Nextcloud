@@ -19,36 +19,41 @@ use OCP\EventDispatcher\IEventDispatcher;
 use OCP\ISession;
 use \OCP\ILogger;
 use OCP\Security\ISecureRandom;
-use OCA\SendentSynchroniser\Service\SyncGroupService;
-use OCA\SendentSynchroniser\Service\UserGroupService;
-use OCP\IURLGenerator;
+use OCA\SendentSynchroniser\Db\SyncUser;
+use OCA\SendentSynchroniser\Db\SyncUserMapper;
 
 class PageController extends Controller {
-	private $userId;
+	private $credentialStore;
+	private $eventDispatcher;
 	private $logger;
-	private $syncGroupService;
-	private $externalUserService;
-	private $urlGenerator;
+	private $random;
+	private $session;
+	private $syncUserMapper;
+	private $tokenProvider;
+	
+	public function __construct(ILogger $logger, $AppName, IRequest $request,
+		ISession $session,
+		ISecureRandom $random,
+		IProvider $tokenProvider,
+		IStore $credentialStore,
+		IEventDispatcher $eventDispatcher,
+		SyncUserMapper $syncUserMapper) {
 
-	public function __construct(ILogger $logger, $AppName, IRequest $request, $UserId, IURLGenerator $urlGenerator,
-		private ISession $session,
-		private ISecureRandom $random,
-		private IProvider $tokenProvider,
-		private IStore $credentialStore,
-		private IEventDispatcher $eventDispatcher,
-		UserGroupService $externalUserService,
-		SyncGroupService $syncGroupService) {
 		parent::__construct($AppName, $request);
-		$this->userId = $UserId;
+		
+		$this->credentialStore = $credentialStore;
+		$this->eventDispatcher = $eventDispatcher;
 		$this->logger = $logger;
-		$this->syncGroupService = $syncGroupService;
-		$this->externalUserService = $externalUserService;
-		$this->urlGenerator = $urlGenerator;
+		$this->random = $random;
+		$this->session = $session;
+		$this->syncUserMapper = $syncUserMapper;
+		$this->tokenProvider = $tokenProvider;
+
 	}
 	
 	/**
 	 *
-	 * This method creates an application token for the user
+	 * This method activates a user for sendent synchroniser
 	 * 
 	 * @NoAdminRequired
 	 *
@@ -79,8 +84,8 @@ class PageController extends Controller {
 			$this->logger->error('password is null');
 		}
 
+		// Generates an app token for Sendent synchroniser
 		$token = $this->random->generate(72, ISecureRandom::CHAR_UPPER.ISecureRandom::CHAR_LOWER.ISecureRandom::CHAR_DIGITS);
-
 		$generatedToken = $this->tokenProvider->generateToken(
 			$token,
 			$credentials->getUID(),
@@ -91,21 +96,25 @@ class PageController extends Controller {
 			IToken::DO_NOT_REMEMBER
 		);
 
-		$this->logger->error('Token created and is: ' . $token);
+		$this->logger->debug('Token created and is: ' . $token);
 
 		$this->eventDispatcher->dispatchTyped(
 			new AppPasswordCreatedEvent($generatedToken)
 		);
 
-		return new DataResponse(True);
-	}
-
-	/**
-	 * @NoAdminRequired
-	 * @NoCSRFRequired
-	 */
-	public function startConsentFlow(){
+		// Stores syncUser info
+		$syncUsers = $this->syncUserMapper->findByUid($credentials->getUID());
+		if (empty($syncUsers)) {
+			$syncUser = new SyncUser;
+			$syncUser->setUid($credentials->getUID());
+			$syncUser->setActive(1);	
+			$this->syncUserMapper->insert($syncUser);
+		} else {
+			$syncUsers[0]->setActive(1);	
+			$this->syncUserMapper->Update($syncUsers[0]);
+		}
 		
+		return new DataResponse(True);
 	}
 
 	/**

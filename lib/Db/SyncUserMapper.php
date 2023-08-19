@@ -12,7 +12,7 @@ class SyncUserMapper extends QBMapper {
 	public $db;
 
 	public function __construct(IDBConnection $db) {
-		parent::__construct($db, 'sndnt_syncusr', SyncUser::class);
+		parent::__construct($db, 'sndntsync_users', SyncUser::class);
 		$this->db = $db;
 	}
 
@@ -26,7 +26,7 @@ class SyncUserMapper extends QBMapper {
 		$qb = $this->db->getQueryBuilder();
 
 		$qb->select('*')
-		   ->from('sndnt_syncusr')
+		   ->from('sndntsync_users')
 		   ->where(
 			   $qb->expr()->eq('id', $qb->createNamedParameter($id, IQueryBuilder::PARAM_INT))
 		   );
@@ -35,39 +35,22 @@ class SyncUserMapper extends QBMapper {
 	}
 
 	/**
-	 * @throws \OCP\AppFramework\Db\DoesNotExistException if not found
-	 * @throws \OCP\AppFramework\Db\MultipleObjectsReturnedException if more than one result
-	 *
-	 * @return \OCP\AppFramework\Db\Entity
+	 * @return \OCP\AppFramework\Db\Entity[]
+	 * 
+	 * @psalm-return array<\OCP\AppFramework\Db\Entity>
 	 */
-	public function findByUsername(string $username): \OCP\AppFramework\Db\Entity {
+	public function findByUid(string $uid): array {
 		$qb = $this->db->getQueryBuilder();
 
 		$qb->select('*')
-		   ->from('sndnt_syncusr')
+		   ->from('sndntsync_users')
 		   ->where(
-			   $qb->expr()->eq('username', $qb->createNamedParameter($username, IQueryBuilder::PARAM_INT))
+			   $qb->expr()->eq('uid', $qb->createNamedParameter($uid, IQueryBuilder::PARAM_STR))
 		   );
 
-		return $this->findEntity($qb);
+		return $this->findEntities($qb);
 	}
-	/**
-	 * @throws \OCP\AppFramework\Db\DoesNotExistException if not found
-	 * @throws \OCP\AppFramework\Db\MultipleObjectsReturnedException if more than one result
-	 *
-	 * @return \OCP\AppFramework\Db\Entity
-	 */
-	public function findByGroupId(string $groupId): \OCP\AppFramework\Db\Entity {
-		$qb = $this->db->getQueryBuilder();
 
-		$qb->select('*')
-		   ->from('sndnt_syncusr')
-		   ->where(
-			   $qb->expr()->eq('groupId', $qb->createNamedParameter($groupId, IQueryBuilder::PARAM_INT))
-		   );
-
-		return $this->findEntity($qb);
-	}
 	/**
 	 * @return \OCP\AppFramework\Db\Entity[]
 	 *
@@ -77,26 +60,11 @@ class SyncUserMapper extends QBMapper {
 		$qb = $this->db->getQueryBuilder();
 
 		$qb->select('*')
-		   ->from('sndnt_syncusr')
+		   ->from('sndntsync_users')
 		   ->setMaxResults($limit)
 		   ->setFirstResult($offset);
 
 		return $this->findEntities($qb);
 	}
 
-	public function syncUserCount($username) {
-		$qb = $this->db->getQueryBuilder();
-
-		$qb->selectAlias($qb->createFunction('COUNT(*)'), 'count')
-		   ->from('sndnt_syncusr')
-		   ->where(
-			   $qb->expr()->eq('username', $qb->createNamedParameter($username, IQueryBuilder::PARAM_STR))
-		   );
-
-		$cursor = $qb->execute();
-		$row = $cursor->fetch();
-		$cursor->closeCursor();
-
-		return $row['count'];
-	}
 }

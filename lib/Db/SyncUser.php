@@ -1,14 +1,13 @@
 <?php
 
-// db/author.php
 namespace OCA\SendentSynchroniser\Db;
 
 use OCP\AppFramework\Db\Entity;
 use JsonSerializable;
 
 class SyncUser extends Entity implements JsonSerializable {
-	protected $username;
-	protected $groupId;
+	protected $uid;
+	protected $active;
 
 	public function __construct() {
 		// add types in constructor
@@ -17,8 +16,8 @@ class SyncUser extends Entity implements JsonSerializable {
 	public function jsonSerialize() {
 		return [
 			'id' => $this->id,
-			'username' => $this->username,
-			'groupId' => $this->groupId,
+			'uid' => $this->uid,
+			'active' => $this->active,
 		];
 	}
 }
