@@ -36,7 +36,7 @@ $(() => {
 
 		$('#giveAccessCalendarButton').on('click', function(e) {
 			console.log('Creating an app token to give synchroniser app access to nextcloud user data')
-			const url = generateUrl('/apps/sendentsynchroniser/api/1.0/permit');
+			const url = generateUrl('/apps/sendentsynchroniser/api/1.0/user/activate');
 			axios.get(url).then( resp => {
 				if (resp) {
 					console.log(resp)
