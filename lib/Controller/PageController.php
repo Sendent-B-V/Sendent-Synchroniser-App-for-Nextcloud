@@ -3,7 +3,6 @@
 namespace OCA\SendentSynchroniser\Controller;
 
 use OCP\IRequest;
-use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Controller;
 use OC\Authentication\Events\AppPasswordCreatedEvent;
 use OC\Authentication\Exceptions\InvalidTokenException;
@@ -111,7 +110,7 @@ class PageController extends Controller {
 			$this->syncUserMapper->insert($syncUser);
 		} else {
 			$syncUsers[0]->setActive(1);	
-			$this->syncUserMapper->Update($syncUsers[0]);
+			$this->syncUserMapper->update($syncUsers[0]);
 		}
 		
 		return new DataResponse(True);
