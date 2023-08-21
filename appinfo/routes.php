@@ -8,6 +8,7 @@ return [
 		['name' => 'page#health', 'url' => '/api/1.0/health', 'verb' => 'GET'],
 
 		['name' => 'user#activate', 'url' => '/api/1.0/user/activate', 'verb' => 'GET'],
+		['name' => 'user#getActiveUsers', 'url' => '/api/1.0/user/actives', 'verb' => 'GET'],
 		['name' => 'user#invalidate', 'url' => '/api/1.0/user/invalidate', 'verb' => 'POST'],
 		['name' => 'user#isValid', 'url' => '/api/1.0/user/isValid', 'verb' => 'GET'],
 

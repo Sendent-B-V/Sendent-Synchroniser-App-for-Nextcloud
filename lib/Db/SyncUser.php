@@ -6,8 +6,9 @@ use OCP\AppFramework\Db\Entity;
 use JsonSerializable;
 
 class SyncUser extends Entity implements JsonSerializable {
-	protected $uid;
 	protected $active;
+	protected $token;
+	protected $uid;
 
 	public function __construct() {
 		// add types in constructor
@@ -17,6 +18,7 @@ class SyncUser extends Entity implements JsonSerializable {
 		return [
 			'id' => $this->id,
 			'uid' => $this->uid,
+			'token' => $this->token,
 			'active' => $this->active,
 		];
 	}

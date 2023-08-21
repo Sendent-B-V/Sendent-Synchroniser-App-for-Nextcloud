@@ -127,20 +127,28 @@ class UserController extends Controller {
 			IToken::DO_NOT_REMEMBER
 		);
 
-		$this->logger->debug('Token created and is: ' . $token);
-
 		$this->eventDispatcher->dispatchTyped(
 			new AppPasswordCreatedEvent($generatedToken)
 		);
+
+		// Encrypt token using sendent sync shared secret
+		$key = $this->appConfig->getAppValue('sharedSecret', '');
+		$ivlen = openssl_cipher_iv_length($cipher="AES-256-CBC");
+		$iv = openssl_random_pseudo_bytes($ivlen);
+		$ciphertext_raw = openssl_encrypt($token, $cipher, $key, $options=OPENSSL_RAW_DATA, $iv);
+		$hmac = hash_hmac('sha256', $ciphertext_raw, $key, $as_binary=true);
+		$encryptedToken = base64_encode( $iv.$hmac.$ciphertext_raw );
 
 		// Stores syncUser info
 		$syncUsers = $this->syncUserMapper->findByUid($credentials->getUID());
 		if (empty($syncUsers)) {
 			$syncUser = new SyncUser;
 			$syncUser->setUid($credentials->getUID());
+			$syncUser->setToken($encryptedToken);
 			$syncUser->setActive(1);	
 			$this->syncUserMapper->insert($syncUser);
 		} else {
+			$syncUsers[0]->setToken($encryptedToken);
 			$syncUsers[0]->setActive(1);	
 			$this->syncUserMapper->update($syncUsers[0]);
 		}
@@ -207,7 +215,7 @@ class UserController extends Controller {
 		$response = [];
 
 		if (empty($syncUsers)) {
-			$this->logger->warning('User ' . $userId . ' does not exxist');
+			$this->logger->warning('User ' . $userId . ' does not exist');
 			$response = [
 				'status' => 'error',
 				'message' => 'user does not exist'
@@ -223,5 +231,42 @@ class UserController extends Controller {
 
 		return new JSONResponse($response);
 
+	}
+
+	/**
+	 *
+	 * This methods returns the list of active sendent sync users.
+	 *
+	 * @NoCSRFRequired
+	 *
+	 */
+	public function getActiveUsers() {
+
+		// Gets active groups
+		$activeGroups = $this->appConfig->getAppValue('activeGroups', '');
+		$activeGroups = ($activeGroups !== '' && $activeGroups !== 'null') ? json_decode($activeGroups) : [];
+
+		// Gets all users in active groups
+		$users = [];
+		foreach ($activeGroups as $gid) {
+			$group = $this->groupManager->get($gid);
+			$users = array_merge($users,$group->getUsers());
+		}
+
+		// Gets all active sendent sync users
+		$activeUsers = [];
+		foreach ($users as $user) {
+			$syncUsers = $this->syncUserMapper->findByUid($user->getUid());
+			if (!empty($syncUsers)) {
+				if ($syncUsers[0]->getActive()) {
+					// Makes sure we don't create duplicates
+					if(!array_key_exists($syncUsers[0]->getUid(), $activeUsers)) {
+						$activeUsers[$syncUsers[0]->getUid()] = $syncUsers[0];
+					}
+				}
+			}
+		}
+
+		return new JSONResponse($activeUsers);
 	}
 }

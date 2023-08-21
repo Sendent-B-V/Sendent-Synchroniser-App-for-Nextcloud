@@ -30,6 +30,10 @@
 				'default' => '',
 				'length' => 64,
 			]);
+			$table->addColumn('token', 'text', [
+				'notnull' => true,
+				'default' => '',
+			]);
 			$table->addColumn('active', 'smallint', [
 				'notnull' => true,
 				'default' => 0,
