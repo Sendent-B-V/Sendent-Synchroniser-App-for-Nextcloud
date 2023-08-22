@@ -2,15 +2,34 @@
 import axios from '@nextcloud/axios';
 import { generateUrl } from '@nextcloud/router';
 
-$(() => {
+$(async () => {
 
-	// Do not inject modal if we are not in an app page
-	if ( !$( "#app-content-vue" ).length ) {
-		return
+	// Check if we might want to display the sendent synchronisation modal dialog
+	var url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/notificationMethod')
+	const notificationMethod = await axios.get(url).then( resp => {
+		return resp.data
+	})
+	switch (notificationMethod) {
+		case "1":
+			if (!$("#app-content-vue").length) {
+				return
+			}
+			break
+		case "2":
+			if (!$("#app-content-files").length) {
+				return
+			}
+			break
+		case "3":
+			if (!$("#app-content-files").length & !$("#app-content-vue").length) {
+				return
+			}
+			break
+		default:
+			return
 	}
 
 	console.log('Injecting Sendent Synchronizer modal dialog')
-
 	var modal = '<div id="sendentSyncModal" style="display:none;position:fixed;inset:0px;z-index:10000;background: rgba(0,0,0,0.6)" aria-hidden="true">' +
 		'<div style="position:fixed;left:50%;top:50%;z-index:11000;width:400px;text-align:center;background:#fefefe;border:#333333 solid 0px;border-radius:5px;margin-left:-200px">' +
 			'<div style="padding:10px 20px">' +
@@ -23,7 +42,11 @@ $(() => {
 		'</div>' +
 	'</div>'
 
-	$('#app-content-vue').prepend(modal)
+	if (notificationMethod === "2") {
+		$('#app-content-files').prepend(modal)
+	} else {
+		$('#app-content-vue').prepend(modal)
+	}
 	$('#closeSendentSyncModal').on('click', function() {
 		$('#sendentSyncModal').hide()
 	})
@@ -32,7 +55,7 @@ $(() => {
 		window.location.href = url;
 	})
 
-	const url = generateUrl('/apps/sendentsynchroniser/api/1.0/user/isValid')
+	url = generateUrl('/apps/sendentsynchroniser/api/1.0/user/isValid')
 	axios.get(url).then( resp => {
 		if (!resp.data) {
 			$('#sendentSyncModal').show()

@@ -23,6 +23,7 @@ declare(strict_types=1);
 
 namespace OCA\SendentSynchroniser\Listener;
 
+use \OCA\Files\Event\LoadAdditionalScriptsEvent;
 use OCP\AppFramework\Http\Events\BeforeTemplateRenderedEvent;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
@@ -30,7 +31,7 @@ use OCP\Util;
 
 class TokenInvalidInjector implements IEventListener {
         public function handle(Event $event): void {
-                if (!$event instanceof BeforeTemplateRenderedEvent) {
+                if (!$event instanceof BeforeTemplateRenderedEvent && !event instanceof LoadAdditionalScriptsEvent) {
                         return;
                 }
 

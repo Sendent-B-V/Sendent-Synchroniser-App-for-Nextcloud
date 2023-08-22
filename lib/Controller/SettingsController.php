@@ -51,6 +51,17 @@ class SettingsController extends ApiController {
 	}
 
 	/**
+	 *
+	 * Gets notification method
+	 *
+	 * @param string $notificationMethod
+	 *
+	 */
+	public function getNotificationMethod() {
+		return $this->appConfig->getAppValue('notificationMethod', 0);
+	}
+
+	/**
 	 * 
 	 * Saves new active groups list
 	 * 
