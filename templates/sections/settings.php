@@ -30,7 +30,8 @@
             </label>
             <div class="status-error icon-error error hidden"></div>
             <div class="status-ok icon-checkmark ok hidden"></div>
-			<input class="settingkeyvalueinput" id="setSharedSecret" value="<?php p($_['sharedSecret']); ?>" autocapitalize="none" autocorrect="off">
+			<input class="settingkeyvalueinput" type="password" id="setSharedSecret" value="<?php p($_['sharedSecret']); ?>" autocapitalize="none" autocorrect="off">
+            <button id="showSharedSecret"><img src="<?php print_unescaped(image_path('sendentsynchroniser', 'view.svg')); ?>" style="height:12px;width:12px" /></button>
         </div>
     </div>
 </div>

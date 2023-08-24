@@ -25,6 +25,14 @@ $(() => {
 				axios.post(url, {sharedSecret})
 			},500))
 		})
+		$('#showSharedSecret').on('mousedown', function(e) {
+			(<HTMLInputElement>(<unknown>$('#setSharedSecret')))[0].type = "text"
+		 }).on('mouseup', function(e) {
+			(<HTMLInputElement>(<unknown>$('#setSharedSecret')))[0].type = "password"
+		 });
+		 $('#showSharedSecret').on('click', function(e) {
+			e.preventDefault()
+		 })
 	} else {
 		// Personal settings page
 		activateStartConsentFlowDialog()
