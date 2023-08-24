@@ -1,18 +1,23 @@
 <?php
 
-// db/authormapper.php
-
 namespace OCA\SendentSynchroniser\Db;
 
 use OCP\AppFramework\Db\QBMapper;
+use OCP\AppFramework\Services\IAppConfig;
 use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
 class SyncUserMapper extends QBMapper {
+
+	/** @var IAppConfig */
+	private $appConfig;
+
+	/** @var IDBConnection */
 	public $db;
 
-	public function __construct(IDBConnection $db) {
+	public function __construct(IAppConfig $appConfig, IDBConnection $db) {
 		parent::__construct($db, 'sndntsync_users', SyncUser::class);
+		$this->appConfig = $appConfig;
 		$this->db = $db;
 	}
 
@@ -67,4 +72,39 @@ class SyncUserMapper extends QBMapper {
 		return $this->findEntities($qb);
 	}
 
+	/**
+	 * 
+	 * This function re-encrypts all existing users token with $secret.
+	 * It shall be called when the sendent synchroniser share secret is changed.
+	 * 
+	 */
+	public function encryptAllUserstoken($newSecret) {
+
+		$users = $this->findAll();
+		foreach($users as $user) {
+
+			// Decrypts token
+			$encryptedToken = $user->getToken();
+			$c = base64_decode($encryptedToken);
+			$ivlen = openssl_cipher_iv_length($cipher="AES-256-CBC");
+			$iv = substr($c, 0, $ivlen);
+			$hmac = substr($c, $ivlen, $sha2len=32);
+			$ciphertext_raw = substr($c, $ivlen+$sha2len);
+			$key = $this->appConfig->getAppValue('sharedSecret', '');
+			$token = openssl_decrypt($ciphertext_raw, $cipher, $key, $options=OPENSSL_RAW_DATA, $iv);
+
+			// Reencrypts token with new secret
+			$ivlen = openssl_cipher_iv_length($cipher="AES-256-CBC");
+			$iv = openssl_random_pseudo_bytes($ivlen);
+			$ciphertext_raw = openssl_encrypt($token, $cipher, $newSecret, $options=OPENSSL_RAW_DATA, $iv);
+			$hmac = hash_hmac('sha256', $ciphertext_raw, $newSecret, $as_binary=true);
+			$encryptedToken = base64_encode( $iv.$hmac.$ciphertext_raw );
+			
+			// Saves reencrypted token
+			$user->setToken($encryptedToken);
+			$this->update($user);
+
+		}
+
+	}
 }

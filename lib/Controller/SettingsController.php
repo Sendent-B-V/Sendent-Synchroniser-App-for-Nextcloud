@@ -6,6 +6,7 @@ use OCP\IRequest;
 use OCP\AppFramework\ApiController;
 use OCP\AppFramework\Services\IAppConfig;
 use \OCP\ILogger;
+use OCA\SendentSynchroniser\Db\SyncUserMapper;
 
 class SettingsController extends ApiController {
 
@@ -15,14 +16,19 @@ class SettingsController extends ApiController {
 	/** @var ILogger */
 	private $logger;
 
+	/** @var SyncUserMapper */
+	private $syncUserMapper;
+
 	public function __construct($appName, IRequest $request,
 		IAppConfig $appConfig,
-		ILogger $logger) {
+		ILogger $logger,
+		SyncUserMapper $syncUserMapper) {
 
  		parent::__construct($appName, $request);
 
 		$this->appConfig = $appConfig;
 		$this->logger = $logger;
+		$this->syncUserMapper = $syncUserMapper;
 
  	}
 
@@ -34,6 +40,7 @@ class SettingsController extends ApiController {
 	 * 
 	 */
 	public function setSharedSecret($sharedSecret) {
+		$this->syncUserMapper->encryptAllUserstoken($sharedSecret);
 		$this->appConfig->setAppValue('sharedSecret', $sharedSecret);
 		return;
 	}
