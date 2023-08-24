@@ -12,17 +12,20 @@ $(async () => {
 	})
 	switch (notificationMethod) {
 		case "1":
-			if (!$("#app-content-vue").length) {
+			// We want to display the modal dialog in Calendar, Contacts, and Tasks.
+			if (!$(".contact-header").length & !$(".appointment-config-list").length & !$(".task-list").length) {
 				return
 			}
 			break
 		case "2":
+			// We want to display the modal dialog in the Files app only 
 			if (!$("#app-content-files").length) {
 				return
 			}
 			break
 		case "3":
-			if (!$("#app-content-files").length & !$("#app-content-vue").length) {
+			// We want to display in both the Files app, and the groupware apps
+			if (!$("#app-content-files").length & !$(".contact-header").length & !$(".appointment-config-list").length & !$(".task-list").length) {
 				return
 			}
 			break
@@ -44,10 +47,22 @@ $(async () => {
 	'</div>'
 
 	// Injects modal template
-	if (notificationMethod === "2") {
-		$('#app-content-files').prepend(modal)
-	} else {
-		$('#app-content-vue').prepend(modal)
+	switch (notificationMethod) {
+		case "1":
+			// We want to inject in Calendar, Contacts, and Tasks.
+			$('#app-content-vue').prepend(modal)
+			break
+		case "2":
+			// We want to inject in the Files app only
+			$('#app-content-files').prepend(modal)
+			break
+		case "3":
+			// We want to inject in both the Files app, and the groupware apps
+			if ($('#app-content-files').length) {
+				$('#app-content-files').prepend(modal)
+			} else {
+				$('#app-content-vue').prepend(modal)
+			}
 	}
 	$('#closeSendentSyncModal').on('click', function() {
 		$('#sendentSyncModal').hide()
