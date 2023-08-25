@@ -30,7 +30,7 @@ class PageController extends Controller {
 	 *
 	 */
 	public function getStartConsentFlowPage(){
-		return new TemplateResponse($this->AppName,'startConsentFlow', array('activeUser' => 'true'), '');
+		return new TemplateResponse($this->AppName,'startConsentFlow', array('activeUser' => 0), '');
 	}
 
 }
