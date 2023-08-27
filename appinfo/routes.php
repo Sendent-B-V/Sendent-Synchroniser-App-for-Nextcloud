@@ -19,5 +19,15 @@ return [
 		['name' => 'settings#setNotificationMethod', 'url' => '/api/1.0/settings/notificationMethod', 'verb' => 'POST'],
 		['name' => 'settings#setSharedSecret', 'url' => '/api/1.0/settings/sharedSecret', 'verb' => 'POST'],
 
+		[
+			'name' => 'license_api#preflighted_cors',
+			'url' => '/api/1.0/{path}',
+			'verb' => 'OPTIONS',
+			'requirements' => ['path' => '.+']
+		],
+		['name' => 'license_api#show', 'url' => '/api/1.0/licensestatus', 'verb' => 'GET'],
+		['name' => 'license_api#delete', 'url' => '/api/1.0/license', 'verb' => 'DELETE'],
+		['name' => 'license_api#create', 'url' => '/api/1.0/license', 'verb' => 'POST'],
+
 	]
 ];

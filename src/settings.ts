@@ -2,6 +2,7 @@
 import axios from '@nextcloud/axios';
 import { generateUrl } from '@nextcloud/router';
 import GroupsManagementHandler from "./imports/GroupsManagementHandler";
+import LicenseHandler from "./imports/LicenseHandler";
 import { activateConsentFlowDialog } from './utils/consentFlowScript.js'
 
 $(() => {
@@ -9,6 +10,7 @@ $(() => {
 
 	if ($("#groupsManagement").length) {
 		// Admin settings page
+		LicenseHandler.setup();
 		GroupsManagementHandler.setup()
 		$('#setNotificationMethod').on('change', function(e) {
 			console.log('Changing notification method')
