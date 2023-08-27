@@ -2,7 +2,7 @@
 import axios from '@nextcloud/axios';
 import { generateUrl } from '@nextcloud/router';
 import GroupsManagementHandler from "./imports/GroupsManagementHandler";
-import { activateStartConsentFlowDialog } from './utils/consentFlowScript.js'
+import { activateConsentFlowDialog } from './utils/consentFlowScript.js'
 
 $(() => {
     console.log('Sendentsynchroniser settings script loaded')
@@ -35,6 +35,6 @@ $(() => {
 		 })
 	} else {
 		// Personal settings page
-		activateStartConsentFlowDialog()
+		activateConsentFlowDialog()
 	}
 })

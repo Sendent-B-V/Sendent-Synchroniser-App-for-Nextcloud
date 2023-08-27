@@ -64,10 +64,10 @@ class User implements ISettings {
 			$syncUsers = $this->syncUserMapper->findByUid($this->userId);
 			if (empty($syncUsers) || $syncUsers[0]->getActive() !== 1) {
 				// User is not active
-				return new TemplateResponse('sendentsynchroniser', 'startConsentFlow', ['activeUser' => false]);
+				return new TemplateResponse('sendentsynchroniser', 'indexUser', ['activeUser' => false]);
 			} else {
 				// User is active
-				return new TemplateResponse('sendentsynchroniser', 'startConsentFlow', ['activeUser' => true]);			
+				return new TemplateResponse('sendentsynchroniser', 'indexUser', ['activeUser' => true]);
 			}
 		}
 	}

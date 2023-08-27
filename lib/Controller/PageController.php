@@ -29,8 +29,8 @@ class PageController extends Controller {
 	 * @NoAdminRequired
 	 *
 	 */
-	public function getStartConsentFlowPage(){
-		return new TemplateResponse($this->AppName,'startConsentFlow', array('activeUser' => 0), '');
+	public function getConsentFlowPage(){
+		return new TemplateResponse($this->AppName,'sections/consentFlow', array('activeUser' => 0), '');
 	}
 
 }

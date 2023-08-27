@@ -158,6 +158,15 @@ class UserController extends Controller {
 
 	/**
 	 *
+	 * @NoAdminRequired
+	 *
+	 */
+	public function activateMail() {
+		return;
+	}
+
+	/**
+	 *
 	 * This method tells if the current user is a valid Sendent synchroniser user. 
 	 * 
 	 * @NoAdminRequired

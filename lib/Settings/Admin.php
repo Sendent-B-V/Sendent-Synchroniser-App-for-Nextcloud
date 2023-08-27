@@ -91,7 +91,7 @@ class Admin implements ISettings {
 	public function getForm() {
 		$params = $this->initializeGroups();
 
-		return new TemplateResponse('sendentsynchroniser', 'index', $params);
+		return new TemplateResponse('sendentsynchroniser', 'indexAdmin', $params);
 	}
 
 	/**

@@ -1,7 +1,7 @@
 /* eslint-disable @nextcloud/no-deprecations */
 import axios from '@nextcloud/axios'
 import { generateUrl } from '@nextcloud/router'
-import { activateStartConsentFlowDialog } from './utils/consentFlowScript.js'
+import { activateConsentFlowDialog } from './utils/consentFlowScript.js'
 
 $(async () => {
 
@@ -36,6 +36,7 @@ $(async () => {
 	console.log('Injecting Sendent Synchronizer modal dialog')
 
 	// Creates modal template
+	// TODO: Style should be loaded via regular CSS file
 	const modal = '<div id="sendentSyncModal" style="display:none;position:fixed;inset:0px;z-index:10000;background: rgba(0,0,0,0.6)" aria-hidden="true">' +
 		'<div style="position:fixed;left:50%;top:50%;z-index:11000;width:700px;text-align:center;background:#fefefe;border:#333333 solid 0px;border-radius:5px;margin-left:-200px">' +
 			'<div style="padding:10px 20px">' +
@@ -69,11 +70,13 @@ $(async () => {
 	})
 
 	// Injects startConsentFlow div into modal template
-	var url = generateUrl('/apps/sendentsynchroniser/api/1.0/getStartConsentFlowPage')
+	var url = generateUrl('/apps/sendentsynchroniser/api/1.0/getConsentFlowPage')
 	axios.get(url).then( resp => {
 		const consentFlowDiv = resp.data
 		$('#startConsentFlowDiv').prepend(consentFlowDiv)
-		activateStartConsentFlowDialog()
+		// TODO: Style should be loaded via regular CSS file
+		$('#consentFlowTitle').css({"font-size" : "16px", "font-weight" : "bold", "margin-bottom": "20px"})
+		activateConsentFlowDialog()
 	})
 
 	// Shows modal template if needed
