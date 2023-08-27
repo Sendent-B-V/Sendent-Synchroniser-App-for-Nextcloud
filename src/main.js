@@ -5,6 +5,18 @@ import { activateConsentFlowDialog } from './utils/consentFlowScript.js'
 
 $(async () => {
 
+	// Check if licensing is OK
+	var url = generateUrl('/apps/sendentsynchroniser/api/1.0/licensestatus')
+	const licenseStatus = await axios.get(url).then( resp => {
+		return resp.data
+	})
+	/*  TODO: Activate
+	if (licenseStatus['statusKind'] !== 'valid') {
+		console.log('No valid Sendent synchroniser license')
+		return
+	}
+	*/
+
 	// Check if we might want to display the sendent synchronisation modal dialog
 	var url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/notificationMethod')
 	const notificationMethod = await axios.get(url).then( resp => {
