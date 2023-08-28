@@ -132,7 +132,8 @@ class UserController extends Controller {
 		);
 
 		// Encrypt token using sendent sync shared secret
-		$key = $this->appConfig->getAppValue('sharedSecret', '');
+		$sharedSecret = $this->appConfig->getAppValue('sharedSecret', '');
+		$key = hash('md5', $sharedSecret);
 		$ivlen = openssl_cipher_iv_length($cipher="AES-256-CBC");
 		$iv = openssl_random_pseudo_bytes($ivlen);
 		$ciphertext_raw = openssl_encrypt($token, $cipher, $key, $options=OPENSSL_RAW_DATA, $iv);

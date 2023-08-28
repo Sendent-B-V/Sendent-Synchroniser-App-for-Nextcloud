@@ -90,14 +90,16 @@ class SyncUserMapper extends QBMapper {
 			$iv = substr($c, 0, $ivlen);
 			$hmac = substr($c, $ivlen, $sha2len=32);
 			$ciphertext_raw = substr($c, $ivlen+$sha2len);
-			$key = $this->appConfig->getAppValue('sharedSecret', '');
+			$sharedSecret = $this->appConfig->getAppValue('sharedSecret', '');
+			$key = hash('md5', $sharedSecret);
 			$token = openssl_decrypt($ciphertext_raw, $cipher, $key, $options=OPENSSL_RAW_DATA, $iv);
 
 			// Reencrypts token with new secret
 			$ivlen = openssl_cipher_iv_length($cipher="AES-256-CBC");
 			$iv = openssl_random_pseudo_bytes($ivlen);
-			$ciphertext_raw = openssl_encrypt($token, $cipher, $newSecret, $options=OPENSSL_RAW_DATA, $iv);
-			$hmac = hash_hmac('sha256', $ciphertext_raw, $newSecret, $as_binary=true);
+			$key = hash('md5', $newSecret);
+			$ciphertext_raw = openssl_encrypt($token, $cipher, $key, $options=OPENSSL_RAW_DATA, $iv);
+			$hmac = hash_hmac('sha256', $ciphertext_raw, $key, $as_binary=true);
 			$encryptedToken = base64_encode( $iv.$hmac.$ciphertext_raw );
 			
 			// Saves reencrypted token
