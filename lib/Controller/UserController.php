@@ -35,6 +35,9 @@ class UserController extends Controller {
 	/** @var IAppConfig */
 	private $appConfig;
 
+	/** @var string */
+	protected $appName;
+
 	/** @var IGroupManager */
 	private $groupManager;
 
@@ -70,6 +73,7 @@ class UserController extends Controller {
 		parent::__construct($AppName, $request);
 		
 		$this->appConfig = $appConfig;
+		$this->appName = $AppName;
 		$this->credentialStore = $credentialStore;
 		$this->eventDispatcher = $eventDispatcher;
 		$this->groupManager = $groupManager;
@@ -115,6 +119,14 @@ class UserController extends Controller {
 			$this->logger->error('password is null');
 		}
 
+		// Invalidates existing app token
+		$existingTokens = $this->tokenProvider->getTokenByUser($credentials->getUID());
+		foreach($existingTokens as $token) {
+			if ( $token->getName() === $this->appName) {
+				$this->tokenProvider->invalidateTokenById($token->getUid(), $token->getId());
+			}
+		}
+
 		// Generates an app token for Sendent synchroniser
 		$token = $this->random->generate(72, ISecureRandom::CHAR_UPPER.ISecureRandom::CHAR_LOWER.ISecureRandom::CHAR_DIGITS);
 		$generatedToken = $this->tokenProvider->generateToken(
@@ -122,7 +134,7 @@ class UserController extends Controller {
 			$credentials->getUID(),
 			$credentials->getLoginName(),
 			$password,
-			'SendentSynchroniser',
+			$this->appName,
 			IToken::PERMANENT_TOKEN,
 			IToken::DO_NOT_REMEMBER
 		);
