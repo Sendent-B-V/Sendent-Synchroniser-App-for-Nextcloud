@@ -11,6 +11,9 @@ style('sendentsynchroniser', ['style']);
 				<?php p($l->t('Sendent Synchronizer')); ?>
 			</h2>
 			<?php print_unescaped($this->inc('sections/consentFlow')); ?>
-		</div>
+			<?php if ($_['activeUser']) { ?>
+					<?php print_unescaped($this->inc('sections/retractConsent')); ?>
+			<?php } ?>
+			</div>
 	</form>
 </div>

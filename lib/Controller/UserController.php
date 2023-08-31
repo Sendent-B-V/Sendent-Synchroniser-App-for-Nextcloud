@@ -220,6 +220,17 @@ class UserController extends Controller {
 	}
 
 	/**
+	 *
+	 * This method invalidates a user. It is used when a user clicks on the 'Retract consent' button
+	 *
+	 * @NoAdminRequired
+	 *
+	 */
+	public function invalidateSelf() {
+		$this->invalidate($this->userId);
+	}
+
+	/**
 	 * 
 	 * This method invalidates a user. It shall be called by the Sendent synchroniser
 	 * (external) service to trigger the display of the "synchronisation problem" warning
