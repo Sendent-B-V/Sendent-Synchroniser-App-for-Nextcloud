@@ -28,7 +28,7 @@
 			<div style="display: flex; flex-direction: column; overflow: auto">
 				<ul id="ncGroups" class="connectedSortable" style="min-height: 270px; max-height: 100%;max-width: 400px">
 					<?php foreach ($_['ncGroups'] as $group) { ?>
-						<li class="ui-state-default" data-gid="<?php p($group['displayName']); ?>"><?php p($group['displayName']); ?></li>
+						<li class="ui-state-default" data-gid="<?php p($group['gid']); ?>"><?php p($group['displayName']); ?></li>
 					<?php } ?>
 				</ul>
 			</div>
@@ -41,7 +41,7 @@
 			<div style="display: flex; flex-direction: column; overflow: auto">
 				<ul id="sendentGroups" class="connectedSortable" style="min-height: 270px; max-height: 228px;max-width: 400px">
 					<?php foreach ($_['sendentGroups'] as $group) { ?>
-						<li class="ui-state-default" data-gid="<?php p($group['displayName']); ?>"><?php p($group['displayName']); ?></li>
+						<li class="ui-state-default" data-gid="<?php p($group['gid']); ?>"><?php p($group['displayName']); ?></li>
 					<?php } ?>
 				</ul>
 			</div>
