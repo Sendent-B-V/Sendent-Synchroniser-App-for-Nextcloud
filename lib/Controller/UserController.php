@@ -120,12 +120,7 @@ class UserController extends Controller {
 		}
 
 		// Invalidates existing app token
-		$existingTokens = $this->tokenProvider->getTokenByUser($credentials->getUID());
-		foreach($existingTokens as $token) {
-			if ( $token->getName() === $this->appName) {
-				$this->tokenProvider->invalidateTokenById($token->getUid(), $token->getId());
-			}
-		}
+		$this->invalidateExistingAppTokens($credentials->getUID());
 
 		// Generates an app token for Sendent synchroniser
 		$token = $this->random->generate(72, ISecureRandom::CHAR_UPPER.ISecureRandom::CHAR_LOWER.ISecureRandom::CHAR_DIGITS);
@@ -227,7 +222,11 @@ class UserController extends Controller {
 	 *
 	 */
 	public function invalidateSelf() {
-		$this->invalidate($this->userId);
+
+		$this->invalidateExistingAppTokens($this->userId);
+		$resp = $this->invalidate($this->userId);
+		return $resp;
+
 	}
 
 	/**
@@ -302,4 +301,15 @@ class UserController extends Controller {
 
 		return new JSONResponse($activeUsers);
 	}
+
+	private function invalidateExistingAppTokens(string $userId) {
+		// Invalidates existing app tokens
+		$existingTokens = $this->tokenProvider->getTokenByUser($userId);
+		foreach($existingTokens as $token) {
+			if ( $token->getName() === $this->appName) {
+				$this->tokenProvider->invalidateTokenById($token->getUid(), $token->getId());
+			}
+		}
+	}
+
 }
