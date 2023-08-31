@@ -2,9 +2,10 @@
 
 namespace OCA\SendentSynchroniser\Controller;
 
-use OCP\IRequest;
 use OCP\AppFramework\ApiController;
 use OCP\AppFramework\Services\IAppConfig;
+use OCP\IGroupManager;
+use OCP\IRequest;
 use \OCP\ILogger;
 use OCA\SendentSynchroniser\Db\SyncUserMapper;
 
@@ -12,6 +13,9 @@ class SettingsController extends ApiController {
 
 	/** @var IAppConfig */
 	private $appConfig;
+
+	/** @var IGroupManager */
+	private $groupManager;
 
 	/** @var ILogger */
 	private $logger;
@@ -21,12 +25,14 @@ class SettingsController extends ApiController {
 
 	public function __construct($appName, IRequest $request,
 		IAppConfig $appConfig,
+		IGroupManager $groupManager,
 		ILogger $logger,
 		SyncUserMapper $syncUserMapper) {
 
  		parent::__construct($appName, $request);
 
 		$this->appConfig = $appConfig;
+		$this->groupManager = $groupManager;
 		$this->logger = $logger;
 		$this->syncUserMapper = $syncUserMapper;
 
@@ -76,7 +82,41 @@ class SettingsController extends ApiController {
 	 * 
 	 */
 	public function setActiveGroups($newSendentGroups) {
+
+		// Finds deleted group, if any
+		$sendentGroups = $this->appConfig->getAppValue('activeGroups', '');
+		$sendentGroups = $sendentGroups !== '' ? json_decode($sendentGroups) : [];
+		$deletedGroup = array_diff($sendentGroups, $newSendentGroups);
+
+		// Invalidate users of the deleted group if they are not member of any other active groups
+		if (count($deletedGroup) > 0) {
+			$gid = $deletedGroup[array_keys($deletedGroup)[0]];
+			$ncGroup = $this->groupManager->get($gid);
+			foreach($ncGroup->getUsers() as $user) {
+				$active = FALSE;
+				// Finds if user is still in another active group
+				foreach($this->groupManager->getUserGroups($user) as $userGroup) {
+					if (in_array($userGroup->getGID(), $newSendentGroups)) {
+						// User is still in another active group
+						$active = TRUE;
+						break;
+					}
+				}
+				// Invalidates user if not member of another active group
+				if (!$active) {
+					$syncUsers = $this->syncUserMapper->findByUid($user->getUID());
+					if (!empty($syncUsers)) {
+						$syncUsers[0]->setActive(0);
+						$this->syncUserMapper->update($syncUsers[0]);
+						// TODO: invalidate token
+					}
+				}
+			}
+		}
+
+		// Saves new active groups list
 		$this->appConfig->setAppValue('activeGroups', json_encode($newSendentGroups));
+
 		return;
 	}
 
