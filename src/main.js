@@ -25,7 +25,7 @@ $(async () => {
 	switch (notificationMethod) {
 		case "1":
 			// We want to display the modal dialog in Calendar, Contacts, and Tasks.
-			if (!$(".contact-header").length & !$(".appointment-config-list").length & !$(".task-list").length) {
+			if (!$(".app-contacts").length & !$(".app-calendar").length & !$(".app-tasks").length) {
 				return
 			}
 			break
@@ -37,7 +37,7 @@ $(async () => {
 			break
 		case "3":
 			// We want to display in both the Files app, and the groupware apps
-			if (!$("#app-content-files").length & !$(".contact-header").length & !$(".appointment-config-list").length & !$(".task-list").length) {
+			if (!$("#app-content-files").length & !$(".app-contacts").length & !$(".app-calendar").length & !$(".app-tasks").length) {
 				return
 			}
 			break
