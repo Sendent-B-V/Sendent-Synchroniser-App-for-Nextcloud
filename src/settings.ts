@@ -12,18 +12,28 @@ $(() => {
 		// Admin settings page
 		LicenseHandler.setup();
 		GroupsManagementHandler.setup()
+		$('#setReminderType').on('change', function(e) {
+			const reminderType = (<HTMLInputElement>e.target).value
+			const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/reminderType');
+			axios.post(url, {reminderType})
+			// TODO provide feedback to admin
+		})
 		$('#setNotificationMethod').on('change', function(e) {
-			console.log('Changing notification method')
 			const notificationMethod = (<HTMLInputElement>e.target).value
 			const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/notificationMethod');
 			axios.post(url, {notificationMethod})
+			// TODO provide feedback to admin
+		})
+		$('#setNotificationInterval').on('change', function(e) {
+			const notificationInterval = (<HTMLInputElement>e.target).value
+			const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/notificationInterval');
+			axios.post(url, {notificationInterval})
 			// TODO provide feedback to admin
 		})
 		$('#setSharedSecret').on('keyup', function(e) {
 			clearTimeout($(this).data('timer'))
 			$(this).data('timer', setTimeout(function() {
 				const sharedSecret = (<HTMLInputElement>(<unknown>$('#setSharedSecret')))[0].value
-				console.log('Changing shared secret')
 				const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/sharedSecret');
 				axios.post(url, {sharedSecret})
 				// TODO provide feedback to admin

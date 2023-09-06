@@ -53,6 +53,18 @@ class SettingsController extends ApiController {
 
 	/**
 	 * 
+	 * Saves reminder type
+	 * 
+	 * @param string $reminderType
+	 * 
+	 */
+	public function setReminderType($reminderType) {
+		$this->appConfig->setAppValue('reminderType', $reminderType);
+		return;
+	}
+
+	/**
+	 * 
 	 * Saves notification method
 	 * 
 	 * @param string $notificationMethod
@@ -72,6 +84,18 @@ class SettingsController extends ApiController {
 	 */
 	public function getNotificationMethod() {
 		return $this->appConfig->getAppValue('notificationMethod', 0);
+	}
+
+	/**
+	 * 
+	 * Saves notification interval
+	 * 
+	 * @param string $notificationInterval
+	 * 
+	 */
+	public function setNotificationInterval($notificationInterval) {
+		$this->appConfig->setAppValue('notificationInterval', $notificationInterval);
+		return;
 	}
 
 	/**

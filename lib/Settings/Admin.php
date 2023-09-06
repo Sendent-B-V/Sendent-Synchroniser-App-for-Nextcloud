@@ -79,6 +79,8 @@ class Admin implements ISettings {
 		$params['ncGroups'] = $NCGroups;
 		$params['sendentGroups'] = $sendentGroups;
 
+		$params['reminderType'] = $this->appConfig->getAppValue('reminderType', '2');
+		$params['notificationInterval'] = $this->appConfig->getAppValue('notificationInterval', '7');
 		$params['notificationMethod'] = $this->appConfig->getAppValue('notificationMethod', '1');
 		$params['sharedSecret'] = $this->appConfig->getAppValue('sharedSecret', '');
 
