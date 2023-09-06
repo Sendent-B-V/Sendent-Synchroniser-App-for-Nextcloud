@@ -26,4 +26,7 @@
         <personal>OCA\SendentSynchroniser\Settings\User</personal>
         <personal-section>OCA\SendentSynchroniser\Settings\UserSection</personal-section>
     </settings>
+    <background-jobs>
+        <job>OCA\SendentSynchroniser\Cron\NotifyInactiveUsers</job>
+    </background-jobs>
 </info>
