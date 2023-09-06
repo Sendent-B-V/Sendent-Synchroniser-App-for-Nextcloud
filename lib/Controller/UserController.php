@@ -44,6 +44,9 @@ class UserController extends Controller {
 	/** @var ILogger */
 	private $logger;
 
+	/** @var IProvider */
+	private $tokenProvider;
+
 	/** @var ISecureRandom */
 	private $random;
 	
@@ -52,9 +55,6 @@ class UserController extends Controller {
 
 	/** @var SyncUserMapper */
 	private $syncUserMapper;
-
-	/** @var IProvider */
-	private $tokenProvider;
 
 	/** @var string */
 	private $userId;
@@ -161,7 +161,7 @@ class UserController extends Controller {
 			$this->syncUserMapper->update($syncUsers[0]);
 		}
 		
-		return new DataResponse(True);
+		return new DataResponse(TRUE);
 	}
 
 	/**
