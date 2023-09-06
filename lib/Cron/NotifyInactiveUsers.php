@@ -24,6 +24,8 @@ class NotifyInactiveUsers extends TimedJob {
     }
 
     protected function run() {
+        // TODO: see if settings allow to send notifications
+        // TODO: get list of inactive users
         $notification = $this->notificationManager->createNotification();
 		$notification->setApp('sendentsynchroniser')
  		   ->setUser('admin')

@@ -23,6 +23,7 @@ use OCP\Security\ISecureRandom;
 use \OCP\ILogger;
 use OCA\SendentSynchroniser\Db\SyncUser;
 use OCA\SendentSynchroniser\Db\SyncUserMapper;
+use OCA\SendentSynchroniser\Service\SyncUserService;
 
 class UserController extends Controller {
 
@@ -56,6 +57,9 @@ class UserController extends Controller {
 	/** @var SyncUserMapper */
 	private $syncUserMapper;
 
+	/** @var SyncUserService */
+	private $syncUserService;
+
 	/** @var string */
 	private $userId;
 	
@@ -68,7 +72,8 @@ class UserController extends Controller {
 		IsecureRandom $random,
 		ISession $session,
 		IStore $credentialStore,
-		SyncUserMapper $syncUserMapper) {
+		SyncUserMapper $syncUserMapper,
+		SyncUserService $syncUserService) {
 
 		parent::__construct($AppName, $request);
 		
@@ -81,6 +86,7 @@ class UserController extends Controller {
 		$this->random = $random;
 		$this->session = $session;
 		$this->syncUserMapper = $syncUserMapper;
+		$this->syncUserService = $syncUserService;
 		$this->tokenProvider = $tokenProvider;
 		$this->userId = $userId;
 
@@ -120,7 +126,7 @@ class UserController extends Controller {
 		}
 
 		// Invalidates existing app token
-		$this->invalidateExistingAppTokens($credentials->getUID());
+		$this->syncUserService->invalidateUser($credentials->getUID());
 
 		// Generates an app token for Sendent synchroniser
 		$token = $this->random->generate(72, ISecureRandom::CHAR_UPPER.ISecureRandom::CHAR_LOWER.ISecureRandom::CHAR_DIGITS);
@@ -223,7 +229,6 @@ class UserController extends Controller {
 	 */
 	public function invalidateSelf() {
 
-		$this->invalidateExistingAppTokens($this->userId);
 		$resp = $this->invalidate($this->userId);
 		return $resp;
 
@@ -240,27 +245,7 @@ class UserController extends Controller {
 	 */
 	public function invalidate(string $userId) {
 
-		$this->logger->info('Invalidating user ' . $userId);
-
-		$syncUsers = $this->syncUserMapper->findByUid($userId);
-
-		$response = [];
-
-		if (empty($syncUsers)) {
-			$this->logger->warning('User ' . $userId . ' does not exist');
-			$response = [
-				'status' => 'error',
-				'message' => 'user does not exist'
-			];
-		} else {
-			$syncUsers[0]->setActive(0);	
-			$this->syncUserMapper->update($syncUsers[0]);
-			$response = [
-				'status' => 'success',
-				'message' => 'user ' . $userId . ' invalidated'
-			];
-		}
-
+		$response = $this->syncUserService->invalidateUser($userId);
 		return new JSONResponse($response);
 
 	}
@@ -300,16 +285,6 @@ class UserController extends Controller {
 		}
 
 		return new JSONResponse($activeUsers);
-	}
-
-	private function invalidateExistingAppTokens(string $userId) {
-		// Invalidates existing app tokens
-		$existingTokens = $this->tokenProvider->getTokenByUser($userId);
-		foreach($existingTokens as $token) {
-			if ( $token->getName() === $this->appName) {
-				$this->tokenProvider->invalidateTokenById($token->getUid(), $token->getId());
-			}
-		}
 	}
 
 }

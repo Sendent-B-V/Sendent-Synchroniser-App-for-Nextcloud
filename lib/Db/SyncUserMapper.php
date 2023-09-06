@@ -77,6 +77,8 @@ class SyncUserMapper extends QBMapper {
 	 * This function re-encrypts all existing users token with $secret.
 	 * It shall be called when the sendent synchroniser share secret is changed.
 	 * 
+	 * TODO: Should be moved to SyncUserService
+	 *
 	 */
 	public function encryptAllUserstoken($newSecret) {
 

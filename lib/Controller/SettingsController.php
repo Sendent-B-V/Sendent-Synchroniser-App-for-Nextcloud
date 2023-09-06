@@ -8,6 +8,7 @@ use OCP\IGroupManager;
 use OCP\IRequest;
 use \OCP\ILogger;
 use OCA\SendentSynchroniser\Db\SyncUserMapper;
+use OCA\SendentSynchroniser\Service\SyncUserService;
 
 class SettingsController extends ApiController {
 
@@ -23,11 +24,15 @@ class SettingsController extends ApiController {
 	/** @var SyncUserMapper */
 	private $syncUserMapper;
 
+	/** @var SyncUserService */
+	private $syncUserService;
+
 	public function __construct($appName, IRequest $request,
 		IAppConfig $appConfig,
 		IGroupManager $groupManager,
 		ILogger $logger,
-		SyncUserMapper $syncUserMapper) {
+		SyncUserMapper $syncUserMapper,
+		SyncUserService $syncUserService) {
 
  		parent::__construct($appName, $request);
 
@@ -35,6 +40,7 @@ class SettingsController extends ApiController {
 		$this->groupManager = $groupManager;
 		$this->logger = $logger;
 		$this->syncUserMapper = $syncUserMapper;
+		$this->syncUserService = $syncUserService;
 
  	}
 
@@ -128,12 +134,7 @@ class SettingsController extends ApiController {
 				}
 				// Invalidates user if not member of another active group
 				if (!$active) {
-					$syncUsers = $this->syncUserMapper->findByUid($user->getUID());
-					if (!empty($syncUsers)) {
-						$syncUsers[0]->setActive(0);
-						$this->syncUserMapper->update($syncUsers[0]);
-						// TODO: invalidate token
-					}
+					$this->syncUserService->invalidateUser($user->getUID());
 				}
 			}
 		}
