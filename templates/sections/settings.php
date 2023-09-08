@@ -1,6 +1,7 @@
 <?php
 /** @var $l \OCP\IL10N */
 /** @var $_ array */
+use OCA\SendentSynchroniser\Constants;
 ?>
 <div class="settingTemplateDetailExclude section">
     <h2>
@@ -24,9 +25,9 @@
                 </span>
             </label>
             <select class="settingkeyvalueinput" type="select" id="setReminderType">
-                <option value="1" <?php ($_['reminderType']==1) ? p('selected') : ''; ?> >Modal dialog</option>
-                <option value="2" <?php ($_['reminderType']==2) ? p('selected') : ''; ?> >Standard notifications</option>
-                <option value="3" <?php ($_['reminderType']==3) ? p('selected') : ''; ?> >Modal dialog and standard notifications</option>
+                <option value="1" <?php ($_['reminderType']==Constants::REMINDER_MODAL) ? p('selected') : ''; ?> >Modal dialog</option>
+                <option value="2" <?php ($_['reminderType']==Constants::REMINDER_NOTIFICATIONS) ? p('selected') : ''; ?> >Standard notifications</option>
+                <option value="3" <?php ($_['reminderType']==Constants::REMINDER_BOTH) ? p('selected') : ''; ?> >Modal dialog and standard notifications</option>
             </select>
         </div>
     </div>
@@ -41,9 +42,9 @@
                 </span>
             </label>
             <select class="settingkeyvalueinput" type="select" id="setNotificationMethod">
-                <option value="1" <?php ($_['notificationMethod']==1) ? p('selected') : ''; ?> >Show in Mail, Calendar, Contacts, and Tasks</option>
-                <option value="2" <?php ($_['notificationMethod']==2) ? p('selected') : ''; ?> >Show in Files</option>
-                <option value="3" <?php ($_['notificationMethod']==3) ? p('selected') : ''; ?> >Show everywhere (options 1 and 2 combined)</option>
+                <option value="1" <?php ($_['notificationMethod']==Constants::NOTIFICATIONMETHOD_MODAL_GROUPWARE) ? p('selected') : ''; ?> >Show in Mail, Calendar, Contacts, and Tasks</option>
+                <option value="2" <?php ($_['notificationMethod']==Constants::NOTIFICATIONMETHOD_MODAL_FILE) ? p('selected') : ''; ?> >Show in Files</option>
+                <option value="3" <?php ($_['notificationMethod']==Constants::NOTIFICATIONMETHOD_MODAL_BOTH) ? p('selected') : ''; ?> >Show everywhere (options 1 and 2 combined)</option>
             </select>
         </div>
     </div>

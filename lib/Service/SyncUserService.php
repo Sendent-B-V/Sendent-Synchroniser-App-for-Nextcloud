@@ -85,11 +85,42 @@ class SyncUserService {
 		}
 
 		// Gets all inactive sendent sync users
-		$activeUsers = [];
+		$inactiveUsers = [];
 		foreach ($users as $user) {
 			$syncUsers = $this->syncUserMapper->findByUid($user->getUid());
 			if (!empty($syncUsers)) {
 				if (!$syncUsers[0]->getActive()) {
+					// Makes sure we don't create duplicates
+					if(!array_key_exists($syncUsers[0]->getUid(), $inactiveUsers)) {
+						$inactiveUsers[$syncUsers[0]->getUid()] = $syncUsers[0];
+					}
+				}
+			}
+		}
+
+		return $inactiveUsers;
+
+	}
+
+	public function getValidUsers() {
+
+		// Gets active groups
+		$activeGroups = $this->appConfig->getAppValue('activeGroups', '');
+		$activeGroups = ($activeGroups !== '' && $activeGroups !== 'null') ? json_decode($activeGroups) : [];
+
+		// Gets all users in active groups
+		$users = [];
+		foreach ($activeGroups as $gid) {
+			$group = $this->groupManager->get($gid);
+			$users = array_merge($users,$group->getUsers());
+		}
+
+		// Gets all inactive sendent sync users
+		$activeUsers = [];
+		foreach ($users as $user) {
+			$syncUsers = $this->syncUserMapper->findByUid($user->getUid());
+			if (!empty($syncUsers)) {
+				if ($syncUsers[0]->getActive()) {
 					// Makes sure we don't create duplicates
 					if(!array_key_exists($syncUsers[0]->getUid(), $activeUsers)) {
 						$activeUsers[$syncUsers[0]->getUid()] = $syncUsers[0];
@@ -98,7 +129,7 @@ class SyncUserService {
 			}
 		}
 
-		return $inactiveUsers;
+		return $activeUsers;
 
 	}
 

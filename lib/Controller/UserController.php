@@ -145,6 +145,7 @@ class UserController extends Controller {
 		);
 
 		// Encrypt token using sendent sync shared secret
+		// TODO: This should not work when sharedSecret isn't set
 		$sharedSecret = $this->appConfig->getAppValue('sharedSecret', '');
 		$key = hash('md5', $sharedSecret);
 		$ivlen = openssl_cipher_iv_length($cipher="AES-256-CBC");
@@ -259,34 +260,9 @@ class UserController extends Controller {
 	 */
 	public function getActiveUsers() {
 
-		// Gets active groups
-		$activeGroups = $this->appConfig->getAppValue('activeGroups', '');
-		$activeGroups = ($activeGroups !== '' && $activeGroups !== 'null') ? json_decode($activeGroups) : [];
-
-		// Gets all users in active groups
-		$users = [];
-		foreach ($activeGroups as $gid) {
-			$group = $this->groupManager->get($gid);
-			$users = array_merge($users,$group->getUsers());
-		}
-
-		// Gets all active sendent sync users
-		$activeUsers = [];
-		$index = 0;
-		foreach ($users as $user) {
-			$syncUsers = $this->syncUserMapper->findByUid($user->getUid());
-			if (!empty($syncUsers)) {
-				if ($syncUsers[0]->getActive()) {
-					// Makes sure we don't create duplicates
-					if(!array_key_exists($syncUsers[0]->getUid(), $activeUsers)) {
-						$activeUsers[$index] = $syncUsers[0];
-						$index++;
-					}
-				}
-			}
-		}
-
+		$activeUsers = $this->syncUserService->getValidUsers();
 		return new JSONResponse($activeUsers);
+
 	}
 
 }

@@ -8,6 +8,7 @@ use OCP\AppFramework\Services\IAppConfig;
 use OCP\AppFramework\Services\IInitialState;
 use OCP\IGroupManager;
 use OCP\Settings\ISettings;
+use OCA\SendentSynchroniser\Constants;
 
 class Admin implements ISettings {
 
@@ -79,9 +80,9 @@ class Admin implements ISettings {
 		$params['ncGroups'] = $NCGroups;
 		$params['sendentGroups'] = $sendentGroups;
 
-		$params['reminderType'] = $this->appConfig->getAppValue('reminderType', '2');
-		$params['notificationInterval'] = $this->appConfig->getAppValue('notificationInterval', '7');
-		$params['notificationMethod'] = $this->appConfig->getAppValue('notificationMethod', '1');
+		$params['reminderType'] = $this->appConfig->getAppValue('reminderType', Constants::REMINDER_DEFAULT_TYPE);
+		$params['notificationInterval'] = $this->appConfig->getAppValue('notificationInterval', Constants::REMINDER_NOTIFICATIONS_DEFAULT_INTERVAL);
+		$params['notificationMethod'] = $this->appConfig->getAppValue('notificationMethod', Constants::NOTIFICATIONMETHOD_MODAL_DEFAULT);
 		$params['sharedSecret'] = $this->appConfig->getAppValue('sharedSecret', '');
 
 		return $params;
