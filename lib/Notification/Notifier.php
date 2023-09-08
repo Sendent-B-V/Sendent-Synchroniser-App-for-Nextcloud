@@ -45,11 +45,12 @@ class Notifier implements INotifier {
         }
         $l = $this->factory->get('sendentsynchroniser', $languageCode);
 
-        $parameters = $notification->getSubjectParameters();
-        $notification->setIcon($this->url->getAbsoluteURL($this->url->imagePath('sendentsynchroniser', 'app-dark.svg')));
-        $parameters = $notification->getSubjectParameters();
-        $subject = $l->t('Please activate your Exchange synchronisation');
+        // Adds icon and link
+        $notification->setIcon($this->url->getAbsoluteURL($this->url->imagePath('sendentsynchroniser', 'app-dark.svg')))
+            ->setLink($this->url->linkToRouteAbsolute('settings.PersonalSettings.index', ['section' => 'sendentsynchroniser']));
 
+        // Creates subject (previously set subject is replaced)
+        $subject = $l->t('Please activate your Exchange synchronisation');
         $notification->setParsedSubject($subject);
 
         return $notification;

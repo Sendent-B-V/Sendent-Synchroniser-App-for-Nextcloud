@@ -2,11 +2,19 @@
 
 namespace OCA\SendentSynchroniser\Service;
 
+use OCP\AppFramework\Services\IAppConfig;
 use OC\Authentication\Token\IProvider;
+use OCP\IGroupManager;
 use \OCP\ILogger;
 use OCA\SendentSynchroniser\Db\SyncUserMapper;
 
 class SyncUserService {
+
+	/** @var AppConfig */
+	private $appConfig;
+
+	/** @var IGroupManager */
+	private $groupManager;
 
 	/** @var ILogger */
 	private $logger;
@@ -17,10 +25,15 @@ class SyncUserService {
 	/** @var SyncUserMapper */
 	private $syncUserMapper;
 
-    public function __construct(ILogger $logger, Iprovider $tokenProvider, SyncUserMapper $syncUserMapper) {
+    public function __construct(IAppConfig $appConfig, IGroupManager $groupManager, ILogger $logger,
+		Iprovider $tokenProvider, SyncUserMapper $syncUserMapper) {
+
+		$this->appConfig = $appConfig;
+		$this->groupManager = $groupManager;
         $this->logger = $logger;
         $this->tokenProvider = $tokenProvider;
         $this->syncUserMapper = $syncUserMapper;
+
 	}
 
     public function invalidateUser(string $userId) {
@@ -56,6 +69,36 @@ class SyncUserService {
 
 		return $response;
 
+	}
+
+	public function getInvalidUsers() {
+
+		// Gets active groups
+		$activeGroups = $this->appConfig->getAppValue('activeGroups', '');
+		$activeGroups = ($activeGroups !== '' && $activeGroups !== 'null') ? json_decode($activeGroups) : [];
+
+		// Gets all users in active groups
+		$users = [];
+		foreach ($activeGroups as $gid) {
+			$group = $this->groupManager->get($gid);
+			$users = array_merge($users,$group->getUsers());
+		}
+
+		// Gets all inactive sendent sync users
+		$activeUsers = [];
+		foreach ($users as $user) {
+			$syncUsers = $this->syncUserMapper->findByUid($user->getUid());
+			if (!empty($syncUsers)) {
+				if (!$syncUsers[0]->getActive()) {
+					// Makes sure we don't create duplicates
+					if(!array_key_exists($syncUsers[0]->getUid(), $activeUsers)) {
+						$activeUsers[$syncUsers[0]->getUid()] = $syncUsers[0];
+					}
+				}
+			}
+		}
+
+		return $inactiveUsers;
 
 	}
 
