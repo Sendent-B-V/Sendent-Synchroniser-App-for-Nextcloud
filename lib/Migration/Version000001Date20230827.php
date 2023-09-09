@@ -52,7 +52,7 @@ class Version000001Date20230827 extends SimpleMigrationStep {
 				'notnull' => false
 			]);
 			$table->setPrimaryKey(['id']);
-			$table->addUniqueIndex(['licensekey'], 'sendent_license_index');
+			//$table->addUniqueIndex(['licensekey'], 'sendent_license_index');
 		} else {
 			$table = $schema->getTable('sndntsync_license');
 			// $table->dropColumn('key');

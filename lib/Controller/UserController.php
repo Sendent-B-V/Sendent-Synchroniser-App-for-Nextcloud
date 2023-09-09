@@ -272,13 +272,15 @@ class UserController extends Controller {
 
 		// Gets all active sendent sync users
 		$activeUsers = [];
+		$index = 0;
 		foreach ($users as $user) {
 			$syncUsers = $this->syncUserMapper->findByUid($user->getUid());
 			if (!empty($syncUsers)) {
 				if ($syncUsers[0]->getActive()) {
 					// Makes sure we don't create duplicates
 					if(!array_key_exists($syncUsers[0]->getUid(), $activeUsers)) {
-						$activeUsers[$syncUsers[0]->getUid()] = $syncUsers[0];
+						$activeUsers[$index] = $syncUsers[0];
+						$index++;
 					}
 				}
 			}
