@@ -109,7 +109,12 @@ class User implements ISettings {
 	private function isUserAllowed() : bool
 	{					
 
-		// TODO: improve logic as in SettingsController::shouldShowDialog
+		// Is shared secret configured?
+		if (empty($this->appConfig->getAppValue('sharedSecret', ''))) {
+			return false;
+		};
+
+		// Is user member of an active group?
 		$activeGroups = $this->appConfig->getAppValue('activeGroups');
 		$activeGroups = ($activeGroups !== '' && $activeGroups !== 'null') ? json_decode($activeGroups) : [];
 
@@ -121,7 +126,7 @@ class User implements ISettings {
 			}
 
 		}
-		
+
 		return false;
 	}
 
