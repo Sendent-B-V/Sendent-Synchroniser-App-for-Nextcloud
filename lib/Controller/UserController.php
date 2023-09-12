@@ -21,6 +21,7 @@ use OCP\IRequest;
 use OCP\ISession;
 use OCP\Security\ISecureRandom;
 use \OCP\ILogger;
+use OCA\SendentSynchroniser\Constants;
 use OCA\SendentSynchroniser\Db\SyncUser;
 use OCA\SendentSynchroniser\Db\SyncUserMapper;
 use OCA\SendentSynchroniser\Service\SyncUserService;
@@ -160,11 +161,11 @@ class UserController extends Controller {
 			$syncUser = new SyncUser;
 			$syncUser->setUid($credentials->getUID());
 			$syncUser->setToken($encryptedToken);
-			$syncUser->setActive(1);	
+			$syncUser->setActive(Constants::USER_STATUS_ACTIVE);
 			$this->syncUserMapper->insert($syncUser);
 		} else {
 			$syncUsers[0]->setToken($encryptedToken);
-			$syncUsers[0]->setActive(1);	
+			$syncUsers[0]->setActive(Constants::USER_STATUS_ACTIVE);
 			$this->syncUserMapper->update($syncUsers[0]);
 		}
 		
@@ -182,47 +183,6 @@ class UserController extends Controller {
 
 	/**
 	 *
-	 * This method tells if the current user is a valid Sendent synchroniser user. 
-	 * 
-	 * @NoAdminRequired
-	 *
- 	 * @return DataResponse
-	 *
-	 */
-	public function isValid() {
-
-		$this->logger->info('Checking validity of user ' . $this->userId);
-
-		// Checks if user is member of an active group
-		$activeGroups = $this->appConfig->getAppValue('activeGroups', '');
-		$activeGroups = ($activeGroups !== '' && $activeGroups !== 'null') ? json_decode($activeGroups) : [];
-		foreach ($activeGroups  as $gid) {
-			if ($this->groupManager->isInGroup($this->userId, $gid)) {
-				// User is member of an active group, let's find if he's valid
-				$syncUsers = $this->syncUserMapper->findByUid($this->userId);
-				if (!empty($syncUsers)) {
-					if ($syncUsers[0]->getActive()) {
-						$this->logger->info('User ' . $this->userId . ' is valid');
-						return new DataResponse(TRUE);
-					} else {
-						$this->logger->info('User ' . $this->userId . ' is not valid');
-						return new DataResponse(FALSE);
-					}
-				} else {
-					// User has never setup sync
-					$this->logger->info('User ' . $this->userId . ' has not setup sync yet');
-					return new DataResponse(FALSE);
-				}		
-			}
-		};
-
-		// User is not member of an active group, let's pretend it is valid so the Sendent synchroniser modal is not shown
-		return new DataResponse(TRUE);
-
-	}
-
-	/**
-	 *
 	 * This method invalidates a user. It is used when a user clicks on the 'Retract consent' button
 	 *
 	 * @NoAdminRequired
@@ -230,7 +190,7 @@ class UserController extends Controller {
 	 */
 	public function invalidateSelf() {
 
-		$resp = $this->invalidate($this->userId);
+		$resp = $this->invalidate($this->userId, Constants::USER_STATUS_NOCONSENT);
 		return $resp;
 
 	}
@@ -244,9 +204,9 @@ class UserController extends Controller {
 	 * @NoCSRFRequired
 	 * 
 	 */
-	public function invalidate(string $userId) {
+	public function invalidate(string $userId, $retractConsent = Constants::USER_STATUS_INACTIVE) {
 
-		$response = $this->syncUserService->invalidateUser($userId);
+		$response = $this->syncUserService->invalidateUser($userId, $retractConsent);
 		return new JSONResponse($response);
 
 	}
@@ -254,6 +214,8 @@ class UserController extends Controller {
 	/**
 	 *
 	 * This methods returns the list of active sendent sync users.
+	 *
+	 * Users that have retracted their consent to synchronise their data don't count as active
 	 *
 	 * @NoCSRFRequired
 	 *

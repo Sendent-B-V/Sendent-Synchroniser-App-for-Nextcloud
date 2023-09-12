@@ -3,14 +3,19 @@
 namespace OCA\SendentSynchroniser\Controller;
 
 use OCP\AppFramework\ApiController;
+use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\Services\IAppConfig;
 use OCP\IGroupManager;
 use OCP\IRequest;
 use \OCP\ILogger;
+use OCA\SendentSynchroniser\Constants;
 use OCA\SendentSynchroniser\Db\SyncUserMapper;
 use OCA\SendentSynchroniser\Service\SyncUserService;
 
 class SettingsController extends ApiController {
+
+	/** @var string */
+	private $userId;
 
 	/** @var IAppConfig */
 	private $appConfig;
@@ -28,6 +33,7 @@ class SettingsController extends ApiController {
 	private $syncUserService;
 
 	public function __construct($appName, IRequest $request,
+		string $userId,
 		IAppConfig $appConfig,
 		IGroupManager $groupManager,
 		ILogger $logger,
@@ -41,6 +47,7 @@ class SettingsController extends ApiController {
 		$this->logger = $logger;
 		$this->syncUserMapper = $syncUserMapper;
 		$this->syncUserService = $syncUserService;
+		$this->userId = $userId;
 
  	}
 
@@ -70,6 +77,18 @@ class SettingsController extends ApiController {
 	}
 
 	/**
+	 *
+	 * Gets reminder type
+	 *
+	 * @param string $reminderType
+	 *
+	 */
+	public function getReminderType() {
+		$this->appConfig->getAppValue('reminderType', Constants::REMINDER_DEFAULT_TYPE);
+		return;
+	}
+
+	/**
 	 * 
 	 * Saves notification method
 	 * 
@@ -89,7 +108,7 @@ class SettingsController extends ApiController {
 	 *
 	 */
 	public function getNotificationMethod() {
-		return $this->appConfig->getAppValue('notificationMethod', 0);
+		return $this->appConfig->getAppValue('notificationMethod', Constants::NOTIFICATIONMETHOD_MODAL_DEFAULT);
 	}
 
 	/**
@@ -143,6 +162,60 @@ class SettingsController extends ApiController {
 		$this->appConfig->setAppValue('activeGroups', json_encode($newSendentGroups));
 
 		return;
+	}
+
+	/**
+	 *
+	 * This method tells if the modal dialog should be shown
+	 *
+	 * The following conditions must be met for the modal dialog to be shown:
+	 *
+	 * 1- The shared secret to encrypt user tokens must be set
+	 * 2- The administrator must have asked for the display of the modal dialog
+	 * 3- The license must be valid
+	 * 3- The user must be member of an active group
+	 * 4- The user must be inactive (Users that have retracted their consent count as active).
+	 *
+	 * @NoAdminRequired
+	 *
+	 * @return JSONResponse
+	 *
+	 */
+	public function shouldShowDialog() {
+
+		// Is shared secret configured?
+		if (empty($this->appConfig->getAppValue('sharedSecret', ''))) {
+			return new JSONResponse(FALSE);
+		};
+
+		// Did administrators ask for the modal dialog to be shown?
+		if ($this->appConfig->getAppValue('reminderType', Constants::REMINDER_DEFAULT_TYPE) === Constants::REMINDER_NOTIFICATIONS) {
+			return new JSONResponse(FALSE);
+		};
+
+		// Checks if user is member of an active group
+		$activeGroups = $this->appConfig->getAppValue('activeGroups', '');
+		$activeGroups = ($activeGroups !== '' && $activeGroups !== 'null') ? json_decode($activeGroups) : [];
+		foreach ($activeGroups  as $gid) {
+			if ($this->groupManager->isInGroup($this->userId, $gid)) {
+				// User is member of an active group, let's find if he's active
+				$syncUsers = $this->syncUserMapper->findByUid($this->userId);
+				if (!empty($syncUsers)) {
+					if ($syncUsers[0]->getActive() === Constants::USER_STATUS_ACTIVE || $syncUsers[0]->getActive() === Constants::USER_STATUS_NOCONSENT) {
+						return new JSONResponse(FALSE);
+					} else {
+						return new JSONResponse(TRUE);
+					}
+				} else {
+					// User has never setup sync
+					return new JSONResponse(TRUE);
+				}
+			}
+		};
+
+		// User is not member of an active group
+		return new JSONResponse(FALSE);
+
 	}
 
 }

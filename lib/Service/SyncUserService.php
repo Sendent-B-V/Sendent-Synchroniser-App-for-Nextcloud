@@ -6,6 +6,7 @@ use OCP\AppFramework\Services\IAppConfig;
 use OC\Authentication\Token\IProvider;
 use OCP\IGroupManager;
 use \OCP\ILogger;
+use OCA\SendentSynchroniser\Constants;
 use OCA\SendentSynchroniser\Db\SyncUserMapper;
 
 class SyncUserService {
@@ -36,7 +37,12 @@ class SyncUserService {
 
 	}
 
-    public function invalidateUser(string $userId) {
+	/*
+	 *
+	 * This method invalidate a user
+	 *
+	*/
+    public function invalidateUser(string $userId, int $retractConsent = Constants::USER_STATUS_INACTIVE) {
 
         $this->logger->info('Invalidating user ' . $userId);
         $response = [];
@@ -58,7 +64,7 @@ class SyncUserService {
 				}
 			}
             // Set user status to invalid
-            $syncUsers[0]->setActive(0);
+            $syncUsers[0]->setActive($retractConsent);
             $this->syncUserMapper->update($syncUsers[0]);
 
 			$response = [
@@ -89,7 +95,7 @@ class SyncUserService {
 		foreach ($users as $user) {
 			$syncUsers = $this->syncUserMapper->findByUid($user->getUid());
 			if (!empty($syncUsers)) {
-				if (!$syncUsers[0]->getActive()) {
+				if ($syncUsers[0]->getActive() === Constants::USER_STATUS_INACTIVE) {
 					// Makes sure we don't create duplicates
 					if(!array_key_exists($syncUsers[0]->getUid(), $inactiveUsers)) {
 						$inactiveUsers[$syncUsers[0]->getUid()] = $syncUsers[0];
@@ -120,7 +126,7 @@ class SyncUserService {
 		foreach ($users as $user) {
 			$syncUsers = $this->syncUserMapper->findByUid($user->getUid());
 			if (!empty($syncUsers)) {
-				if ($syncUsers[0]->getActive()) {
+				if ($syncUsers[0]->getActive() === Constants::Constants::USER_STATUS_ACTIVE) {
 					// Makes sure we don't create duplicates
 					if(!array_key_exists($syncUsers[0]->getUid(), $activeUsers)) {
 						$activeUsers[$syncUsers[0]->getUid()] = $syncUsers[0];

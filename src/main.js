@@ -5,19 +5,16 @@ import { activateConsentFlowDialog } from './utils/consentFlowScript.js'
 
 $(async () => {
 
-	// Check if licensing is OK
-	var url = generateUrl('/apps/sendentsynchroniser/api/1.0/licensestatus')
-	const licenseStatus = await axios.get(url).then( resp => {
+	// Check if we might want to display the sendent synchronisation modal dialog
+	var url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/shouldShowDialog')
+	const shouldShowDialog = await axios.get(url).then( resp => {
 		return resp.data
 	})
-	/*  TODO: Activate
-	if (licenseStatus['statusKind'] !== 'valid') {
-		console.log('No valid Sendent synchroniser license')
-		return
+	if (!shouldShowDialog) {
+		return;
 	}
-	*/
 
-	// Check if we might want to display the sendent synchronisation modal dialog
+	// Check if we want to display the sendent synchronisation modal dialog on this particular page
 	var url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/notificationMethod')
 	const notificationMethod = await axios.get(url).then( resp => {
 		return resp.data
@@ -81,7 +78,7 @@ $(async () => {
 		$('#sendentSyncModal').hide()
 	})
 
-	// Injects startConsentFlow div into modal template
+	// Injects startConsentFlow div into modal template and show the modal dialog
 	var url = generateUrl('/apps/sendentsynchroniser/api/1.0/getConsentFlowPage')
 	axios.get(url).then( resp => {
 		const consentFlowDiv = resp.data
@@ -89,13 +86,10 @@ $(async () => {
 		// TODO: Style should be loaded via regular CSS file
 		$('#consentFlowTitle').css({"font-size" : "16px", "font-weight" : "bold", "margin-bottom": "20px"})
 		activateConsentFlowDialog()
+
+		// Shows modal dialog
+		$('#sendentSyncModal').show()
+
 	})
 
-	// Shows modal template if needed
-	url = generateUrl('/apps/sendentsynchroniser/api/1.0/user/isValid')
-	axios.get(url).then( resp => {
-		if (!resp.data) {
-			$('#sendentSyncModal').show()
-		}
-	})
 })

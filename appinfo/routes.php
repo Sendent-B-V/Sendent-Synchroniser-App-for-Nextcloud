@@ -13,7 +13,6 @@ return [
 		['name' => 'user#getActiveUsers', 'url' => '/api/1.0/user/actives', 'verb' => 'GET'],
 		['name' => 'user#invalidateSelf', 'url' => '/api/1.0/user/invalidate', 'verb' => 'GET'],
 		['name' => 'user#invalidate', 'url' => '/api/1.0/user/invalidate', 'verb' => 'POST'],
-		['name' => 'user#isValid', 'url' => '/api/1.0/user/isValid', 'verb' => 'GET'],
 
 		['name' => 'settings#setActiveGroups', 'url' => '/api/1.0/settings/activeGroups', 'verb' => 'POST'],
 		['name' => 'settings#setNotificationInterval', 'url' => '/api/1.0/settings/notificationInterval', 'verb' => 'POST'],
@@ -21,6 +20,7 @@ return [
 		['name' => 'settings#setNotificationMethod', 'url' => '/api/1.0/settings/notificationMethod', 'verb' => 'POST'],
 		['name' => 'settings#setReminderType', 'url' => '/api/1.0/settings/reminderType', 'verb' => 'POST'],
 		['name' => 'settings#setSharedSecret', 'url' => '/api/1.0/settings/sharedSecret', 'verb' => 'POST'],
+		['name' => 'settings#shouldShowDialog', 'url' => '/api/1.0/settings/shouldShowDialog', 'verb' => 'GET'],
 
 		[
 			'name' => 'license_api#preflighted_cors',
