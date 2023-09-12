@@ -16,37 +16,37 @@ $(() => {
 			const reminderType = (<HTMLInputElement>e.target).value
 			const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/reminderType');
 			axios.post(url, {reminderType}).then(() => {
+				// TODO handle error
 				$('#enrollmentReminderChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
 					$(this).addClass("hidden");
 					$(this).removeClass("shown")
 					next();
 				});
 			})
-			// TODO provide feedback to admin
 		})
 		$('#setNotificationMethod').on('change', function(e) {
 			const notificationMethod = (<HTMLInputElement>e.target).value
 			const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/notificationMethod');
 			axios.post(url, {notificationMethod}).then(() => {
+				// TODO handle error
 				$('#ModalNotificationChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
 					$(this).addClass("hidden");
 					$(this).removeClass("shown")
 					next();
 				});
 			})
-			// TODO provide feedback to admin
 		})
 		$('#setNotificationInterval').on('change', function(e) {
 			const notificationInterval = (<HTMLInputElement>e.target).value
 			const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/notificationInterval');
 			axios.post(url, {notificationInterval}).then(() => {
+				// TODO handle error
 				$('#NotificationsIntervalChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
 					$(this).addClass("hidden");
 					$(this).removeClass("shown")
 					next();
 				});
 			})
-			// TODO provide feedback to admin
 		})
 		$('#setSharedSecret').on('keyup', function(e) {
 			clearTimeout($(this).data('timer'))
@@ -54,13 +54,13 @@ $(() => {
 				const sharedSecret = (<HTMLInputElement>(<unknown>$('#setSharedSecret')))[0].value
 				const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/sharedSecret');
 				axios.post(url, {sharedSecret}).then(() => {
+					// TODO handle error
 					$('#sharedSecretChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
 						$(this).addClass("hidden");
 						$(this).removeClass("shown")
 						next();
 					});
 				})
-				// TODO provide feedback to admin
 			},500))
 		})
 		$('#showSharedSecret').on('mousedown', function(e) {
@@ -76,8 +76,10 @@ $(() => {
 		activateConsentFlowDialog()
 		$('#retractConsentButton').on('click', function(e) {
 			const url = generateUrl('/apps/sendentsynchroniser/api/1.0/user/invalidate');
-			axios.get(url)
-			// TODO: should reload the page or show a feedback to the user
+			axios.get(url).then(() => {
+				// TODO handle error
+				location.reload()
+			})
 		})
 	}
 })
