@@ -29,12 +29,19 @@ class NotifyInactiveUsers extends TimedJob {
 
     protected function run() {
 
+        // Is shared secret configured?
+          if (empty($this->appConfig->getAppValue('sharedSecret', ''))) {
+			return;
+		};
+
+        // TODO: Check licensing?
+
         // Should we send notifications?
         if ($appConfig->getAppValue('reminderType', Constants::REMINDER_NOTIFICATIONS) === Constants::REMINDER_MODAL) {
             return;
         }
 
-        // Gets list of invalid users
+        // Gets list of invalid users (users who have opt out of sendent sync are not counted as invalid)
         $inactiveUsers = $this->syncUserService->getInvalidUsers();
 
         // Defers sending notifications to avoid multiple connections to the server

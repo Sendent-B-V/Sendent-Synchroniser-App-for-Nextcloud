@@ -114,6 +114,8 @@ class User implements ISettings {
 			return false;
 		};
 
+		// Shall I check licensing here?
+
 		// Is user member of an active group?
 		$activeGroups = $this->appConfig->getAppValue('activeGroups');
 		$activeGroups = ($activeGroups !== '' && $activeGroups !== 'null') ? json_decode($activeGroups) : [];
