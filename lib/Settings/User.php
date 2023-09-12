@@ -12,6 +12,7 @@ use OCP\ISession;
 use \OCP\ILogger;
 use OCP\Security\ISecureRandom;
 use OCP\IURLGenerator;
+use OCA\SendentSynchroniser\Constants;
 use OCA\SendentSynchroniser\Db\SyncUserMapper;
 
 class User implements ISettings {
@@ -53,22 +54,13 @@ class User implements ISettings {
 	 * 
 	 */
 	public function getForm() {
-		if ($this->isUserAllowed() === false)
-		{
-			// User is not allowed to use Sendent synchroniser
-			$this->logger->info('user is not allowed to use Sendent synchroniser');
-			return new TemplateResponse('sendentsynchroniser', 'noSyncUser');
-		}
-		else{
-			// User allowed to use Sendent synchroniser
-			$syncUsers = $this->syncUserMapper->findByUid($this->userId);
-			if (empty($syncUsers) || $syncUsers[0]->getActive() !== 1) {
-				// User is not active
-				return new TemplateResponse('sendentsynchroniser', 'indexUser', ['activeUser' => false]);
-			} else {
-				// User is active
-				return new TemplateResponse('sendentsynchroniser', 'indexUser', ['activeUser' => true]);
-			}
+		$syncUsers = $this->syncUserMapper->findByUid($this->userId);
+		if (empty($syncUsers) || $syncUsers[0]->getActive() !== Constants::USER_STATUS_ACTIVE) {
+			// User is not active
+			return new TemplateResponse('sendentsynchroniser', 'indexUser', ['activeUser' => false]);
+		} else {
+			// User is active
+			return new TemplateResponse('sendentsynchroniser', 'indexUser', ['activeUser' => true]);
 		}
 	}
 
@@ -92,7 +84,10 @@ class User implements ISettings {
 	 * 
 	 */
 	public function getSection() {
-		return 'sendentsynchroniser';
+		if ($this->isUserAllowed())
+		{
+			return 'sendentsynchroniser';
+		}
 	}
 
 	/**
@@ -114,6 +109,7 @@ class User implements ISettings {
 	private function isUserAllowed() : bool
 	{					
 
+		// TODO: improve logic as in SettingsController::shouldShowDialog
 		$activeGroups = $this->appConfig->getAppValue('activeGroups');
 		$activeGroups = ($activeGroups !== '' && $activeGroups !== 'null') ? json_decode($activeGroups) : [];
 
