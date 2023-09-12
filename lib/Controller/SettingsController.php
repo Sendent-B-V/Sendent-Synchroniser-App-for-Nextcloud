@@ -193,6 +193,8 @@ class SettingsController extends ApiController {
 			return new JSONResponse(FALSE);
 		};
 
+		// TODO: Verify license
+
 		// Checks if user is member of an active group
 		$activeGroups = $this->appConfig->getAppValue('activeGroups', '');
 		$activeGroups = ($activeGroups !== '' && $activeGroups !== 'null') ? json_decode($activeGroups) : [];
