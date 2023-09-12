@@ -24,6 +24,7 @@ export function activateConsentFlowDialog() {
 						$('#consentFlowButton').hide()
 						$('#consentFlowTitle').text(t("sendentsynchroniser", "Configuration complete"))
 						$('#consentFlowText').text(t("sendentsynchroniser", 'Your account is fully configured for Exchange synchronisation.'))
+						setTimeout(() => {location.reload(),2000})
 					})
 				})
 			})
