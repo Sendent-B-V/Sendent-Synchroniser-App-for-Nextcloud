@@ -126,7 +126,7 @@ class SyncUserService {
 		foreach ($users as $user) {
 			$syncUsers = $this->syncUserMapper->findByUid($user->getUid());
 			if (!empty($syncUsers)) {
-				if ($syncUsers[0]->getActive() === Constants::Constants::USER_STATUS_ACTIVE) {
+				if ($syncUsers[0]->getActive() === Constants::USER_STATUS_ACTIVE) {
 					// Makes sure we don't create duplicates
 					if(!array_key_exists($syncUsers[0]->getUid(), $activeUsers)) {
 						$activeUsers[$syncUsers[0]->getUid()] = $syncUsers[0];
