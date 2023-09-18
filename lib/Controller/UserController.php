@@ -60,12 +60,8 @@ class UserController extends Controller {
 
 	/** @var SyncUserService */
 	private $syncUserService;
-
-	/** @var string */
-	private $userId;
 	
 	public function __construct(ILogger $logger, $AppName, IRequest $request,
-		string $userId,
 		IAppConfig $appConfig,
 		IEventDispatcher $eventDispatcher,
 		IGroupManager $groupManager,
@@ -89,7 +85,6 @@ class UserController extends Controller {
 		$this->syncUserMapper = $syncUserMapper;
 		$this->syncUserService = $syncUserService;
 		$this->tokenProvider = $tokenProvider;
-		$this->userId = $userId;
 
 	}
 
@@ -190,7 +185,9 @@ class UserController extends Controller {
 	 */
 	public function invalidateSelf() {
 
-		$resp = $this->invalidate($this->userId, Constants::USER_STATUS_NOCONSENT);
+		$credentials = $this->credentialStore->getLoginCredentials();
+		$resp = $this->invalidate($credentials->getUID(), Constants::USER_STATUS_NOCONSENT);
+
 		return $resp;
 
 	}
