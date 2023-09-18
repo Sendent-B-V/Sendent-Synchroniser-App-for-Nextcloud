@@ -5,6 +5,7 @@ namespace OCA\SendentSynchroniser\Service;
 use OCP\AppFramework\Services\IAppConfig;
 use OC\Authentication\Token\IProvider;
 use OCP\IGroupManager;
+use OCP\IUserManager;
 use \OCP\ILogger;
 use OCA\SendentSynchroniser\Constants;
 use OCA\SendentSynchroniser\Db\SyncUserMapper;
@@ -26,14 +27,18 @@ class SyncUserService {
 	/** @var SyncUserMapper */
 	private $syncUserMapper;
 
+	/** @var IUserManager */
+	private $userManager;
+
     public function __construct(IAppConfig $appConfig, IGroupManager $groupManager, ILogger $logger,
-		Iprovider $tokenProvider, SyncUserMapper $syncUserMapper) {
+		Iprovider $tokenProvider, IUserManager $userManager, SyncUserMapper $syncUserMapper) {
 
 		$this->appConfig = $appConfig;
 		$this->groupManager = $groupManager;
         $this->logger = $logger;
         $this->tokenProvider = $tokenProvider;
         $this->syncUserMapper = $syncUserMapper;
+		$this->userManager = $userManager;
 
 	}
 
@@ -126,10 +131,16 @@ class SyncUserService {
 		foreach ($users as $user) {
 			$syncUsers = $this->syncUserMapper->findByUid($user->getUid());
 			if (!empty($syncUsers)) {
-				if ($syncUsers[0]->getActive() === Constants::USER_STATUS_ACTIVE) {
+				$syncUser = $syncUsers[0];
+				if ($syncUser->getActive() === Constants::USER_STATUS_ACTIVE) {
 					// Makes sure we don't create duplicates
-					if(!array_key_exists($syncUsers[0]->getUid(), $activeUsers)) {
-						$activeUsers[$syncUsers[0]->getUid()] = $syncUsers[0];
+					if(!array_key_exists($syncUser->getUid(), $activeUsers)) {
+						// Augments syncUser with some info from the corresponding NC user
+						$NCUser = $this->userManager->get($syncUser->getUid());
+						$user = $syncUser->jsonSerialize();
+						$user['email'] = $NCUser->getEmailAddress();
+						$user['displayName'] = $NCUser->getDisplayName();
+						$activeUsers[$syncUser->getUid()] = $user;
 					}
 				}
 			}
