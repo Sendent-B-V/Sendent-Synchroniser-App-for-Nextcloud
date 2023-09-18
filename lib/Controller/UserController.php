@@ -19,6 +19,7 @@ use OCP\EventDispatcher\IEventDispatcher;
 use OCP\IGroupManager;
 use OCP\IRequest;
 use OCP\ISession;
+use OCP\IUserManager;
 use OCP\Security\ISecureRandom;
 use \OCP\ILogger;
 use OCA\SendentSynchroniser\Constants;
@@ -60,6 +61,9 @@ class UserController extends Controller {
 
 	/** @var SyncUserService */
 	private $syncUserService;
+
+	/** @var IUserManager */
+	private $userManager;
 	
 	public function __construct(ILogger $logger, $AppName, IRequest $request,
 		IAppConfig $appConfig,
@@ -69,6 +73,7 @@ class UserController extends Controller {
 		IsecureRandom $random,
 		ISession $session,
 		IStore $credentialStore,
+		IUserManager $userManager,
 		SyncUserMapper $syncUserMapper,
 		SyncUserService $syncUserService) {
 
@@ -85,6 +90,7 @@ class UserController extends Controller {
 		$this->syncUserMapper = $syncUserMapper;
 		$this->syncUserService = $syncUserService;
 		$this->tokenProvider = $tokenProvider;
+		$this->userManager = $userManager;
 
 	}
 
@@ -109,6 +115,7 @@ class UserController extends Controller {
 
 		try {
 			$credentials = $this->credentialStore->getLoginCredentials();
+			$uid = $credentials->getUID();
 		} catch (CredentialsUnavailableException $e) {
 			$this->logger->error('CredentialsUnavailableException');
 			throw new OCSForbiddenException();
@@ -122,13 +129,13 @@ class UserController extends Controller {
 		}
 
 		// Invalidates existing app token
-		$this->syncUserService->invalidateUser($credentials->getUID());
+		$this->syncUserService->invalidateUser($uid);
 
 		// Generates an app token for Sendent synchroniser
 		$token = $this->random->generate(72, ISecureRandom::CHAR_UPPER.ISecureRandom::CHAR_LOWER.ISecureRandom::CHAR_DIGITS);
 		$generatedToken = $this->tokenProvider->generateToken(
 			$token,
-			$credentials->getUID(),
+			$uid,
 			$credentials->getLoginName(),
 			$password,
 			$this->appName,
@@ -151,11 +158,13 @@ class UserController extends Controller {
 		$encryptedToken = base64_encode( $iv.$hmac.$ciphertext_raw );
 
 		// Stores syncUser info
-		$syncUsers = $this->syncUserMapper->findByUid($credentials->getUID());
+		$syncUsers = $this->syncUserMapper->findByUid($uid);
 		if (empty($syncUsers)) {
+			$NCUser = $this->userManager->get($uid);
 			$syncUser = new SyncUser;
-			$syncUser->setUid($credentials->getUID());
+			$syncUser->setUid($uid);
 			$syncUser->setToken($encryptedToken);
+			$syncUser->setEmail($NCUser->getEMailAddress());
 			$syncUser->setActive(Constants::USER_STATUS_ACTIVE);
 			$this->syncUserMapper->insert($syncUser);
 		} else {
