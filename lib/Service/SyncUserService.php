@@ -125,7 +125,7 @@ class SyncUserService {
 			$group = $this->groupManager->get($gid);
 			$users = array_merge($users,$group->getUsers());
 		}
-
+		$index = 0;
 		// Gets all inactive sendent sync users
 		$activeUsers = [];
 		foreach ($users as $user) {
@@ -140,7 +140,12 @@ class SyncUserService {
 						$user = $syncUser->jsonSerialize();
 						$user['email'] = $NCUser->getEmailAddress();
 						$user['displayName'] = $NCUser->getDisplayName();
-						$activeUsers[$syncUser->getUid()] = $user;
+						//this method replaces the mechanism with named array indexes because C# cannot deal with that.
+						if(!$this->checkIfUserInArray($activeUsers, $syncUser->getUid()))
+						{
+							$activeUsers[$index] = $user;
+							$index++;
+						}
 					}
 				}
 			}
@@ -148,6 +153,21 @@ class SyncUserService {
 
 		return $activeUsers;
 
+	}
+	//this method replaces the mechanism with named array indexes because C# cannot deal with that.
+	private function checkIfUserInArray($array, $id) : bool
+	{
+		$found = false;
+		foreach($array as $user)
+		{
+			if($user['uid'] == $id)
+			{
+				$this->logger->info('Duplicate found for user: ' . $user['displayName']);
+				$found = true;
+				break;
+			}
+		}
+		return $found;
 	}
 
 }
