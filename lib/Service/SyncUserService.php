@@ -12,6 +12,9 @@ use OCA\SendentSynchroniser\Db\SyncUserMapper;
 
 class SyncUserService {
 
+	/** @var string */
+	private $appName;
+
 	/** @var AppConfig */
 	private $appConfig;
 
@@ -30,9 +33,10 @@ class SyncUserService {
 	/** @var IUserManager */
 	private $userManager;
 
-    public function __construct(IAppConfig $appConfig, IGroupManager $groupManager, ILogger $logger,
+    public function __construct($AppName, IAppConfig $appConfig, IGroupManager $groupManager, ILogger $logger,
 		Iprovider $tokenProvider, IUserManager $userManager, SyncUserMapper $syncUserMapper) {
 
+		$this->appName = $AppName;
 		$this->appConfig = $appConfig;
 		$this->groupManager = $groupManager;
         $this->logger = $logger;
