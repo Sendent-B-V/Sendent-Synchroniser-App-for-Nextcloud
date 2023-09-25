@@ -27,7 +27,7 @@ class NotifyInactiveUsers extends TimedJob {
         $this->setInterval($interval);
     }
 
-    protected function run() {
+    protected function run($arguments) {
 
         // Is shared secret configured?
           if (empty($this->appConfig->getAppValue('sharedSecret', ''))) {
