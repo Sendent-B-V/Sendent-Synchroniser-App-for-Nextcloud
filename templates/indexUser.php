@@ -8,7 +8,7 @@ style('sendentsynchroniser', ['style']);
 	<form class="form" method="post" id="settingsform">
 		<div class="settingTemplateDetailInclude section">
 			<h2>
-				<?php p($l->t('Sendent Synchronizer')); ?>
+				<?php p($l->t('Sendent Sync')); ?>
 			</h2>
 			<?php print_unescaped($this->inc('sections/consentFlow')); ?>
 			<?php if ($_['activeUser']) { ?>
