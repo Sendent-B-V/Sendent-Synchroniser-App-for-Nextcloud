@@ -1,6 +1,7 @@
 <?php
 namespace OCA\SendentSynchroniser\Cron;
 
+use OCP\IConfig;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\TimedJob;
 use OCP\Notification\IManager;
@@ -9,35 +10,39 @@ use OCA\SendentSynchroniser\Service\SyncUserService;
 
 class NotifyInactiveUsers extends TimedJob {
 
+    /** @var IConfig */
+    private $config;
+
     /** @var IManager */
-     private $notificationManager;
+    private $notificationManager;
 
-     /** @var SyncUserService */
-     private $syncUserService;
+    /** @var SyncUserService */
+    private $syncUserService;
 
-    public function __construct(ITimeFactory $time, IAppConfig $appConfig, IManager $notificationManager, SyncUserService $syncUserService) {
+    public function __construct(ITimeFactory $time, IConfig $config, IManager $notificationManager, SyncUserService $syncUserService) {
         parent::__construct($time);
 
+	$this->config = $config;
         $this->notificationManager = $notificationManager;
         $this->syncUserService = $syncUserService;
 
         // Sets the job to run at specified interval
-        $interval = $appConfig->getAppValue('notificationInterval',  Constants::REMINDER_NOTIFICATIONS_DEFAULT_INTERVAL);
-        $interval = $interval * 24 * 3600;
+        $interval = $config->getAppValue('notificationInterval',  Constants::REMINDER_NOTIFICATIONS_DEFAULT_INTERVAL);
+        $interval = intval($interval) * 24 * 3600;
         $this->setInterval($interval);
     }
 
     protected function run($arguments) {
 
         // Is shared secret configured?
-          if (empty($this->appConfig->getAppValue('sharedSecret', ''))) {
+          if (empty($this->config->getAppValue('sharedSecret', ''))) {
 			return;
 		};
 
         // TODO: Check licensing?
 
         // Should we send notifications?
-        if ($appConfig->getAppValue('reminderType', Constants::REMINDER_NOTIFICATIONS) === Constants::REMINDER_MODAL) {
+        if ($config->getAppValue('reminderType', Constants::REMINDER_NOTIFICATIONS) === Constants::REMINDER_MODAL) {
             return;
         }
 
