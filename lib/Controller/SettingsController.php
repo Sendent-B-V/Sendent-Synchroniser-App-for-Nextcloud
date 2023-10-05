@@ -26,6 +26,9 @@ class SettingsController extends ApiController {
 	/** @var ILogger */
 	private $logger;
 
+	/** @var IRequest */
+	protected $request;
+
 	/** @var SyncUserMapper */
 	private $syncUserMapper;
 
@@ -45,6 +48,7 @@ class SettingsController extends ApiController {
 		$this->appConfig = $appConfig;
 		$this->groupManager = $groupManager;
 		$this->logger = $logger;
+		$this->request = $request;
 		$this->syncUserMapper = $syncUserMapper;
 		$this->syncUserService = $syncUserService;
 		$this->userId = $userId;
@@ -172,9 +176,10 @@ class SettingsController extends ApiController {
 	 *
 	 * 1- The shared secret to encrypt user tokens must be set
 	 * 2- The administrator must have asked for the display of the modal dialog
-	 * 3- The license must be valid
-	 * 3- The user must be member of an active group
-	 * 4- The user must be inactive (Users that have retracted their consent count as active).
+	 * 3- We haven't shown the dialog for a certain amount of time ('sendentsynchroniser_activationreminder_timeout' cookie)
+	 * 4- The license must be valid
+	 * 5- The user must be member of an active group
+	 * 6- The user must be inactive (Users that have retracted their consent count as active).
 	 *
 	 * @NoAdminRequired
 	 *
@@ -190,6 +195,12 @@ class SettingsController extends ApiController {
 
 		// Did administrators ask for the modal dialog to be shown?
 		if ($this->appConfig->getAppValue('reminderType', Constants::REMINDER_DEFAULT_TYPE) === Constants::REMINDER_NOTIFICATIONS) {
+			return new JSONResponse(FALSE);
+		};
+
+		$cookie = $this->request->getCookie('sendentsynchroniser_activationreminder_timeout');
+
+		if (!is_null($cookie)) {
 			return new JSONResponse(FALSE);
 		};
 
