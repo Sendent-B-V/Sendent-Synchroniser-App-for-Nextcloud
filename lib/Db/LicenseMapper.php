@@ -10,7 +10,7 @@ use OCP\AppFramework\Db\QBMapper;
 
 class LicenseMapper extends QBMapper {
 	public function __construct(IDBConnection $db) {
-		parent::__construct($db, 'sndnt_license', License::class);
+		parent::__construct($db, 'sndntsync_license', License::class);
 	}
 
 	/**

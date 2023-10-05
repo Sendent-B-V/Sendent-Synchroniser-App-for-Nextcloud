@@ -8,16 +8,23 @@ use Psr\Log\LoggerInterface;
 
 use OCA\SendentSynchroniser\Db\License;
 use OCA\SendentSynchroniser\Http\SubscriptionValidationHttpClient;
+use OCA\SendentSynchroniser\Service\LicenseService;
 
 use Exception;
 
 class LicenseManager {
+
+	/** @var SubscriptionValidationHttpClient */
+	private $httpClient;
+
+	/** @var  LicenseService */
 	protected $licenseservice;
 
 	/** @var LoggerInterface */
 	private $logger;
 
-	public function __construct(LicenseService $licenseservice, LoggerInterface $logger) {
+	public function __construct(LicenseService $licenseservice, LoggerInterface $logger, SubscriptionValidationHttpClient $httpClient) {
+		$this->httpClient = $httpClient;
 		$this->licenseservice = $licenseservice;
 		$this->logger = $logger;
 	}
@@ -45,7 +52,7 @@ class LicenseManager {
 		try {
 			error_log(print_r('Pinging licensing server with license ' . $license->getId(), true));
 			$this->logger->info('Pinging licensing server with license ' . $license->getId());
-			$license = $this->subscriptionvalidationhttpclient->validate($license);
+			$license = $this->httpClient->validate($license);
 		} catch (Exception $e) {
 			$this->logger->error('Error while pinging licensing server');
 		}
@@ -55,7 +62,7 @@ class LicenseManager {
 		$this->logger->info('Renewing license ' . $license->getId());
 		error_log(print_r("Renewing license " . $license->getId(), true));
 
-		$license = $this->subscriptionvalidationhttpclient->validate($license);
+		$license = $this->httpClient->validate($license);
 		if (isset($license) && $license != null) {
 			$maxUsers = $license->getMaxusers();
 			if (!isset($maxUsers)) {
@@ -108,7 +115,7 @@ class LicenseManager {
 	public function activateLicense(License $license) {
 		error_log(print_r("LICENSEMANAGER-ACTIVATELICENSE", true));
 
-		$activatedLicense = $this->subscriptionvalidationhttpclient->activate($license);
+		$activatedLicense = $this->httpClient->activate($license);
 		if (isset($activatedLicense)) {
 			$level = $activatedLicense->getLevel();
 			error_log(print_r("LICENSEMANAGER-LEVEL=		" . $level, true));

@@ -82,23 +82,13 @@ export default class LicenseHandler {
 		console.log('Refreshing license status');
         try {
             const { data: status } = await this.requestStatus();
-            const { data: appStatus } = await this.requestApplicationStatus();
             
-            let LatestVSTOAddinVersionReleaseDate = new Date(appStatus.LatestVSTOAddinVersion.ReleaseDate);
-            let LatestVSTOAddinVersionReleaseDateString = LatestVSTOAddinVersionReleaseDate.toLocaleDateString('nl-NL', { timeZone: 'UTC' });
             let statusdateLastCheckDate = new Date(status.dateLastCheck);
             let statusdateLastCheckDateString = statusdateLastCheckDate.toLocaleDateString('nl-NL', { timeZone: 'UTC' });
             let statusdateExpirationDate = new Date(status.dateExpiration);
             let statusdateExpirationDateString = statusdateExpirationDate.toLocaleDateString('nl-NL', { timeZone: 'UTC' });
             
             
-            if (status.level !== 'Free' && status.level !== '-' && status.level !== '') {
-                $("#btnSupportButton").removeClass("hidden").addClass("shown");
-                $("#latestVSTOVersion").text(appStatus.LatestVSTOAddinVersion.Version);
-                $("#latestVSTOVersionReleaseDate").text(LatestVSTOAddinVersionReleaseDateString);
-                document.getElementById("latestVSTOVersionDownload")?.setAttribute("href", appStatus.LatestVSTOAddinVersion.UrlBinary);
-                document.getElementById("latestVSTOVersionReleaseNotes")?.setAttribute("href", appStatus.LatestVSTOAddinVersion.UrlReleaseNotes);
-            }
 
             $("#licensestatus").html(status.status);
             $("#licenselastcheck").text(statusdateLastCheckDateString);

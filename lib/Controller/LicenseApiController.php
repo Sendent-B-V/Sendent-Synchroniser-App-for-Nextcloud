@@ -73,11 +73,7 @@ class LicenseApiController extends ApiController {
 				if (is_array($result) && count($result) > 0
 				&& $result[0]->getLevel() != "Error_clear" && $result[0]->getLevel() != "Error_incomplete") {
 
-
 					$this->logger->info('Check needed for license ' . $result[0]->getId());
-
-					// Early exit. TODO: Implement properly
-					return new DataResponse(new LicenseStatus($this->l->t("No license configured"), "nolicense" ,"-", "-", "-", "-", "-")); 
 
 					try {
 						$this->licensemanager->renewLicense($result[0]);
@@ -99,7 +95,6 @@ class LicenseApiController extends ApiController {
 					$dateExpiration = $result[0]->getDatelicenseend();
 					$dateLastCheck = $result[0]->getDatelastchecked();
 					$level = $result[0]->getLevel();
-					$group = $result[0]->getNcgroup();
 					$statusKind = "";
 					$status = "";
 
@@ -127,16 +122,16 @@ class LicenseApiController extends ApiController {
 						$status = $this->l->t("Current amount of active users exceeds licensed amount. Additional users trying to use Sendent will be prevented from doing so.");
 						$statusKind = "userlimit";
 					}
-					return new DataResponse(new LicenseStatus($status, $statusKind, $level,$licensekey, $dateExpiration, $dateLastCheck, $email, $group));
+					return new DataResponse(new LicenseStatus($status, $statusKind, $level,$licensekey, $dateExpiration, $dateLastCheck, $email));
 				} elseif (count($result) > 0 && $result[0]->getLevel() == "Error_incomplete") {
 					$email = $result[0]->getEmail();
 					$licensekey = $result[0]->getLicensekey();
 					$status = $this->l->t('Missing (or incorrect) email address or license key. %1$sContact support%2$s to get your correct license information.', ["<a href='mailto:support@sendent.nl' style='color:blue'>", "</a>"]);
-					return new DataResponse(new LicenseStatus($status, "error_incomplete" ,"-", $licensekey, "-", "-", $email, $group));
+					return new DataResponse(new LicenseStatus($status, "error_incomplete" ,"-", $licensekey, "-", "-", $email));
 				} elseif (count($result) > 0 && $result[0]->getLevel() == License::ERROR_VALIDATING) {
 					$email = $result[0]->getEmail();
 					$licensekey = $result[0]->getLicensekey();
-					return new DataResponse(new LicenseStatus($this->l->t("Cannot verify your license. Please make sure your licensekey and email address are correct before you try to 'Activate license'."), "error_validating","-", $licensekey, "-", "-", $email, $group));
+					return new DataResponse(new LicenseStatus($this->l->t("Cannot verify your license. Please make sure your licensekey and email address are correct before you try to 'Activate license'."), "error_validating","-", $licensekey, "-", "-", $email));
 				} else {
 					return new DataResponse(new LicenseStatus($this->l->t("No license configured"), "nolicense" ,"-", "-", "-", "-", "-"));
 				}
