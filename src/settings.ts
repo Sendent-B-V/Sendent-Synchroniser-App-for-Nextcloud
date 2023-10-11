@@ -52,15 +52,17 @@ $(() => {
 			clearTimeout($(this).data('timer'))
 			$(this).data('timer', setTimeout(function() {
 				const sharedSecret = (<HTMLInputElement>(<unknown>$('#setSharedSecret')))[0].value
-				const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/sharedSecret');
-				axios.post(url, {sharedSecret}).then(() => {
-					// TODO handle error
-					$('#sharedSecretChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
-						$(this).addClass("hidden");
-						$(this).removeClass("shown")
-						next();
-					});
-				})
+				if (sharedSecret !== '') {
+					const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/sharedSecret');
+					axios.post(url, {sharedSecret}).then(() => {
+						// TODO handle error
+						$('#sharedSecretChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
+							$(this).addClass("hidden");
+							$(this).removeClass("shown")
+							next();
+						});
+					})
+				}
 			},500))
 		})
 		$('#showSharedSecret').on('mousedown', function(e) {
