@@ -123,8 +123,12 @@ class SettingsController extends ApiController {
 	 * 
 	 */
 	public function setNotificationInterval($notificationInterval) {
-		$this->appConfig->setAppValue('notificationInterval', $notificationInterval);
-		return;
+		if (ctype_digit($notificationInterval)) {
+			$this->appConfig->setAppValue('notificationInterval', $notificationInterval);
+			return TRUE;
+		} else {
+			return FALSE;
+		}
 	}
 
 	/**
