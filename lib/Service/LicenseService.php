@@ -35,7 +35,7 @@ class LicenseService {
 
 	public function delete() {
 		try {
-			$list = $this->mapper->findAll;
+			$list = $this->mapper->findAll();
 			foreach ($list as $result) {
 				$this->mapper->delete($result);
 			}
