@@ -186,6 +186,7 @@ class UserController extends Controller {
 	public function invalidateSelf() {
 
 		$credentials = $this->credentialStore->getLoginCredentials();
+		$this->logger->info('Invalidating myself, user "' . $credentials->getUID() . '"');
 		$resp = $this->invalidate($credentials->getUID(), Constants::USER_STATUS_NOCONSENT);
 
 		return $resp;
@@ -203,6 +204,7 @@ class UserController extends Controller {
 	 */
 	public function invalidate(string $userId, $retractConsent = Constants::USER_STATUS_INACTIVE) {
 
+		$this->logger->info('Invalidating user "' . $userId . '"');
 		$response = $this->syncUserService->invalidateUser($userId, $retractConsent);
 		return new JSONResponse($response);
 
