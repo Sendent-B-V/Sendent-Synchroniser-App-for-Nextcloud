@@ -13,8 +13,8 @@ use OCA\SendentSynchroniser\Constants;
                 <span class="templatesettingkeyname">
                     <?php p($l->t('Shared secret')); ?></span>
             </label>
-            <div id="sharedSecretChangedOk" class="status-error icon-error error hidden"></div>
-            <div id="sharedSecretChangedKo" class="status-ok icon-checkmark ok hidden"></div>
+            <div id="sharedSecretChangedOk" class="status-ok icon-checkmark ok hidden"></div>
+            <div id="sharedSecretChangedKo" class="status-error icon-error error hidden"></div>
 			<input class="settingkeyvalueinput" type="password" id="setSharedSecret" value="<?php p($_['sharedSecret']); ?>" autocapitalize="none" autocorrect="off">
             <button id="showSharedSecret" style="padding:0;min-width:36px"><img src="<?php print_unescaped(image_path('sendentsynchroniser', 'view.svg')); ?>" style="height:22px;width:22px" /></button>
         </div>
@@ -26,8 +26,8 @@ use OCA\SendentSynchroniser\Constants;
                     <?php p($l->t('Enrollment reminders')); ?>
                 </span>
             </label>
-			<div id="enrollmentReminderChangedOk" class="status-error icon-error error hidden"></div>
-            <div id="enrollmentReminderChangedKo"class="status-ok icon-checkmark ok hidden"></div>
+			<div id="enrollmentReminderChangedOk" class="status-ok icon-checkmark ok hidden"></div>
+            <div id="enrollmentReminderChangedKo"class="status-error icon-error error hidden"></div>
             <select class="settingkeyvalueinput" type="select" id="setReminderType">
                 <option value="1" <?php ($_['reminderType']==Constants::REMINDER_MODAL) ? p('selected') : ''; ?> >Modal dialog</option>
                 <option value="2" <?php ($_['reminderType']==Constants::REMINDER_NOTIFICATIONS) ? p('selected') : ''; ?> >Standard notifications</option>
@@ -45,8 +45,8 @@ use OCA\SendentSynchroniser\Constants;
                     <?php p($l->t('Applications to show modal dialog on')); ?>
                 </span>
             </label>
-            <div id="ModalNotificationChangedOk"class="status-error icon-error error hidden"></div>
-            <div id="ModalNotificationChangedKo"class="status-ok icon-checkmark ok hidden"></div>
+            <div id="ModalNotificationChangedOk"class="status-ok icon-checkmark ok hidden"></div>
+            <div id="ModalNotificationChangedKo"class="status-error icon-error error hidden"></div>
             <select class="settingkeyvalueinput" type="select" id="setNotificationMethod">
                 <option value="1" <?php ($_['notificationMethod']==Constants::NOTIFICATIONMETHOD_MODAL_GROUPWARE) ? p('selected') : ''; ?> >Show in Mail, Calendar, Contacts, and Tasks</option>
                 <option value="2" <?php ($_['notificationMethod']==Constants::NOTIFICATIONMETHOD_MODAL_FILE) ? p('selected') : ''; ?> >Show in Files</option>
@@ -64,8 +64,8 @@ use OCA\SendentSynchroniser\Constants;
                     <?php p($l->t('Notifications interval in days')); ?>
                 </span>
             </label>
-            <div id="NotificationsIntervalChangedOk"class="status-error icon-error error hidden"></div>
-            <div id="NotificationsIntervalChangedKo"class="status-ok icon-checkmark ok hidden"></div>
+            <div id="NotificationsIntervalChangedOk"class="status-ok icon-checkmark ok hidden"></div>
+            <div id="NotificationsIntervalChangedKo"class="status-error icon-error error hidden"></div>
             <input class="settingkeyvalueinput" id="setNotificationInterval" value="<?php p($_['notificationInterval']) ?>">
         </div>
     </div>

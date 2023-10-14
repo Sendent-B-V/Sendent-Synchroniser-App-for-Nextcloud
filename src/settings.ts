@@ -15,37 +15,58 @@ $(() => {
 		$('#setReminderType').on('change', function(e) {
 			const reminderType = (<HTMLInputElement>e.target).value
 			const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/reminderType');
-			axios.post(url, {reminderType}).then(() => {
-				// TODO handle error
-				$('#enrollmentReminderChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
-					$(this).addClass("hidden");
-					$(this).removeClass("shown")
-					next();
-				});
+			axios.post(url, {reminderType}).then((resp) => {
+				if (resp.status === 200 && resp.data) {
+					$('#enrollmentReminderChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
+						$(this).addClass("hidden");
+						$(this).removeClass("shown")
+						next();
+					});
+				} else {
+					$('#enrollmentReminderChangedKo').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
+						$(this).addClass("hidden");
+						$(this).removeClass("shown")
+						next();
+					});
+				}
 			})
 		})
 		$('#setNotificationMethod').on('change', function(e) {
 			const notificationMethod = (<HTMLInputElement>e.target).value
 			const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/notificationMethod');
-			axios.post(url, {notificationMethod}).then(() => {
-				// TODO handle error
-				$('#ModalNotificationChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
-					$(this).addClass("hidden");
-					$(this).removeClass("shown")
-					next();
-				});
+			axios.post(url, {notificationMethod}).then((resp) => {
+				if (resp.status === 200 && resp.data) {
+					$('#ModalNotificationChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
+						$(this).addClass("hidden");
+						$(this).removeClass("shown")
+						next();
+					});
+				} else {
+					$('#ModalNotificationChangedKo').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
+						$(this).addClass("hidden");
+						$(this).removeClass("shown")
+						next();
+					});
+				}
 			})
 		})
 		$('#setNotificationInterval').on('change', function(e) {
 			const notificationInterval = (<HTMLInputElement>e.target).value
 			const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/notificationInterval');
-			axios.post(url, {notificationInterval}).then(() => {
-				// TODO handle error
-				$('#NotificationsIntervalChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
-					$(this).addClass("hidden");
-					$(this).removeClass("shown")
-					next();
-				});
+			axios.post(url, {notificationInterval}).then((resp) => {
+				if (resp.status === 200 && resp.data) {
+					$('#NotificationsIntervalChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
+						$(this).addClass("hidden");
+						$(this).removeClass("shown")
+						next();
+					});
+				} else {				
+					$('#NotificationsIntervalChangedKo').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
+						$(this).addClass("hidden");
+						$(this).removeClass("shown")
+						next();
+					});
+				}
 			})
 		})
 		$('#setSharedSecret').on('keyup', function(e) {
@@ -54,13 +75,20 @@ $(() => {
 				const sharedSecret = (<HTMLInputElement>(<unknown>$('#setSharedSecret')))[0].value
 				if (sharedSecret !== '') {
 					const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/sharedSecret');
-					axios.post(url, {sharedSecret}).then(() => {
-						// TODO handle error
-						$('#sharedSecretChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
-							$(this).addClass("hidden");
-							$(this).removeClass("shown")
-							next();
-						});
+					axios.post(url, {sharedSecret}).then((resp) => {
+						if (resp.status === 200 && resp.data) {
+							$('#sharedSecretChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
+								$(this).addClass("hidden");
+								$(this).removeClass("shown")
+								next();
+							});
+						} else {
+							$('#sharedSecretChangedKo').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
+								$(this).addClass("hidden");
+								$(this).removeClass("shown")
+								next();
+							});
+						}
 					})
 				}
 			},500))
