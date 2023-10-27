@@ -136,6 +136,7 @@ class UserController extends Controller {
 			IToken::DO_NOT_REMEMBER
 		);
 
+		$this->logger->info('Created new Sendentsync app token for user "' . $credentials->getUID() . '" (' . $credentials->getLoginName() . ')');
 		$this->eventDispatcher->dispatchTyped(
 			new AppPasswordCreatedEvent($generatedToken)
 		);
@@ -153,6 +154,7 @@ class UserController extends Controller {
 		// Stores syncUser info
 		$syncUsers = $this->syncUserMapper->findByUid($credentials->getUID());
 		if (empty($syncUsers)) {
+			$this->logger->info('Created new Sendentsync user "' . $credentials->getUID() . '"');
 			$syncUser = new SyncUser;
 			$syncUser->setUid($credentials->getUID());
 			$syncUser->setToken($encryptedToken);
