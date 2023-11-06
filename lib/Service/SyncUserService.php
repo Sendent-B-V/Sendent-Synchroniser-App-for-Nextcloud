@@ -130,7 +130,7 @@ class SyncUserService {
 			$users = array_merge($users,$group->getUsers());
 		}
 		$index = 0;
-		// Gets all inactive sendent sync users
+		// Gets all active sendent sync users
 		$activeUsers = [];
 		foreach ($users as $user) {
 			$syncUsers = $this->syncUserMapper->findByUid($user->getUid());
@@ -142,6 +142,8 @@ class SyncUserService {
 						// Augments syncUser with some info from the corresponding NC user
 						$NCUser = $this->userManager->get($syncUser->getUid());
 						$user = $syncUser->jsonSerialize();
+						$user['username'] = $user['uid'];
+						$user['uid'] = $NCUser->getUID();
 						$user['email'] = $NCUser->getEmailAddress();
 						$user['displayName'] = $NCUser->getDisplayName();
 						//this method replaces the mechanism with named array indexes because C# cannot deal with that.
