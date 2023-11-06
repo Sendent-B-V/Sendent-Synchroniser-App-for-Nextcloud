@@ -12,9 +12,9 @@ style('sendentsynchroniser', ['style']);
 			<h1 id="consentFlowTitle" style="margin-top:20px;"><?php p($l->t("Give consent")); ?></h1>
 			<p id="consentFlowText"><?php p($l->t('To start the consent flow, please click on the button below.')); ?></p>
 		<?php } else { ?>
-			<p><?php p($l->t("We want to ask for your permission to sync Outlook content with Nextcloud to give you a unified user experience.")); ?></p>
+			<p id="consentFlowHeader"><?php p($l->t("To ensure the seamless operation of the Nextcloud Exchange Connector, we need your permission to synchronize your Outlook with Nextcloud. This process consists of two simple steps and should only take a minute of your time.")); ?></p>
 			<h1 id="consentFlowTitle" style="margin-top:20px;"></h1>
-			<p id="consentFlowText"><?php p($l->t('Click on the button below to give permission to synchronize your appointments, contacts, and tasks.')); ?></p>
+			<p id="consentFlowText"><?php p($l->t('Please click on the button below to start the process.')); ?></p>
 		<?php } ?>
 		</div>
         </div>
