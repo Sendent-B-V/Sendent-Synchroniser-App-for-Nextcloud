@@ -12,6 +12,9 @@ class SubscriptionOut implements JsonSerializable {
 	protected $expirationdate;
 	protected $grantinterval;
 	protected $email;
+	protected $istrial;
+	protected $product;
+	protected $technicallevel;
 
 	public function __construct() {
 	}
@@ -24,7 +27,10 @@ class SubscriptionOut implements JsonSerializable {
 			'Level' => $this->level,
 			'ExpirationDate' => $this->expirationdate,
 			'GrantInterval' => $this->grantinterval,
-			'Email' => $this->email
+			'Email' => $this->email,
+			'IsTrial' => $this->istrial,
+			'Product' => $this->product,
+			'TechnicalProductLevel' => $this->technicallevel
 		];
 	}
 }

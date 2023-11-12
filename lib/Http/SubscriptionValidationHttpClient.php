@@ -5,27 +5,24 @@ namespace OCA\SendentSynchroniser\Http;
 use Exception;
 use OCA\SendentSynchroniser\Db\License;
 use OCA\SendentSynchroniser\Http\Dto\SubscriptionIn;
-use OCA\SendentSynchroniser\Service\SyncUserService;
+use OCA\SendentSynchroniser\Service\ConnectedUserService;
 use Psr\Log\LoggerInterface;
 
 
 class SubscriptionValidationHttpClient {
-
 	/** @var LicenseHttpClient */
 	protected $licenseHttpClient;
+
+	/** @var ConnectedUserService */
+	protected $connectedUserService;
 
 	/** @var LoggerInterface */
 	protected $logger;
 
-	/** @var SyncUserService */
-	private $syncUserService;
-
-	public function __construct(LicenseHttpClient $licenseHttpClient, SyncUserService $syncUserService, LoggerInterface $logger) {
-
+	public function __construct(LicenseHttpClient $licenseHttpClient, ConnectedUserService $connectedUserService, LoggerInterface $logger) {
 		$this->licenseHttpClient = $licenseHttpClient;
+		$this->connectedUserService = $connectedUserService;
 		$this->logger = $logger;
-		$this->syncUserService = $syncUserService;
-
 	}
 
 	public function validate(License $licenseData, $connectedUserCount = null): ?License {
@@ -38,8 +35,7 @@ class SubscriptionValidationHttpClient {
 			return null;
 		}
 
-		// TODO
-		$connectedUserCount = $connectedUserCount?? count($this->syncUserService->getValidUsers());
+		$connectedUserCount = $connectedUserCount ?? $this->connectedUserService->getCount($licenseData->getId());
 
 		$this->logger->info('SUBSCRIPTIONVALIDATIONHTTPCLIENT-USERCOUNT= ' . $connectedUserCount);
 		error_log(print_r('SUBSCRIPTIONVALIDATIONHTTPCLIENT-USERCOUNT= ' . $connectedUserCount, true));
@@ -56,13 +52,21 @@ class SubscriptionValidationHttpClient {
 
 			if (isset($result) && $result != null) {
 				$validatedLicense->setLevel($result->level);
+				
 				$validatedLicense->setDategraceperiodend(date_format(date_create($result->gracePeriodEnd), "Y-m-d"));
 				$validatedLicense->setDatelicenseend(date_format(date_create($result->expirationDate), "Y-m-d"));
 				$validatedLicense->setMaxusers($result->amountUsers);
+				$validatedLicense->setLicensekeytoken($result->key);
+				$validatedLicense->setSubscriptionstatus($result->subscriptionStatus);
 				$validatedLicense->setMaxgraceusers($result->amountUsersMax);
 				$validatedLicense->setDatelastchecked(date_format(date_create("now"), "Y-m-d"));
+				$validatedLicense->setIstrial($result->isTrial);
+				$validatedLicense->setTechnicallevel($result->technicalProductLevel);
+				$validatedLicense->setProduct($result->product);
 
 				$this->logger->info('SUBSCRIPTIONVALIDATIONHTTPCLIENT-LEVEL=		' . $result->level);
+				$this->logger->info('SUBSCRIPTIONVALIDATIONHTTPCLIENT-KEY=			' . $result->key);
+
 				error_log(print_r('SUBSCRIPTIONVALIDATIONHTTPCLIENT-LEVEL=		' . $result->level, true));
 
 				return $validatedLicense;
@@ -70,6 +74,7 @@ class SubscriptionValidationHttpClient {
 			else
 			{
 				$validatedLicense->setLevel(License::ERROR_VALIDATING);
+				$validatedLicense->setSubscriptionstatus(License::ERROR_VALIDATING);
 				error_log(print_r("SUBSCRIPTIONVALIDATIONHTTPCLIENT-VALIDATE SETTING LEVEL TO ERROR_VALIDATING", true));
 
 			}
@@ -78,7 +83,7 @@ class SubscriptionValidationHttpClient {
 				'exception' => $e,
 			]);
 			error_log(print_r('SUBSCRIPTIONVALIDATIONHTTPCLIENT-VALIDATE-EXCEPTION: ' . $e->getMessage(), true));
-
+			$validatedLicense->setSubscriptionstatus(License::ERROR_VALIDATING);
 			$validatedLicense->setLevel(License::ERROR_VALIDATING);
 		}
 

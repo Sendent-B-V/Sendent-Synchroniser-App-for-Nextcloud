@@ -226,7 +226,7 @@ export default class LicenseHandler {
 
     private requestStatus() {
 
-        const url = generateUrl('/apps/sendentsynchroniser/api/1.0/licensestatus');
+        const url = generateUrl('/apps/sendentsynchroniser/api/1.0/licensestatusinternal');
 
         return axios.get<LicenseStatus>(url);
     }
