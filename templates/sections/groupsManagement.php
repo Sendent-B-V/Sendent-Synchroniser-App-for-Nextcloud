@@ -5,21 +5,21 @@
 
 	<div class="license-settings-setting-box">
         <div class="settingkeyvalue">
-<div class="labelFullWidth">
-            <div style="margin-bottom:10px;" class="labelFullWidth">
-			<p> 
-				<?php p($l->t("With the integration of Nextcloud's Groups feature, Sendent Synchroniser is as easy to use as dragging groups back and forth between 'No synchronization' and 'Active synchronization'.")); ?>
-			</p>
+			<div class="labelFullWidth">
+				<div class="labelFullWidth">
+					<p>
+						<?php p($l->t("With the integration of Nextcloud's Groups feature, Sendent Synchroniser is as easy to use as dragging groups back and forth between 'No synchronization' and 'Active synchronization'.")); ?>
+					</p>
+				</div>
+				<div class="labelFullWidth">
+					<p>
+						<?php p($l->t("To get started with the Sendent Synchronizer, simply select the relevant groups from the left list and drag them to the right.")); ?>
+					</p>
+				</div>
 			</div>
-			<div style="margin-bottom:10px;" class="labelFullWidth">
-			<p > 
-				<?php p($l->t("To get started with the Sendent Synchronizer, simply select the relevant groups from the left list and drag them to the right.")); ?>
-			</p>
-			</div>            
-        </div>
 		</div>
     </div>
-	<div style="display: flex; margin-top: 10px">
+	<div style="display: flex">
 		<div>
 			<h1>
 		        <?php p($l->t('Disabled')); ?>
@@ -47,4 +47,26 @@
 			</div>
 		</div>
 	</div>
+	<div class="license-settings-setting-box">
+        <div class="settingkeyvalue">
+			<div class="labelFullWidth">
+				<div style="margin-top:10px;" class="labelFullWidth">
+					<p>
+						<?php p($l->t('You have enabled Sendent Synchroniser for %1$s user(s), and it is currently used by %2$s user(s).', [$_['nbEnabledUsers'],$_['nbActiveUsers']])); ?>
+					</p>
+					<p>
+						<?php p($l->t('To send a notification to non-active user(s) to remind them to setup their synchronisation, click the "Remind users" button below.')); ?>
+					</p>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="license-settings-setting-box">
+        <div class="settingkeyvalue">
+            <input type="button" id="btnRemindUsers" value="Remind users">
+            <input type="hidden" name="settingkeyname" value="checkmark">
+            <input type="hidden" name="settingkeykey" value="900">
+            <input type="hidden" name="settingkeyid" value="900">
+        </div>
+    </div>
 </div>

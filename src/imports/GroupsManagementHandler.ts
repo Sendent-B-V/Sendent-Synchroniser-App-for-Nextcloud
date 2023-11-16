@@ -28,6 +28,7 @@ export default class GroupsManagementHandler {
 				$(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
 			})
 		})
+
 		// Makes the Sendent groups lists sortable
 		$("#ncGroups").sortable({
 			items: "li:not(.ui-state-disabled",
@@ -40,6 +41,14 @@ export default class GroupsManagementHandler {
 		$("#defaultGroup").sortable({
 			cancel: ".unsortable",
 		})
+
+		// Action for the "Remind users" button
+		$("#btnRemindUsers").on('click', (ev) => {
+            ev.preventDefault();
+			const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/sendReminder');
+			return axios.get(url);
+        });
+
 
 		return this.instance;
 	}

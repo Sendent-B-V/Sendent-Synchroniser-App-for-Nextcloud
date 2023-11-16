@@ -7,15 +7,25 @@ use OCP\L10N\IFactory;
 use OCP\Notification\IAction;
 use OCP\Notification\INotification;
 use OCP\Notification\INotifier;
+use \OCP\ILogger;
 
 class Notifier implements INotifier {
+
+    /** @var IFactory */
     protected $factory;
+
+    /** @var ILogger */
+	private $logger;
+
+    /** @var IURLGenerator */
     protected $url;
 
-    public function __construct(IFactory $factory, IURLGenerator $URLGenerator)
+    public function __construct(IFactory $factory, ILogger $logger, IURLGenerator $URLGenerator)
     {
         $this->factory = $factory;
+        $this->logger = $logger;
         $this->url = $URLGenerator;
+        $this->logger->info('Constructed notifier');
     }
 
     /**

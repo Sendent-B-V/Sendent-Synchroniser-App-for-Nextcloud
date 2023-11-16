@@ -9,6 +9,7 @@ use OCP\AppFramework\Services\IInitialState;
 use OCP\IGroupManager;
 use OCP\Settings\ISettings;
 use OCA\SendentSynchroniser\Constants;
+use OCA\SendentSynchroniser\Service\SyncUserService;
 
 class Admin implements ISettings {
 
@@ -24,16 +25,21 @@ class Admin implements ISettings {
 	/** @var IAppConfig */
 	private $appConfig;
 
+	/** @var SyncUserService */
+	private $syncUserService;
+
 	public function __construct(
 		IAppManager $appManager,
 		IGroupManager $groupManager,
 		IInitialState $initialState,
-		IAppConfig $appConfig) {
+		IAppConfig $appConfig,
+		SyncUserService $syncUserService) {
 
+		$this->appConfig = $appConfig;
 		$this->appManager = $appManager;
 		$this->groupManager = $groupManager;
 		$this->initialState = $initialState;
-		$this->appConfig = $appConfig;
+		$this->syncUserService = $syncUserService;
 
 	}
 
@@ -44,12 +50,15 @@ class Admin implements ISettings {
 	 */
 	private function initializeGroups() {
 
+		$nbEnabledUsers = 0;	// Number of users for which Sendent Synchroniser is enabled
+
 		// Gets groups used in the app
 		$sendentGroups = $this->appConfig->getAppValue('activeGroups', '');
 		$sendentGroups = ($sendentGroups !== '' && $sendentGroups !== 'null') ? json_decode($sendentGroups) : [];
-		$sendentGroups = array_map(function ($gid) {
+		$sendentGroups = array_map(function ($gid) use (&$nbEnabledUsers) {
 			$group = $this->groupManager->get($gid);
 			if (!is_null($group)) {
+				$nbEnabledUsers += count($group->getUsers());
 				return array(
 					"displayName" => $group->getDisplayName(),
 					"gid" => $group->getGid()
@@ -61,7 +70,6 @@ class Admin implements ISettings {
 				);
 			}
 		}, $sendentGroups);
-		
 
 		// Gets all Nextcloud groups
 		$NCGroups = $this->groupManager->search('');
@@ -79,6 +87,8 @@ class Admin implements ISettings {
 
 		$params['ncGroups'] = $NCGroups;
 		$params['sendentGroups'] = $sendentGroups;
+		$params['nbEnabledUsers'] = $nbEnabledUsers;
+		$params['nbActiveUsers'] = count($this->syncUserService->getValidUsers());
 
 		$params['reminderType'] = $this->appConfig->getAppValue('reminderType', Constants::REMINDER_DEFAULT_TYPE);
 		$params['notificationInterval'] = $this->appConfig->getAppValue('notificationInterval', Constants::REMINDER_NOTIFICATIONS_DEFAULT_INTERVAL);

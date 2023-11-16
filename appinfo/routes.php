@@ -21,6 +21,8 @@ return [
 		['name' => 'settings#setReminderType', 'url' => '/api/1.0/settings/reminderType', 'verb' => 'POST'],
 		['name' => 'settings#setSharedSecret', 'url' => '/api/1.0/settings/sharedSecret', 'verb' => 'POST'],
 		['name' => 'settings#shouldShowDialog', 'url' => '/api/1.0/settings/shouldShowDialog', 'verb' => 'GET'],
+		['name' => 'settings#sendReminder', 'url' => '/api/1.0/settings/sendReminder', 'verb' => 'GET'],
+
 
 		[
 			'name' => 'license_api#preflighted_cors',

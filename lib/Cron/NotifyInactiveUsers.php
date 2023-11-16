@@ -1,17 +1,21 @@
 <?php
 namespace OCA\SendentSynchroniser\Cron;
 
-use OCP\IConfig;
+use OCP\AppFramework\Services\IAppConfig;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\TimedJob;
 use OCP\Notification\IManager;
+use \OCP\ILogger;
 use OCA\SendentSynchroniser\Constants;
 use OCA\SendentSynchroniser\Service\SyncUserService;
 
 class NotifyInactiveUsers extends TimedJob {
 
-    /** @var IConfig */
+    /** @var IAppConfig */
     private $config;
+
+    /** @var ILogger */
+	private $logger;
 
     /** @var IManager */
     private $notificationManager;
@@ -19,10 +23,12 @@ class NotifyInactiveUsers extends TimedJob {
     /** @var SyncUserService */
     private $syncUserService;
 
-    public function __construct(ITimeFactory $time, IConfig $config, IManager $notificationManager, SyncUserService $syncUserService) {
+    public function __construct(ITimeFactory $time, IAppConfig $config, ILogger $logger,
+        IManager $notificationManager, SyncUserService $syncUserService) {
         parent::__construct($time);
 
-	$this->config = $config;
+	    $this->config = $config;
+        $this->logger = $logger;
         $this->notificationManager = $notificationManager;
         $this->syncUserService = $syncUserService;
 
@@ -36,13 +42,15 @@ class NotifyInactiveUsers extends TimedJob {
 
         // Is shared secret configured?
           if (empty($this->config->getAppValue('sharedSecret', ''))) {
+            $this->logger->info('Not sending notifications as sharedSecret is not configured');
 			return;
 		};
 
         // TODO: Check licensing?
 
         // Should we send notifications?
-        if ($config->getAppValue('reminderType', Constants::REMINDER_NOTIFICATIONS) === Constants::REMINDER_MODAL) {
+        if ($this->config->getAppValue('reminderType', Constants::REMINDER_NOTIFICATIONS) === Constants::REMINDER_MODAL) {
+            $this->logger->info('Not sending notifications as reminderType is set to Modal only');
             return;
         }
 
@@ -50,22 +58,26 @@ class NotifyInactiveUsers extends TimedJob {
         $inactiveUsers = $this->syncUserService->getInvalidUsers();
 
         // Defers sending notifications to avoid multiple connections to the server
-        $shouldFlush = $this->notificationManager->defer();
+        //$shouldFlush = $this->notificationManager->defer();
 
         // Prepare notifications for all invalid users
         foreach ($inactiveUsers as $inactiveUser) {
+            $this->logger->info('Sending notification to user ' . $inactiveUser->getUid());
             $notification = $this->notificationManager->createNotification();
             $notification->setApp('sendentsynchroniser')
                 ->setUser($inactiveUser->getUid())
                 ->setDateTime(new \DateTime())
                 ->setObject('settings', 'admin')
                 ->setSubject('Please activate your Exchange synchronisation');
+            $this->notificationManager->notify($notification);
         }
 
         // Sends notifications (if no other app is already deferring)
-        if ($shouldFlush) {
-            $this->notificationManager->flush();
-        }
+        //if ($shouldFlush) {
+        //    $this->notificationManager->flush();
+        //}
+
+        $this->logger->info('Sent notification to ' . count($inactiveUsers) . ' user(s)');
 
 		return;
 

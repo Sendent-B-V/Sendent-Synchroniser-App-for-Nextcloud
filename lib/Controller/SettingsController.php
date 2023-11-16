@@ -7,6 +7,7 @@ use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\Services\IAppConfig;
 use OCP\IGroupManager;
 use OCP\IRequest;
+use OCP\Notification\IManager;
 use \OCP\ILogger;
 use OCA\SendentSynchroniser\Constants;
 use OCA\SendentSynchroniser\Db\SyncUserMapper;
@@ -26,6 +27,9 @@ class SettingsController extends ApiController {
 	/** @var ILogger */
 	private $logger;
 
+	/** @var IManager */
+	private $notificationManager;
+
 	/** @var IRequest */
 	protected $request;
 
@@ -40,6 +44,7 @@ class SettingsController extends ApiController {
 		IAppConfig $appConfig,
 		IGroupManager $groupManager,
 		ILogger $logger,
+		IManager $notificationManager,
 		SyncUserMapper $syncUserMapper,
 		SyncUserService $syncUserService) {
 
@@ -48,6 +53,7 @@ class SettingsController extends ApiController {
 		$this->appConfig = $appConfig;
 		$this->groupManager = $groupManager;
 		$this->logger = $logger;
+		$this->notificationManager = $notificationManager;
 		$this->request = $request;
 		$this->syncUserMapper = $syncUserMapper;
 		$this->syncUserService = $syncUserService;
@@ -109,6 +115,8 @@ class SettingsController extends ApiController {
 	 * Gets notification method
 	 *
 	 * @param string $notificationMethod
+	 *
+	 * @NoAdminRequired
 	 *
 	 */
 	public function getNotificationMethod() {
@@ -233,6 +241,49 @@ class SettingsController extends ApiController {
 		// User is not member of an active group
 		return new JSONResponse(FALSE);
 
+	}
+
+	/**
+	 *
+	 * Sends notifications to inactive users
+	 *
+	 */
+	public function sendReminder() {
+
+		// Is shared secret configured?
+		if (empty($this->appConfig->getAppValue('sharedSecret', ''))) {
+			$this->logger->info('Not sending notifications as sharedSecret is not configured');
+			return;
+		};
+
+		// TODO: Check licensing?
+
+		// Gets list of invalid users (users who have opt out of sendent sync are not counted as invalid)
+		$inactiveUsers = $this->syncUserService->getInvalidUsers();
+
+		// Defers sending notifications to avoid multiple connections to the server
+		//$shouldFlush = $this->notificationManager->defer();
+
+		// Prepare notifications for all invalid users
+		foreach ($inactiveUsers as $inactiveUser) {
+			$this->logger->info('Sending notification to user ' . $inactiveUser->getUid());
+			$notification = $this->notificationManager->createNotification();
+			$notification->setApp('sendentsynchroniser')
+				->setUser($inactiveUser->getUid())
+				->setDateTime(new \DateTime())
+				->setObject('settings', 'admin')
+				->setSubject('Please activate your Exchange synchronisation');
+			$this->notificationManager->notify($notification);
+		}
+
+		// Sends notifications (if no other app is already deferring)
+		//if ($shouldFlush) {
+		//	$this->notificationManager->flush();
+		//}
+
+		$this->logger->info('Sent notification to ' . count($inactiveUsers) . ' user(s)');
+
+		return;
 	}
 
 }

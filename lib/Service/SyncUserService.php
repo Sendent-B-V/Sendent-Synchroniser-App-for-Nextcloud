@@ -160,6 +160,7 @@ class SyncUserService {
 		return $activeUsers;
 
 	}
+
 	//this method replaces the mechanism with named array indexes because C# cannot deal with that.
 	private function checkIfUserInArray($array, $id) : bool
 	{
