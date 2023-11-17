@@ -262,7 +262,7 @@ class SettingsController extends ApiController {
 		$inactiveUsers = $this->syncUserService->getInvalidUsers();
 
 		// Defers sending notifications to avoid multiple connections to the server
-		//$shouldFlush = $this->notificationManager->defer();
+		$shouldFlush = $this->notificationManager->defer();
 
 		// Prepare notifications for all invalid users
 		foreach ($inactiveUsers as $inactiveUser) {
@@ -277,9 +277,9 @@ class SettingsController extends ApiController {
 		}
 
 		// Sends notifications (if no other app is already deferring)
-		//if ($shouldFlush) {
-		//	$this->notificationManager->flush();
-		//}
+		if ($shouldFlush) {
+			$this->notificationManager->flush();
+		}
 
 		$this->logger->info('Sent notification to ' . count($inactiveUsers) . ' user(s)');
 
