@@ -15,6 +15,7 @@ $ cd YOUR_NEXTCLOUD_ROOT/apps/sendentsynchroniser
 Next install all dependencies and create a build:
 
 ```console
+$ npm install
 $ webpack -c webpack.common.js
 ```
 
