@@ -50,15 +50,14 @@ class Admin implements ISettings {
 	 */
 	private function initializeGroups() {
 
-		$nbEnabledUsers = 0;	// Number of users for which Sendent Synchroniser is enabled
+		$nbEnabledUsers = [];	// Users for which Sendent Synchroniser is enabled
 
 		// Gets groups used in the app
 		$sendentGroups = $this->appConfig->getAppValue('activeGroups', '');
 		$sendentGroups = ($sendentGroups !== '' && $sendentGroups !== 'null') ? json_decode($sendentGroups) : [];
-		$sendentGroups = array_map(function ($gid) use (&$nbEnabledUsers) {
+		$sendentGroups = array_map(function ($gid) {
 			$group = $this->groupManager->get($gid);
 			if (!is_null($group)) {
-				$nbEnabledUsers += count($group->getUsers());
 				return array(
 					"displayName" => $group->getDisplayName(),
 					"gid" => $group->getGid()
@@ -70,6 +69,20 @@ class Admin implements ISettings {
 				);
 			}
 		}, $sendentGroups);
+
+		// Counts all enabled users
+		foreach($sendentGroups as $sendentGroup) {
+			$group = $this->groupManager->get($sendentGroup['gid']);
+			if (!is_null($group)) {
+				$groupUsers = $group->getUsers();
+				foreach($groupUsers as $user) {
+					if(!array_key_exists($user->getUID(), $nbEnabledUsers)) {
+						$nbEnabledUsers[$user->getUID()] = $user->getUID();
+					}
+				}
+			}
+		}
+		$nbEnabledUsers = count($nbEnabledUsers);
 
 		// Gets all Nextcloud groups
 		$NCGroups = $this->groupManager->search('');
