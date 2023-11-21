@@ -31,6 +31,25 @@ $(() => {
 				}
 			})
 		})
+		$('#setIMAPSyncEnabled').on('change', function(e) {
+			const IMAPSyncEnabled = (<HTMLInputElement>e.target).value
+			const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/imapsync');
+			axios.post(url, {IMAPSyncEnabled}).then((resp) => {
+				if (resp.status === 200 && resp.data) {
+					$('#IMAPSyncChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
+						$(this).addClass("hidden");
+						$(this).removeClass("shown")
+						next();
+					});
+				} else {
+					$('#IMAPSyncChangedKo').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
+						$(this).addClass("hidden");
+						$(this).removeClass("shown")
+						next();
+					});
+				}
+			})
+		})
 		$('#setNotificationMethod').on('change', function(e) {
 			const notificationMethod = (<HTMLInputElement>e.target).value
 			const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/notificationMethod');

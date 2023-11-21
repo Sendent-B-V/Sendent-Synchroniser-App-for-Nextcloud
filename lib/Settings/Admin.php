@@ -43,12 +43,7 @@ class Admin implements ISettings {
 
 	}
 
-	/**
-	 * Returns 2 lists of groups:
-	 * 	1- All Nextcloud groups except the groups in the second list;
-	 * 	2- All Nextcloud groups that are used in for our group settings
-	 */
-	private function initializeGroups() {
+	private function getParams() {
 
 		$nbEnabledUsers = [];	// Users for which Sendent Synchroniser is enabled
 
@@ -107,6 +102,7 @@ class Admin implements ISettings {
 		$params['notificationInterval'] = $this->appConfig->getAppValue('notificationInterval', Constants::REMINDER_NOTIFICATIONS_DEFAULT_INTERVAL);
 		$params['notificationMethod'] = $this->appConfig->getAppValue('notificationMethod', Constants::NOTIFICATIONMETHOD_MODAL_DEFAULT);
 		$params['sharedSecret'] = $this->appConfig->getAppValue('sharedSecret', '');
+		$params['IMAPSyncEnabled'] = $this->appConfig->getAppValue('IMAPSyncEnabled', 'False');
 
 		return $params;
 	}
@@ -115,7 +111,7 @@ class Admin implements ISettings {
 	 * @return TemplateResponse
 	 */
 	public function getForm() {
-		$params = $this->initializeGroups();
+		$params = $this->getParams();
 
 		return new TemplateResponse('sendentsynchroniser', 'indexAdmin', $params);
 	}

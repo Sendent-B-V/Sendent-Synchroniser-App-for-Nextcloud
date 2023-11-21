@@ -35,6 +35,21 @@ use OCA\SendentSynchroniser\Constants;
             </select>
         </div>
     </div>
+    <div class="personal-settings-setting-box">
+        <div class="settingkeyvalue">
+            <label>
+                <span class="templatesettingkeyname">
+                    <?php p($l->t('Enable IMAP synchronisation')); ?>
+                </span>
+            </label>
+            <div id="IMAPSyncChangedOk" class="status-error icon-error error hidden"></div>
+            <div id="IMAPSyncChangedKo" class="status-ok icon-checkmark ok hidden"></div>
+            <select class="settingkeyvalueinput" type="select" id="setIMAPSyncEnabled">
+                <option value="True" <?php ($_['IMAPSyncEnabled'] == 'True') ? p('selected') : ''; ?> ><?php p($l->t('Enabled')); ?></option>
+                <option value="False" <?php ($_['IMAPSyncEnabled'] == 'False') ? p('selected') : ''; ?> ><?php p($l->t('Disabled')); ?></option>
+            </select>
+        </div>
+    </div>
     <h1>
         <?php p($l->t('Modal dialog enrollment reminder settings')); ?>
     </h1>

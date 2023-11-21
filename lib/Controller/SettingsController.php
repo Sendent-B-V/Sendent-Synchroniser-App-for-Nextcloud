@@ -140,6 +140,17 @@ class SettingsController extends ApiController {
 	}
 
 	/**
+	 *
+	 * Saves IMAPSync setting
+	 *
+	 * @param string $IMAPSyncEnabled
+	 *
+	 */
+	public function setIMAPSync($IMAPSyncEnabled) {
+		return $this->appConfig->setAppValue('IMAPSyncEnabled', $IMAPSyncEnabled);
+	}
+
+	/**
 	 * 
 	 * Saves new active groups list
 	 * 
