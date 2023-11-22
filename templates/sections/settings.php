@@ -30,9 +30,12 @@ use OCA\SendentSynchroniser\Constants;
             <div id="enrollmentReminderChangedKo"class="status-error icon-error error hidden"></div>
             <select class="settingkeyvalueinput" type="select" id="setReminderType">
                 <option value="1" <?php ($_['reminderType']==Constants::REMINDER_MODAL) ? p('selected') : ''; ?> >Modal dialog</option>
-                <option value="2" <?php ($_['reminderType']==Constants::REMINDER_NOTIFICATIONS) ? p('selected') : ''; ?> >Standard notifications</option>
-                <option value="3" <?php ($_['reminderType']==Constants::REMINDER_BOTH) ? p('selected') : ''; ?> >Modal dialog and standard notifications</option>
+                <option value="2" <?php ($_['reminderType']==Constants::REMINDER_NOTIFICATIONS) ? p('selected') : ''; ?> <?php $_['notificationsAppInstalled'] ? '' : p('disabled=disabled') ?> >Standard notifications</option>
+                <option value="3" <?php ($_['reminderType']==Constants::REMINDER_BOTH) ? p('selected') : ''; ?> <?php $_['notificationsAppInstalled'] ? '' : p('disabled="disabled"') ?> >Modal dialog and standard notifications</option>
             </select>
+            <label <?php $_['notificationsAppInstalled'] ? p('style=display:none') : '' ?> >
+                <span class="settingkeyvalueinheritedlabel" style="color:var(--color-error-hover);font-style:italic"><?php p($l->t('You don\'t have the notifications app installed'));?></span>
+            </label>
         </div>
     </div>
     <div class="personal-settings-setting-box">
@@ -42,12 +45,15 @@ use OCA\SendentSynchroniser\Constants;
                     <?php p($l->t('Enable IMAP synchronisation')); ?>
                 </span>
             </label>
-            <div id="IMAPSyncChangedOk" class="status-error icon-error error hidden"></div>
-            <div id="IMAPSyncChangedKo" class="status-ok icon-checkmark ok hidden"></div>
-            <select class="settingkeyvalueinput" type="select" id="setIMAPSyncEnabled">
+            <div id="IMAPSyncChangedOk" class="status-ok icon-checkmark ok hidden"></div>
+            <div id="IMAPSyncChangedKo" class="status-error icon-error error hidden"></div>
+            <select class="settingkeyvalueinput" type="select" id="setIMAPSyncEnabled" <?php $_['mailAppInstalled'] ? '' : p('disabled=disabled style=color:var(--color-placeholder-light);border-color:var(--color-border)') ?> >
                 <option value="True" <?php ($_['IMAPSyncEnabled'] == 'True') ? p('selected') : ''; ?> ><?php p($l->t('Enabled')); ?></option>
                 <option value="False" <?php ($_['IMAPSyncEnabled'] == 'False') ? p('selected') : ''; ?> ><?php p($l->t('Disabled')); ?></option>
             </select>
+            <label <?php $_['mailAppInstalled'] ? p('style=display:none') : '' ?> >
+                <span class="settingkeyvalueinheritedlabel" style="color:var(--color-error-hover);font-style:italic"><?php p($l->t('You don\'t have the notifications app installed'));?></span>
+            </label>
         </div>
     </div>
     <h1>
@@ -81,7 +87,10 @@ use OCA\SendentSynchroniser\Constants;
             </label>
             <div id="NotificationsIntervalChangedOk"class="status-ok icon-checkmark ok hidden"></div>
             <div id="NotificationsIntervalChangedKo"class="status-error icon-error error hidden"></div>
-            <input class="settingkeyvalueinput" id="setNotificationInterval" value="<?php p($_['notificationInterval']) ?>">
+            <input class="settingkeyvalueinput" id="setNotificationInterval" value="<?php p($_['notificationInterval']) ?>" <?php $_['notificationsAppInstalled'] ? '' : p('disabled=disabled style=color:var(--color-placeholder-light);border-color:var(--color-border)') ?>>
+            <label <?php $_['notificationsAppInstalled'] ? p('style=display:none') : '' ?> >
+                <span class="settingkeyvalueinheritedlabel" style="color:var(--color-error-hover);font-style:italic"><?php p($l->t('You don\'t have the notifications app installed'));?></span>
+            </label>
         </div>
     </div>
 </div>
