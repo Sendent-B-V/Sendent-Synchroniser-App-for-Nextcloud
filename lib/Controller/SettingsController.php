@@ -70,8 +70,7 @@ class SettingsController extends ApiController {
 	 */
 	public function setSharedSecret($sharedSecret) {
 		$this->syncUserMapper->encryptAllUserstoken($sharedSecret);
-		$this->appConfig->setAppValue('sharedSecret', $sharedSecret);
-		return;
+		return $this->appConfig->setAppValue('sharedSecret', $sharedSecret);
 	}
 
 	/**
@@ -82,8 +81,7 @@ class SettingsController extends ApiController {
 	 * 
 	 */
 	public function setReminderType($reminderType) {
-		$this->appConfig->setAppValue('reminderType', $reminderType);
-		return;
+		return $this->appConfig->setAppValue('reminderType', $reminderType);
 	}
 
 	/**
@@ -94,8 +92,7 @@ class SettingsController extends ApiController {
 	 *
 	 */
 	public function getReminderType() {
-		$this->appConfig->getAppValue('reminderType', Constants::REMINDER_DEFAULT_TYPE);
-		return;
+		return $this->appConfig->getAppValue('reminderType', Constants::REMINDER_DEFAULT_TYPE);
 	}
 
 	/**
@@ -106,8 +103,7 @@ class SettingsController extends ApiController {
 	 * 
 	 */
 	public function setNotificationMethod($notificationMethod) {
-		$this->appConfig->setAppValue('notificationMethod', $notificationMethod);
-		return;
+		return $this->appConfig->setAppValue('notificationMethod', $notificationMethod);
 	}
 
 	/**
@@ -186,9 +182,8 @@ class SettingsController extends ApiController {
 		}
 
 		// Saves new active groups list
-		$this->appConfig->setAppValue('activeGroups', json_encode($newSendentGroups));
+		return $this->appConfig->setAppValue('activeGroups', json_encode($newSendentGroups));
 
-		return;
 	}
 
 	/**

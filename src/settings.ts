@@ -16,13 +16,15 @@ $(() => {
 			const reminderType = (<HTMLInputElement>e.target).value
 			const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/reminderType');
 			axios.post(url, {reminderType}).then((resp) => {
-				if (resp.status === 200 && resp.data) {
+				if (resp.status === 200) {
+					console.log('Reminder type settting updated successfully')
 					$('#enrollmentReminderChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
 						$(this).addClass("hidden");
 						$(this).removeClass("shown")
 						next();
 					});
 				} else {
+					console.warn('Error while trying to update the Reminder type settting')
 					$('#enrollmentReminderChangedKo').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
 						$(this).addClass("hidden");
 						$(this).removeClass("shown")
@@ -35,7 +37,7 @@ $(() => {
 			const IMAPSyncEnabled = (<HTMLInputElement>e.target).value
 			const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/imapsync');
 			axios.post(url, {IMAPSyncEnabled}).then((resp) => {
-				if (resp.status === 200 && resp.data) {
+				if (resp.status === 200) {
 					$('#IMAPSyncChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
 						$(this).addClass("hidden");
 						$(this).removeClass("shown")
@@ -54,7 +56,7 @@ $(() => {
 			const notificationMethod = (<HTMLInputElement>e.target).value
 			const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/notificationMethod');
 			axios.post(url, {notificationMethod}).then((resp) => {
-				if (resp.status === 200 && resp.data) {
+				if (resp.status === 200) {
 					$('#ModalNotificationChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
 						$(this).addClass("hidden");
 						$(this).removeClass("shown")
@@ -73,7 +75,7 @@ $(() => {
 			const notificationInterval = (<HTMLInputElement>e.target).value
 			const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/notificationInterval');
 			axios.post(url, {notificationInterval}).then((resp) => {
-				if (resp.status === 200 && resp.data) {
+				if (resp.status === 200) {
 					$('#NotificationsIntervalChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
 						$(this).addClass("hidden");
 						$(this).removeClass("shown")
@@ -95,7 +97,7 @@ $(() => {
 				if (sharedSecret !== '') {
 					const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/sharedSecret');
 					axios.post(url, {sharedSecret}).then((resp) => {
-						if (resp.status === 200 && resp.data) {
+						if (resp.status === 200) {
 							$('#sharedSecretChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
 								$(this).addClass("hidden");
 								$(this).removeClass("shown")
