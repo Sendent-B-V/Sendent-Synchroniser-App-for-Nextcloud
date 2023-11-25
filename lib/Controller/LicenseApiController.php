@@ -11,6 +11,7 @@ use OCP\AppFramework\Db\MultipleObjectsReturnedException;
 use OCP\AppFramework\Services\IAppConfig;
 use OCA\SendentSynchroniser\Controller\Dto\LicenseStatus;
 use OCA\SendentSynchroniser\Db\License;
+use OCA\SendentSynchroniser\Service\ConnectedUserService;
 use OCA\SendentSynchroniser\Service\LicenseManager;
 use OCA\SendentSynchroniser\Service\LicenseService;
 use OCA\SendentSynchroniser\Service\NotFoundException;
@@ -19,7 +20,7 @@ use Psr\Log\LoggerInterface;
 
 class LicenseApiController extends ApiController {
 	private $appConfig;
-	private $service;
+	private $licenseservice;
 	private $licensemanager;
 
 	/** @var IL10N */
@@ -39,7 +40,7 @@ class LicenseApiController extends ApiController {
 	   ) {
 		parent::__construct($appName, $request);
 		$this->appConfig = $appConfig;
-		$this->service = $licenseservice;
+		$this->licenseservice = $licenseservice;
 		$this->licensemanager = $licensemanager;
 		$this->logger = $logger;
 		$this->l = $l;
@@ -57,7 +58,6 @@ class LicenseApiController extends ApiController {
 			throw $e;
 		}
 	}
-
 	/**
 	 * @NoAdminRequired
 	 * @NoCSRFRequired
@@ -72,7 +72,7 @@ class LicenseApiController extends ApiController {
 
 		try {
 			// Gets license for group $ncgroup
-			$result = $this->service->findAll();
+			$result = $this->licenseservice->findAll();
 			
 			if (isset($result) && $result !== null && $result !== false) {
 				if (is_array($result) && count($result) > 0
@@ -82,7 +82,7 @@ class LicenseApiController extends ApiController {
 					$this->logger->info('Check needed for license ' . $result[0]->getId());
 					try {
 						$this->licensemanager->renewLicense($result[0]);
-						$result = $this->service->findAll();
+						$result = $this->licenseservice->findAll();
 						if (isset($result) && $result !== null && $result !== false) {
 							if (is_array($result) && count($result) > 0
 							&& $result[0]->getLevel() != "Error_clear" && $result[0]->getLevel() != "Error_incomplete") {
@@ -199,7 +199,7 @@ class LicenseApiController extends ApiController {
 
 		try {
 			// Gets license for group $ncgroup
-			$result = $this->service->findAll();
+			$result = $this->licenseservice->findAll();
 			
 			if (isset($result) && $result !== null && $result !== false) {
 				if (is_array($result) && count($result) > 0
@@ -209,7 +209,7 @@ class LicenseApiController extends ApiController {
 					$this->logger->info('Check needed for license ' . $result[0]->getId());
 					try {
 						$this->licensemanager->renewLicense($result[0]);
-						$result = $this->service->findAll();
+						$result = $this->licenseservice->findAll();
 						if (isset($result) && $result !== null && $result !== false) {
 							if (is_array($result) && count($result) > 0
 							&& $result[0]->getLevel() != "Error_clear" && $result[0]->getLevel() != "Error_incomplete") {
@@ -333,7 +333,7 @@ class LicenseApiController extends ApiController {
 	 */
 	public function renew() {
 		// Finds out user's license
-		$license = $this->service->findAll();
+		$license = $this->licenseservice->findAll();
 		// Unlicensed?
 		if (is_null($license)) {
 			return false;
@@ -347,7 +347,7 @@ class LicenseApiController extends ApiController {
 	 */
 	public function validate() {
 		// Finds out user's license
-		$license = $this->service->findAll();
+		$license = $this->licenseservice->findAll();
 
 		// Unlicensed?
 		if (is_null($license)) {

@@ -116,7 +116,38 @@ class SyncUserService {
 		return $inactiveUsers;
 
 	}
+	public function getValidUserCount() {
 
+		// Gets active groups
+		$activeGroups = $this->appConfig->getAppValue('activeGroups', '');
+		$activeGroups = ($activeGroups !== '' && $activeGroups !== 'null') ? json_decode($activeGroups) : [];
+
+		// Gets all users in active groups
+		$users = [];
+		foreach ($activeGroups as $gid) {
+			$group = $this->groupManager->get($gid);
+			$users = array_merge($users,$group->getUsers());
+		}
+		$index = 0;
+		// Gets all active sendent sync users
+		$activeUsers = [];
+		foreach ($users as $user) {
+			$syncUsers = $this->syncUserMapper->findByUid($user->getUid());
+			if (!empty($syncUsers)) {
+				$syncUser = $syncUsers[0];
+				if ($syncUser->getActive() === Constants::USER_STATUS_ACTIVE) {
+					// Makes sure we don't create duplicates
+					if(!array_key_exists($syncUser->getUid(), $activeUsers)) {
+							$activeUsers[$index] = $user;
+							$index++;
+					}
+				}
+			}
+		}
+
+		return $index;
+
+	}
 	public function getValidUsers() {
 
 		// Gets active groups

@@ -14,18 +14,15 @@ use Exception;
 
 class LicenseManager {
 	protected $licenseservice;
-	protected $connecteduserservice;
 	protected $subscriptionvalidationhttpclient;
 
 	/** @var LoggerInterface */
 	private $logger;
 
 	public function __construct(LicenseService $licenseservice, LoggerInterface $logger,
-	ConnectedUserService $connecteduserservice,
 	SubscriptionValidationHttpClient $subscriptionvalidationhttpclient) {
 		$this->licenseservice = $licenseservice;
 		$this->logger = $logger;
-		$this->connecteduserservice = $connecteduserservice;
 		$this->subscriptionvalidationhttpclient = $subscriptionvalidationhttpclient;
 	}
 

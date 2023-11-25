@@ -5,7 +5,7 @@ namespace OCA\SendentSynchroniser\Http;
 use Exception;
 use OCA\SendentSynchroniser\Db\License;
 use OCA\SendentSynchroniser\Http\Dto\SubscriptionIn;
-use OCA\SendentSynchroniser\Service\ConnectedUserService;
+use OCA\SendentSynchroniser\Service\SyncUserService;
 use Psr\Log\LoggerInterface;
 
 
@@ -14,14 +14,14 @@ class SubscriptionValidationHttpClient {
 	protected $licenseHttpClient;
 
 	/** @var ConnectedUserService */
-	protected $connectedUserService;
+	protected $syncuserService;
 
 	/** @var LoggerInterface */
 	protected $logger;
 
-	public function __construct(LicenseHttpClient $licenseHttpClient, ConnectedUserService $connectedUserService, LoggerInterface $logger) {
+	public function __construct(LicenseHttpClient $licenseHttpClient, SyncUserService $syncuserService, LoggerInterface $logger) {
 		$this->licenseHttpClient = $licenseHttpClient;
-		$this->connectedUserService = $connectedUserService;
+		$this->syncuserService = $syncuserService;
 		$this->logger = $logger;
 	}
 
@@ -35,7 +35,7 @@ class SubscriptionValidationHttpClient {
 			return null;
 		}
 
-		$connectedUserCount = $connectedUserCount ?? $this->connectedUserService->getCount($licenseData->getId());
+		$connectedUserCount = $connectedUserCount ?? $this->syncuserService->getValidUserCount();
 
 		$this->logger->info('SUBSCRIPTIONVALIDATIONHTTPCLIENT-USERCOUNT= ' . $connectedUserCount);
 		error_log(print_r('SUBSCRIPTIONVALIDATIONHTTPCLIENT-USERCOUNT= ' . $connectedUserCount, true));

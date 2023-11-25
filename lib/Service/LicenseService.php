@@ -125,7 +125,7 @@ class LicenseService {
 
 			return $this->update(0, $license, $licenseKeyToken, $subscriptionStatus,
 			$dategraceperiodend, $datelicenseend,
-			$maxusers, $maxgraceusers, $email, $datelastchecked, $level);
+			$maxusers, $maxgraceusers, $email, $datelastchecked, $level, $technicalLevel, $product, $isTrial);
 		} catch (Exception $e) {
 			error_log(print_r("LICENSESERVICE-EXCEPTION=" . $e, true));
 
@@ -238,7 +238,7 @@ class LicenseService {
 		}
 	}
 	private function valueIsLicenseKeyFilePath($value): bool {
-		if (strpos($value, 'sync_licenseKeyFile') !== false) {
+		if (strpos($value, 'sync_licenseKeyFile') !== false || strpos($value, 'sync_tokenlicenseKeyFile') !== false) {
 			return true;
 		}
 		return false;

@@ -23,6 +23,7 @@ return [
 		['name' => 'settings#shouldShowDialog', 'url' => '/api/1.0/settings/shouldShowDialog', 'verb' => 'GET'],
 		['name' => 'settings#sendReminder', 'url' => '/api/1.0/settings/sendReminder', 'verb' => 'GET'],
 
+		['name' => 'status_api#index', 'url' => '/api/1.0/status', 'verb' => 'GET'],
 
 		[
 			'name' => 'license_api#preflighted_cors',
