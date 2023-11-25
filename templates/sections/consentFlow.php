@@ -10,7 +10,7 @@ style('sendentsynchroniser', ['style']);
 		<?php if ($_['activeUser']) { ?>
 			<p><?php p($l->t("You are an active user of Sendent synchroniser. You shouldn't need to do anything.")); ?></p>
 			<h1 id="consentFlowTitle" style="margin-top:20px;"><?php p($l->t("Give consent")); ?></h1>
-			<p id="consentFlowText"><?php p($l->t('To start the consent flow, please click on the button below.')); ?></p>
+			<p id="consentFlowText"><?php p($l->t('You can refresh your consent by clicking the button below.')); ?></p>
 		<?php } else { ?>
 			<p id="consentFlowHeader"><?php p($l->t("To ensure the seamless operation of the Nextcloud Exchange Connector, we need your permission to synchronize your Outlook with Nextcloud. This process consists of two simple steps and should only take a minute of your time.")); ?></p>
 			<h1 id="consentFlowTitle" style="margin-top:20px;"></h1>

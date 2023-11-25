@@ -102,7 +102,7 @@ class Admin implements ISettings {
 		$params['notificationInterval'] = $this->appConfig->getAppValue('notificationInterval', Constants::REMINDER_NOTIFICATIONS_DEFAULT_INTERVAL);
 		$params['notificationMethod'] = $this->appConfig->getAppValue('notificationMethod', Constants::NOTIFICATIONMETHOD_MODAL_DEFAULT);
 		$params['sharedSecret'] = $this->appConfig->getAppValue('sharedSecret', '');
-		$params['IMAPSyncEnabled'] = $this->appConfig->getAppValue('IMAPSyncEnabled', 'False');
+		$params['IMAPSyncEnabled'] = ($this->appConfig->getAppValue('IMAPSyncEnabled', 'false') === 'true');
 		$params['mailAppInstalled'] = $this->appManager->isInstalled('mail');
 		$params['notificationsAppInstalled'] = $this->appManager->isInstalled('notifications');
 

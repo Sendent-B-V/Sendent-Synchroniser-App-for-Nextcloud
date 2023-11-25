@@ -48,8 +48,8 @@ use OCA\SendentSynchroniser\Constants;
             <div id="IMAPSyncChangedOk" class="status-ok icon-checkmark ok hidden"></div>
             <div id="IMAPSyncChangedKo" class="status-error icon-error error hidden"></div>
             <select class="settingkeyvalueinput" type="select" id="setIMAPSyncEnabled" <?php $_['mailAppInstalled'] ? '' : p('disabled=disabled style=color:var(--color-placeholder-light);border-color:var(--color-border)') ?> >
-                <option value="True" <?php ($_['IMAPSyncEnabled'] == 'True') ? p('selected') : ''; ?> ><?php p($l->t('Enabled')); ?></option>
-                <option value="False" <?php ($_['IMAPSyncEnabled'] == 'False') ? p('selected') : ''; ?> ><?php p($l->t('Disabled')); ?></option>
+                <option value="true" <?php $_['IMAPSyncEnabled'] ? p('selected') : ''; ?> ><?php p($l->t('Enabled')); ?></option>
+                <option value="false" <?php !$_['IMAPSyncEnabled'] ? p('selected') : ''; ?> ><?php p($l->t('Disabled')); ?></option>
             </select>
             <label <?php $_['mailAppInstalled'] ? p('style=display:none') : '' ?> >
                 <span class="settingkeyvalueinheritedlabel" style="color:var(--color-error-hover);font-style:italic"><?php p($l->t('You don\'t have the notifications app installed'));?></span>
