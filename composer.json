@@ -1,5 +1,5 @@
 {
-    "name": "sendent/serverapp",
+    "name": "sendent/sendentsynchroniser",
     "description": "Test",
     "type": "project",
     "license": "GPL-3.0-or-later",
@@ -15,10 +15,9 @@
         "lint": "find . -name \\*.php -not -path './vendor/*' -exec php -l \"{}\" \\;"
     },
     "require-dev": {
-        "phpunit/phpunit": "^8.5 || ^9.3",
-        "nextcloud/coding-standard": "^0.5.0",
-        "friendsofphp/php-cs-fixer": "^2.18",
-        "christophwurst/nextcloud": "^20.0 || ^21.0 || ^22.0",
-        "vimeo/psalm": "^4.5"
+        "phpunit/phpunit": "^10.0",
+        "nextcloud/coding-standard": "^0.5.0"
+    },
+    "require": {
     }
 }
