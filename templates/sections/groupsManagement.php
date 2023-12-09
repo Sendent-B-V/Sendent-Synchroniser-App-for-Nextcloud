@@ -63,10 +63,13 @@
 	</div>
 	<div class="license-settings-setting-box">
         <div class="settingkeyvalue">
-            <input type="button" id="btnRemindUsers" value="Remind users">
+            <input type="button" id="btnRemindUsers" value="Remind users" <?php $_['notificationsAppInstalled'] ? '' : p('disabled=disabled') ?>>
             <input type="hidden" name="settingkeyname" value="checkmark">
             <input type="hidden" name="settingkeykey" value="900">
             <input type="hidden" name="settingkeyid" value="900">
         </div>
+		<label <?php $_['notificationsAppInstalled'] ? p('style=display:none') : '' ?> >
+                <span class="settingkeyvalueinheritedlabel" style="color:var(--color-error-hover);font-style:italic"><?php p($l->t('You don\'t have the notifications app installed'));?></span>
+        </label>
     </div>
 </div>

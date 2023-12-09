@@ -6,9 +6,9 @@ use OC\Authentication\Events\AppPasswordCreatedEvent;
 use OC\Authentication\Exceptions\InvalidTokenException;
 use OC\Authentication\Token\IProvider;
 use OC\Authentication\Token\IToken;
+use OCP\App\IAppManager;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
-use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\OCS\OCSForbiddenException;
 use OCP\AppFramework\Services\IAppConfig;
@@ -37,6 +37,9 @@ class UserController extends Controller {
 	/** @var IAppConfig */
 	private $appConfig;
 
+	/** @var IAppManager */
+	private $appManager;
+
 	/** @var string */
 	protected $appName;
 
@@ -63,6 +66,7 @@ class UserController extends Controller {
 	
 	public function __construct(ILogger $logger, $AppName, IRequest $request,
 		IAppConfig $appConfig,
+		IAppManager $appManager,
 		IEventDispatcher $eventDispatcher,
 		IGroupManager $groupManager,
 		IProvider $tokenProvider,
@@ -75,6 +79,7 @@ class UserController extends Controller {
 		parent::__construct($AppName, $request);
 		
 		$this->appConfig = $appConfig;
+		$this->appManager = $appManager;
 		$this->appName = $AppName;
 		$this->credentialStore = $credentialStore;
 		$this->eventDispatcher = $eventDispatcher;
@@ -90,11 +95,11 @@ class UserController extends Controller {
 
 	/**
 	 *
-	 * This method activates a user for sendent synchroniser
+	 * This method activates a user for sendent synchroniser.
 	 * 
 	 * @NoAdminRequired
 	 *
- 	 * @return DataResponse
+	 * @return JSONResponse
 	 *
 	 */
 	public function activate() {
@@ -166,7 +171,11 @@ class UserController extends Controller {
 			$this->syncUserMapper->update($syncUsers[0]);
 		}
 		
-		return new DataResponse(TRUE);
+		return new JSONResponse([
+			'success' => true,
+			'shouldAskMailSync' => ($this->appManager->isInstalled('mail') && ($this->appConfig->getAppValue('IMAPSyncEnabled', "false") === 'true'))
+		]);
+
 	}
 
 	/**

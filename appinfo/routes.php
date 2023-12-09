@@ -20,6 +20,7 @@ return [
 		['name' => 'settings#setNotificationMethod', 'url' => '/api/1.0/settings/notificationMethod', 'verb' => 'POST'],
 		['name' => 'settings#setReminderType', 'url' => '/api/1.0/settings/reminderType', 'verb' => 'POST'],
 		['name' => 'settings#setSharedSecret', 'url' => '/api/1.0/settings/sharedSecret', 'verb' => 'POST'],
+		['name' => 'settings#setIMAPSync', 'url' => '/api/1.0/settings/imapsync', 'verb' => 'POST'],
 		['name' => 'settings#shouldShowDialog', 'url' => '/api/1.0/settings/shouldShowDialog', 'verb' => 'GET'],
 		['name' => 'settings#sendReminder', 'url' => '/api/1.0/settings/sendReminder', 'verb' => 'GET'],
 
