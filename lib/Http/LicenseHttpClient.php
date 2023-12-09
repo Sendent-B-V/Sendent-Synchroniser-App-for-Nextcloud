@@ -19,9 +19,10 @@ class LicenseHttpClient {
 
 	/** @var string */
 	protected $baseUrl;
-
+	
+	//public function __construct(IClientService $clientService, LoggerInterface $logger, string $baseUrl = "https://api.scwcloud.sendent.dev/") {
 	public function __construct(IClientService $clientService, LoggerInterface $logger, string $baseUrl = "https://api.scwcloud.sendent.dev/") {
-		//public function __construct(IClientService $clientService, LoggerInterface $logger, string $baseUrl = "http://localhost:8085/") {
+	//public function __construct(IClientService $clientService, LoggerInterface $logger, string $baseUrl = "http://localhost:8085/") {
 		$this->client = $clientService->newClient();
 		$this->logger = $logger;
 		$this->baseUrl = $baseUrl;

@@ -84,7 +84,7 @@ class License extends Entity implements JsonSerializable {
 		return false;
 	}
 	public function isTrial() : bool{
-		return $this->isTrial == 1;
+		return $this->istrial == 1;
 	}
 	public function isSupportedProduct() : bool{
 		return str_contains($this->product, 'Exchange') || str_contains($this->product, 'exchange');
