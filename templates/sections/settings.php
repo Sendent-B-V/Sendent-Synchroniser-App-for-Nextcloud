@@ -34,7 +34,7 @@ use OCA\SendentSynchroniser\Constants;
                 <option value="false" <?php !$_['IMAPSyncEnabled'] ? p('selected') : ''; ?> ><?php p($l->t('Disabled')); ?></option>
             </select>
             <label <?php $_['mailAppInstalled'] ? p('style=display:none') : '' ?> >
-                <span class="settingkeyvalueinheritedlabel" style="color:var(--color-error-hover);font-style:italic"><?php p($l->t('You don\'t have the notifications app installed'));?></span>
+                <span class="settingkeyvalueinheritedlabel" style="color:var(--color-error-hover);font-style:italic"><?php p($l->t('You don\'t have the mail app installed'));?></span>
             </label>
         </div>
     </div>
