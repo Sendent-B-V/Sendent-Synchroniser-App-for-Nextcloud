@@ -120,4 +120,31 @@ class SendentFileStorageManager {
 			return '';
 		}
 	}
+	public function writeLicenseProductsTxt(string $content, string $gid = ''): string {
+		$this->ensureFolderExists();
+		$folder = $this->appData->getFolder('settings');
+		try {
+			if (!$folder->fileExists('sync_licenseProductKeyFile')) {
+				$pngFile = $folder->newFile($gid . 'sync_licenseProductKeyFile.txt');
+			} else {
+				$pngFile = $folder->getFile($gid . 'sync_licenseProductKeyFile.txt');
+			}
+		} catch (NotFoundException $e) {
+			$pngFile = $folder->newFile($gid . 'sync_licenseProductKeyFile.txt');
+		}
+
+		$pngFile->putContent($content);
+		return $gid . 'sync_licenseProductKeyFile.txt';
+	}
+	public function getLicenseProductContent($gid = '') {
+		try {
+			$folder = $this->appData->getFolder('settings');
+			$file = $folder->getFile($gid . 'sync_licenseProductKeyFile.txt');
+			// check if file exists and read from it if possible
+
+			return $file->getContent();
+		} catch (NotFoundException $e) {
+			return '';
+		}
+	}
 }

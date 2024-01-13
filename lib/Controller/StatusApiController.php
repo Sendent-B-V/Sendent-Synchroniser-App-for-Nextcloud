@@ -74,7 +74,7 @@ class StatusApiController extends ApiController {
 				$statusobj->maxusers = $result->getMaxusers();
 				$statusobj->dategraceperiodend = $result->getDategraceperiodend();
 				$statusobj->maxusersgrace = $result->getMaxgraceusers();
-				$statusobj->currentusers = !is_null($result->getId()) ? $this->licensemanager->getCurrentUserCount($result->getId()) : 0;
+				$statusobj->currentusers = 0;
 				$statusobj->validLicense = !$result->isLicenseExpired();
 				$status = "";
 				if ($result->isCheckNeeded()) {

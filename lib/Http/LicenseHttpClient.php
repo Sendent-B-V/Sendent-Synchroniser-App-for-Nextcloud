@@ -43,8 +43,8 @@ class LicenseHttpClient {
 		try {
 			$response = $this->client->post($uri, [
 				'json' => $data->jsonSerialize(),
-				'header' => [
-					'api-version' => '1',
+				'headers' => [
+					'api-version' => '2.0',
 				],
 			]);
 		} catch (BadResponseException $e) {

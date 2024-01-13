@@ -159,7 +159,7 @@ class LicenseApiController extends ApiController {
 						$status = $this->l->t("Current amount of active users exceeds licensed amount. Additional users trying to use Sendent will be prevented from doing so.");
 						$statusKind = "userlimit";
 					}
-					return new DataResponse(new LicenseStatus($status, $statusKind, $level,$licensekey, $dateExpiration, $dateLastCheck, $email));
+					return new DataResponse(new LicenseStatus($status, $statusKind, $level,$licensekey, $dateExpiration, $dateLastCheck, $email, $product));
 				} 
 				elseif (count($result) > 0 && $result[0]->getLevel() == "Error_incomplete") {
 					$email = $result[0]->getEmail();
@@ -290,7 +290,7 @@ class LicenseApiController extends ApiController {
 						$status = $this->l->t("Current amount of active users exceeds licensed amount. Additional users trying to use Sendent will be prevented from doing so.");
 						$statusKind = "userlimit";
 					}
-					return new DataResponse(new LicenseStatus($status, $statusKind, $level,$licensekey, $dateExpiration, $dateLastCheck, $email));
+					return new DataResponse(new LicenseStatus($status, $statusKind, $level,$licensekey, $dateExpiration, $dateLastCheck, $email, $product));
 				} 
 				elseif (count($result) > 0 && $result[0]->getLevel() == "Error_incomplete") {
 					$email = $result[0]->getEmail();

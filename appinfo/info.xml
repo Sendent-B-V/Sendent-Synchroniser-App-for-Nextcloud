@@ -9,7 +9,7 @@
     <name>Sendent Synchroniser</name>
     <summary>Synchronise your Calendar and Contacts with Nextcloud</summary>
     <description><![CDATA[Synchronise your Office 365 calendar and contacts with Nextcloud Caldav and Carddav so you can view and edit everything from Nextcloud.]]></description>
-    <version>0.0.8</version>
+    <version>0.0.9</version>
     <licence>agplv3</licence>
     <author mail="l.vandebroek@sendent.com" homepage="https://www.sendent.com">Sendent B.V.</author>
     <namespace>SendentSynchroniser</namespace>

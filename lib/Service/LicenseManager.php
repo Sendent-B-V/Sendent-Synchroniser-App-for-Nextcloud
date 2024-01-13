@@ -9,6 +9,9 @@ use Psr\Log\LoggerInterface;
 use OCA\SendentSynchroniser\Db\License;
 use OCA\SendentSynchroniser\Http\SubscriptionValidationHttpClient;
 use OCA\SendentSynchroniser\Service\LicenseService;
+use OCA\SendentSynchroniser\Db\SyncUser;
+use OCA\SendentSynchroniser\Db\SyncUserMapper;
+use OCA\SendentSynchroniser\Service\SyncUserService;
 
 use Exception;
 
@@ -19,11 +22,21 @@ class LicenseManager {
 	/** @var LoggerInterface */
 	private $logger;
 
+	/** @var SyncUserMapper */
+	private $syncUserMapper;
+
+	/** @var SyncUserService */
+	private $syncUserService;
+
 	public function __construct(LicenseService $licenseservice, LoggerInterface $logger,
-	SubscriptionValidationHttpClient $subscriptionvalidationhttpclient) {
+	SubscriptionValidationHttpClient $subscriptionvalidationhttpclient,
+	SyncUserMapper $syncUserMapper,
+	SyncUserService $syncUserService) {
 		$this->licenseservice = $licenseservice;
 		$this->logger = $logger;
 		$this->subscriptionvalidationhttpclient = $subscriptionvalidationhttpclient;
+		$this->syncUserMapper = $syncUserMapper;
+		$this->syncUserService = $syncUserService;
 	}
 
 	/**
@@ -168,18 +181,18 @@ class LicenseManager {
 	}
 
 	public function isWithinUserCount(License $license): bool {
-		$userCount = $this->connecteduserservice->getCount();
+		$userCount = $this->syncUserService->getValidUsers()->getCount();
 		$maxUserCount = $license->getMaxusers();
 		return $userCount <= $maxUserCount;
 	}
 
 	public function isWithinGraceUserCount(License $license): bool {
-		$userCount = $this->connecteduserservice->getCount();
+		$userCount = $this->syncUserService->getValidUsers()->getCount();
 		$maxUserCount = $license->getMaxgraceusers();
 		return $userCount <= $maxUserCount;
 	}
 
 	public function getCurrentUserCount() {
-		return $this->connecteduserservice->getCount();
+		return $this->syncUserService->getValidUsers()->getCount();
 	}
 }

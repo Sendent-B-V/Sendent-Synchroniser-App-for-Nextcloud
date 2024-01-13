@@ -56,6 +56,9 @@ class LicenseService {
 				if ($this->valueIsLicenseKeyFilePath($result->getLicensekeytoken()) !== false) {
 					$result->setLicensekeytoken($this->FileStorageManager->getCurrentlyActiveLicenseContent());
 				}
+				if ($this->valueIsLicenseProductKeyFilePath($result->getProduct()) !== false) {
+					$result->setProduct($this->FileStorageManager->getLicenseProductContent());
+				}
 			}
 			return $list;
 			// in order to be able to plug in different storage backends like files
@@ -75,6 +78,9 @@ class LicenseService {
 			if ($this->valueIsLicenseKeyFilePath($licensekey->getLicensekeytoken()) !== false) {
 				$licensekey->setLicensekeytoken($this->FileStorageManager->getCurrentlyActiveLicenseContent());
 			}
+			if ($this->valueIsLicenseProductKeyFilePath($licensekey->getProduct()) !== false) {
+				$licensekey->setProduct($this->FileStorageManager->getLicenseProductContent());
+			}
 
 			// in order to be able to plug in different storage backends like files
 		// for instance it is a good idea to turn storage related exceptions
@@ -93,6 +99,9 @@ class LicenseService {
 			}
 			if ($this->valueIsLicenseKeyFilePath($licensekey->getLicensekeytoken()) !== false) {
 				$licensekey->setLicensekeytoken($this->FileStorageManager->getCurrentlyActiveLicenseContent());
+			}
+			if ($this->valueIsLicenseProductKeyFilePath($licensekey->getProduct()) !== false) {
+				$licensekey->setProduct($this->FileStorageManager->getLicenseProductContent());
 			}
 			// in order to be able to plug in different storage backends like files
 		// for instance it is a good idea to turn storage related exceptions
@@ -131,10 +140,14 @@ class LicenseService {
 
 			$licenseobj = new License();
 			
+			
 			$value = $this->FileStorageManager->writeLicenseTxt($license);
-			$licenseobj->setLicensekey($value);
 			$currentlyActiveValue = $this->FileStorageManager->writeCurrentlyActiveLicenseTxt($licenseKeyToken);
+			$licenseProductValue = $this->FileStorageManager->writeLicenseProductsTxt($product);
+			$licenseobj->setLicensekey($value);
 			$licenseobj->setLicensekeytoken($currentlyActiveValue);
+			$licenseobj->setProduct($licenseProductValue);
+			
 			$licenseobj->setSubscriptionstatus($subscriptionStatus);
 			$licenseobj->setEmail($email);
 			$licenseobj->setLevel($level);
@@ -144,7 +157,6 @@ class LicenseService {
 			$licenseobj->setDatelicenseend(date_format($datelicenseend, "Y-m-d"));
 			$licenseobj->setDatelastchecked(date_format($datelastchecked, "Y-m-d"));
 			$licenseobj->setTechnicallevel($technicalLevel);
-			$licenseobj->setProduct($product);
 			$licenseobj->setIstrial($isTrial);
 			
 			error_log(print_r("LICENSESERVICE-EXCEPTION-LEVEL=" . $licenseobj->getLevel(), true));
@@ -154,6 +166,9 @@ class LicenseService {
 			}
 			if ($this->valueIsLicenseKeyFilePath($licenseresult->getLicensekeytoken()) !== false) {
 				$licenseresult->setLicensekeytoken($this->FileStorageManager->getCurrentlyActiveLicenseContent());
+			}
+			if ($this->valueIsLicenseProductKeyFilePath($licenseresult->getProduct()) !== false) {
+				$licenseresult->setProduct($this->FileStorageManager->getLicenseProductContent());
 			}
 			return $licenseresult;
 		}
@@ -166,9 +181,13 @@ class LicenseService {
 		$licenseobj->setLicensekey($value);
 		$currentlyActiveValue = $this->FileStorageManager->writeCurrentlyActiveLicenseTxt($licenseKeyToken);
 		$licenseobj->setLicensekeytoken($currentlyActiveValue);
+
 		$licenseobj->setSubscriptionstatus($subscriptionStatus);
 		$licenseobj->setEmail($email);
 		$licenseobj->setLevel("None");
+		$licenseobj->setTechnicallevel('');
+		$licenseobj->setProduct('');
+		$licenseobj->setIstrial(-1);
 		$licenseobj->setMaxusers(1);
 		$licenseobj->setMaxgraceusers(1);
 		$licenseobj->setDategraceperiodend(date_format(date_create("now"), "Y-m-d"));
@@ -183,6 +202,9 @@ class LicenseService {
 		if ($this->valueIsLicenseKeyFilePath($licenseresult->getLicensekeytoken()) !== false) {
 			$licenseresult->setLicensekeytoken($this->FileStorageManager->getCurrentlyActiveLicenseContent());
 		}
+		if ($this->valueIsLicenseProductKeyFilePath($licenseresult->getProduct()) !== false) {
+			$licenseresult->setProduct($this->FileStorageManager->getLicenseProductContent());
+		}
 		return $licenseresult;
 	}
 
@@ -193,9 +215,14 @@ class LicenseService {
 		$licenseobj = new License();
 
 		$value = $this->FileStorageManager->writeLicenseTxt($license);
-		$licenseobj->setLicensekey($value);
 		$currentlyActiveValue = $this->FileStorageManager->writeCurrentlyActiveLicenseTxt($licenseKeyToken);
-		$licenseobj->setLicensekeytoken($currentlyActiveValue);
+		$licenseProductValue = $this->FileStorageManager->writeLicenseProductsTxt($product);
+
+
+		$licenseobj->setLicensekey($value);
+		$licenseobj->setLicensekeytoken($currentlyActiveValue);		
+		$licenseobj->setProduct($licenseProductValue);
+		
 		$licenseobj->setSubscriptionstatus($subscriptionStatus);
 		$licenseobj->setId($id);
 		$licenseobj->setEmail($email);
@@ -206,7 +233,6 @@ class LicenseService {
 		$licenseobj->setDatelicenseend(date_format($datelicenseend, "Y-m-d"));
 		$licenseobj->setDatelastchecked(date_format($datelastchecked, "Y-m-d"));
 		$licenseobj->setTechnicallevel($technicalLevel);
-		$licenseobj->setProduct($product);
 		$licenseobj->setIstrial($isTrial);
 		
 		$licenseresult = $this->mapper->update($licenseobj);
@@ -215,6 +241,9 @@ class LicenseService {
 		}
 		if ($this->valueIsLicenseKeyFilePath($licenseresult->getLicensekeytoken()) !== false) {
 			$licenseresult->setLicensekeytoken($this->FileStorageManager->getCurrentlyActiveLicenseContent());
+		}
+		if ($this->valueIsLicenseProductKeyFilePath($licenseresult->getProduct()) !== false) {
+			$licenseresult->setProduct($this->FileStorageManager->getLicenseProductContent());
 		}
 		return $licenseresult;
 	}
@@ -243,7 +272,12 @@ class LicenseService {
 		}
 		return false;
 	}
-
+	private function valueIsLicenseProductKeyFilePath($value): bool {
+		if (strpos($value, 'sync_licenseProductKeyFile') !== false) {
+			return true;
+		}
+		return false;
+	}
 	private function valueSizeForDb($value): bool {
 		return strlen($value) > 254;
 	}

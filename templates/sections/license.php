@@ -90,7 +90,7 @@
         <div class="settingkeyvalue">
             <label class="licenselabel">
                 <span class="templatesettingkeyname licenseitem">
-                    <?php p($l->t('Subscription level')); ?></span>
+                    <?php p($l->t('Supported products')); ?></span>
             </label>
             <div class="status-error icon-error error hidden"></div>
             <div class="status-ok icon-checkmark ok hidden"></div>

@@ -10,6 +10,7 @@ type LicenseStatus = {
     email: string,
     level: string,
     licensekey: string,
+    product: string,
     dateLastCheck: string,
     LatestVSTOAddinVersion : AppVersionStatus,
 }
@@ -88,12 +89,12 @@ export default class LicenseHandler {
             let statusdateExpirationDate = new Date(status.dateExpiration);
             let statusdateExpirationDateString = statusdateExpirationDate.toLocaleDateString('nl-NL', { timeZone: 'UTC' });
             
-            
+            let statusSubscriptionLevel = status.level == '0' || status.level == ''|| status.level == null ? status.product : status.level;
 
             $("#licensestatus").html(status.status);
             $("#licenselastcheck").text(statusdateLastCheckDateString);
             $("#licenseexpires").text(statusdateExpirationDateString);
-            $("#licenselevel").text(status.level);
+            $("#licenselevel").html(statusSubscriptionLevel);
             $("#licenseEmail").val(status.email);
             $("#licensekey").val(status.licensekey);
             
@@ -156,6 +157,13 @@ export default class LicenseHandler {
 	        this.enableButtons();
         }
 
+        //Remove exchange connector for now.
+        $("tr[id*='outlook']").each(function (i, el) {
+            $(this).removeClass("shown").addClass("hidden");
+        });
+        $("tr[id*='teams']").each(function (i, el) {
+            $(this).removeClass("shown").addClass("hidden");
+        });
 		return;
     }
 
