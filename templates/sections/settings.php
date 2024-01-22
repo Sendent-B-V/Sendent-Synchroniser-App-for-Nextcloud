@@ -56,6 +56,17 @@ use OCA\SendentSynchroniser\Constants;
             </label>
         </div>
     </div>
+    <div id="emailDomainSetting" class="license-settings-setting-box <?php !$_['IMAPSyncEnabled'] ? p('hidden') : 'shown' ?>">
+        <div class="settingkeyvalue">
+            <label>
+                <span class="templatesettingkeyname">
+                    <?php p($l->t('Email domain')); ?></span>
+            </label>
+            <div id="emailDomainChangedOk" class="status-ok icon-checkmark ok hidden"></div>
+            <div id="emailDomainChangedOk" class="status-error icon-error error hidden"></div>
+			<input class="settingkeyvalueinput" id="setEmailDomain" placeholder="acme.com" value="<?php p($_['emailDomain']); ?>" autocapitalize="none" autocorrect="off">
+        </div>
+    </div>
     <h1>
         <?php p($l->t('Modal dialog enrollment reminder settings')); ?>
     </h1>

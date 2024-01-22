@@ -147,6 +147,17 @@ class SettingsController extends ApiController {
 	}
 
 	/**
+	 *
+	 * Saves emailDomain setting
+	 *
+	 * @param string $emailDomain
+	 *
+	 */
+	public function setEmailDomain($emailDomain) {
+		return $this->appConfig->setAppValue('emailDomain', $emailDomain);
+	}
+
+	/**
 	 * 
 	 * Saves new active groups list
 	 * 

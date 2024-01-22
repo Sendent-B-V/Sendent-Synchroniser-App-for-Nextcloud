@@ -36,6 +36,7 @@ $(() => {
 		$('#setIMAPSyncEnabled').on('change', function(e) {
 			const IMAPSyncEnabled = (<HTMLInputElement>e.target).value
 			const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/imapsync');
+			// Saves new setting's value
 			axios.post(url, {IMAPSyncEnabled}).then((resp) => {
 				if (resp.status === 200) {
 					$('#IMAPSyncChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
@@ -51,7 +52,40 @@ $(() => {
 					});
 				}
 			})
+			// Displays/hides the email domain setting
+			if (IMAPSyncEnabled === 'true') {
+				$('#emailDomainSetting').removeClass('hidden')
+				$('#emailDomainSetting').addClass('shown')
+			} else {
+				$('#emailDomainSetting').removeClass('shown')
+				$('#emailDomainSetting').addClass('hidden')
+			}
 		})
+		$('#setEmailDomain').on('keyup', function(e) {
+			clearTimeout($(this).data('timer'))
+			$(this).data('timer', setTimeout(function() {
+				const emailDomain = (<HTMLInputElement>(<unknown>$('#setEmailDomain')))[0].value
+				if (emailDomain !== '') {
+					const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/emailDomain');
+					axios.post(url, {emailDomain}).then((resp) => {
+						if (resp.status === 200) {
+							$('#emailDomainChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
+								$(this).addClass("hidden");
+								$(this).removeClass("shown")
+								next();
+							});
+						} else {
+							$('#emailDomainChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
+								$(this).addClass("hidden");
+								$(this).removeClass("shown")
+								next();
+							});
+						}
+					})
+				}
+			},500))
+		})
+
 		$('#setNotificationMethod').on('change', function(e) {
 			const notificationMethod = (<HTMLInputElement>e.target).value
 			const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/notificationMethod');
