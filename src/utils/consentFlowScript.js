@@ -19,9 +19,10 @@ export function activateConsentFlowDialog() {
 				return
 			}
 
-			// Configure mail syns
+			// Configure mail sync
 			if (response.data.shouldAskMailSync) {
 
+				let domain = response.data.emailDomain
 				// Admin wants mails to be synced and the Mail app is installed, let's see if the user has already setup mail sync
 				url = generateUrl('/apps/mail/api/accounts');
 				response = await axios.get(url)
@@ -34,18 +35,20 @@ export function activateConsentFlowDialog() {
 					// User has no Mail account, sure mail sync isn't set
 					$('#consentFlowTitle').text(t("sendentsynchroniser", "Step 2: Set up mail"))
 					$('#consentFlowText').text(t("sendentsynchroniser", 'Your Outlook appointments, contacts, and tasks are now synchronised with Nextcloud. By clicking the button below you\'ll be redirected to the Mail application to set it up.'))
+					$('#consentFlowButton').val(t("sendentsynchroniser", "Finish"))
 					$('#consentFlowButton').off().on('click', function() { window.open(generateUrl('/apps/mail'), '_self')})
 				} else {
 					// User has some Mail account(s), let's see if one of them maps to the domain that the admin wants
 					let account = response.data[0]
-					if (account.emailAddress.endsWith("@sendent.dev")) {
+					if (account.emailAddress.endsWith(domain)) {
 						$('#consentFlowTitle').text(t("sendentsynchroniser", "Configuration complete"))
 						$('#consentFlowText').text(t("sendentsynchroniser", 'Your Outlook appointments, contacts, and tasks are now synchronised with Nextcloud. And, your Exchange mailbox seems properly setup in the Mail application. You may close this window'))
 						$('#consentFlowButton').val(t("sendentsynchroniser", "Close"))
 						$('#consentFlowButton').off().on('click', function() {$('#sendentSyncModal').hide()})
 					} else {
-						$('#consentFlowTitle').text(t("sendentsynchroniser", "Configuration complete"))
-						$('#consentFlowText').text(t("sendentsynchroniser", 'Your Outlook appointments, contacts, and tasks are now synchronised with Nextcloud. And, your Exchange mailbox seems properly setup in the Mail application.'))
+						$('#consentFlowTitle').text(t("sendentsynchroniser", "Step 2: Set up mail"))
+						$('#consentFlowText').text(t("sendentsynchroniser", 'Your Outlook appointments, contacts, and tasks are now synchronised with Nextcloud. But, your Exchange mailbox doesn\'t seem properly setup in the Mail application. Please click the button hereunder to be redirected to the Mail application to set it up.'))
+						$('#consentFlowButton').val(t("sendentsynchroniser", "Finish"))
 						$('#consentFlowButton').off().on('click', function() { window.open(generateUrl('/apps/mail'), '_self')})
 					}
 				}

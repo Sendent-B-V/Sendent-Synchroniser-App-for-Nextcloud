@@ -172,7 +172,7 @@ class UserController extends Controller {
 		}
 		
 		return new JSONResponse([
-			'success' => true,
+			'emailDomain' =>  '@' . $this->appConfig->getAppValue('emailDomain', ''),
 			'shouldAskMailSync' => ($this->appManager->isInstalled('mail') && ($this->appConfig->getAppValue('IMAPSyncEnabled', "false") === 'true'))
 		]);
 
