@@ -47,7 +47,7 @@ export function activateConsentFlowDialog() {
 						$('#consentFlowButton').off().on('click', function() {$('#sendentSyncModal').hide()})
 					} else {
 						$('#consentFlowTitle').text(t("sendentsynchroniser", "Step 2: Set up mail"))
-						$('#consentFlowText').text(t("sendentsynchroniser", 'Your Outlook appointments, contacts, and tasks are now synchronised with Nextcloud. But, your Exchange mailbox doesn\'t seem properly setup in the Mail application. Please click the button hereunder to be redirected to the Mail application to set it up.'))
+						$('#consentFlowText').text(t("sendentsynchroniser", 'Your Outlook appointments, contacts, and tasks are now synchronised with Nextcloud. But, your Exchange mailbox doesn\'t seem properly setup in the Mail application. Please click the button below to grant permission for accessing your Exchange mailbox.'))
 						$('#consentFlowButton').val(t("sendentsynchroniser", "Finish"))
 						$('#consentFlowButton').off().on('click', function() { window.open(generateUrl('/apps/mail'), '_self')})
 					}

@@ -1,0 +1,246 @@
+#hello {
+	color: red;
+}
+.personal-settings-setting-box, .license-settings-setting-box, .dependency-settings-setting-box{
+	position:relative;
+}
+.settingkeyvalueinput{
+	width: 100%;
+	position: relative;
+	grid-area:b;
+	vertical-align: middle;
+}
+.settingkeyvalueinherited {
+	display:flex !important;
+	position: relative;
+		align-items: center;
+	margin-left: 5px;
+}
+.settingkeyvalueinheritedcheckbox {
+	position: relative;
+	vertical-align: middle;
+	align-items: center;
+	margin-top:10px !important;
+	grid-area:e;
+	margin-left: 5px;
+}
+.settingkeyvalueinheritedlabel{
+	position: relative;
+	vertical-align: middle;
+	align-items: center;
+	margin-top:-14px;
+	grid-area:d;
+	margin-left: 5px;
+}
+.multiInputContainer input {
+		min-width: 300px;
+		max-width:300px;
+		display: inline-flex;
+}
+.multiInputContainer button {
+	display: inline-flex;
+}
+.multiInputContainer{
+	min-width:300px;
+}
+.multiInputContainer a,
+.settingkeyvalue summary {
+	line-height: 34px;
+	margin-top: 4px;
+	font-style: italic;
+	min-width:300px;
+}
+.multiInputContainer .multiInputRow:last-child {
+	margin-bottom: 1em;
+}
+.multiInputContainer .multiInputRow:last-child button {
+	display: none;
+}
+.multiInputContainer.collapsed .multiInputRow {
+	display: none;
+}
+.section {
+	z-index: -1;
+}
+
+.tabmenu {
+	position: fixed;
+	z-index: 100;
+	width: 100%;
+	height: 50px;
+	padding: 35px 35px 44px 19px;
+	border-bottom: 1px solid #ccc;
+	background-color: var(--color-main-background);
+}
+.tablink {
+	display: inline-flex;
+	font-size:medium;
+	border-radius: var(--border-radius-large) var(--border-radius-large) 0px 0px;
+	background: white;
+	min-width: 110px !important;
+	max-width: 220px;
+	min-height: 40px;
+	max-height: 50px; 
+	text-align:top;
+	padding:10px;
+}
+.tablink.active {
+	display: inline-flex;
+	font-weight: bold;
+	font-size:medium;
+	border-bottom: 1px solid black;
+	border-radius: var(--border-radius-large) var(--border-radius-large) 0px 0px;
+	background: whitesmoke;
+	min-width: 110px !important;
+	max-width: 220px;
+	min-height: 40px;
+	max-height: 50px; 
+	text-align:top;
+	padding:10px;
+}
+
+.Settingspage {
+	padding-top: 30px;
+}
+
+.TermsAgreement  {
+	margin-top: 80px;
+}
+
+select{
+	width:100%;
+}
+textarea{
+	width:100%;
+}
+.editor {overflow:scroll; max-height:300px}
+
+.ok.shown{
+	grid-area: c;
+	text-align:left;
+	display:inline-flex;
+}
+
+.ok.hidden{
+	grid-area: c;
+	text-align:left;
+}
+.error.shown{
+	grid-area: c;
+	text-align:left;
+	display:inline-flex;
+}
+.error.hidden{
+	grid-area: c;
+	text-align:left;
+}
+.settingkeyvalue{
+	display: flex;
+}
+.settingkeyvalue label {
+	margin-top: 4px;
+	min-width: 275px;
+	display: block;
+}
+.settingkeyvalue .settingkeyvalueinput {
+	width: 300px;
+}
+
+.defaultList, .connectedSortable {
+    min-width: 270px;
+	margin-right: 5px;
+	padding: 2px;
+	border: 1px solid #eee;
+}
+.connectedSortable li {
+	padding-left: 2px;
+}
+.defaultList .ui-selected, .connectedSortable .ui-selected {
+	background: var(--color-primary);
+	color: var(--color-primary-text);
+}
+
+.ui-state-default {
+	padding: 5px;
+}
+.ui-state-default.ui-immutable {
+	background:lightgray;
+}
+label{
+	grid-area: a;
+}
+.labelFullWidth{
+	grid-column-start: a;
+	grid-column-end:e;
+}
+.errorStatus{
+	color:darkred;
+}
+.warningStatus{
+	color:darkorange;
+}
+.okStatus{
+	color:darkblue;
+}
+.licensekeyvalueinput {
+	line-height: 40px;
+}
+.statuskeyvalueinput {
+	line-height: 40px;
+}
+.templatesettingkeyname {
+	margin: 0;
+	line-height: 34px;
+  }
+.templatesettingkeynametextareakind {
+	vertical-align: text-top;
+  }
+h1{
+		font-size:16px;
+		font-weight: bold;
+		grid-area: a;
+		margin-top: 20px;
+		margin-bottom: 20px;
+}
+.spinner {
+	margin: 5px auto 0;
+	width: 70px;
+	text-align: start;
+	float:left;
+  }
+
+  .spinner > div {
+	width: 12px;
+	height: 12px;
+	background-color: #333;
+
+	border-radius: 100%;
+	display: inline-block;
+	-webkit-animation: sk-bouncedelay 1.4s infinite ease-in-out both;
+	animation: sk-bouncedelay 1.4s infinite ease-in-out both;
+  }
+
+  .spinner .bounce1 {
+	-webkit-animation-delay: -0.32s;
+	animation-delay: -0.32s;
+  }
+
+  .spinner .bounce2 {
+	-webkit-animation-delay: -0.16s;
+	animation-delay: -0.16s;
+  }
+
+  @-webkit-keyframes sk-bouncedelay {
+	0%, 80%, 100% { -webkit-transform: scale(0) }
+	40% { -webkit-transform: scale(1.0) }
+  }
+
+  @keyframes sk-bouncedelay {
+	0%, 80%, 100% {
+	  -webkit-transform: scale(0);
+	  transform: scale(0);
+	} 40% {
+	  -webkit-transform: scale(1.0);
+	  transform: scale(1.0);
+	}
+  }

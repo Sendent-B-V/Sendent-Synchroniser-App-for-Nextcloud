@@ -1,0 +1,21 @@
+<?php
+
+namespace OCA\SendentSynchroniser;
+
+class Constants {
+
+	public const USER_STATUS_INACTIVE =0;
+	public const USER_STATUS_ACTIVE =1;
+	public const USER_STATUS_NOCONSENT =2;
+
+	public const REMINDER_MODAL = 1;
+	public const REMINDER_NOTIFICATIONS = 2;
+	public const REMINDER_BOTH = 3;
+	public const REMINDER_DEFAULT_TYPE = self::REMINDER_NOTIFICATIONS;
+	public const REMINDER_NOTIFICATIONS_DEFAULT_INTERVAL = 7;
+
+	public const NOTIFICATIONMETHOD_MODAL_GROUPWARE = 1;
+	public const NOTIFICATIONMETHOD_MODAL_FILE = 2;
+	public const NOTIFICATIONMETHOD_MODAL_BOTH = 3;
+	public const NOTIFICATIONMETHOD_MODAL_DEFAULT = self::NOTIFICATIONMETHOD_MODAL_FILE;
+}
