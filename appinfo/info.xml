@@ -6,17 +6,19 @@
     SPDX-License-Identifier: CC0-1.0
     -->
     <id>sendentsynchroniser</id>
-    <name>Sendent Synchroniser</name>
+    <name>Sendent Sync</name>
     <summary>Synchronise your Calendar and Contacts with Nextcloud</summary>
     <description><![CDATA[Synchronise your Office 365 calendar and contacts with Nextcloud Caldav and Carddav so you can view and edit everything from Nextcloud.]]></description>
-    <version>0.0.9</version>
+    <version>1.0.0</version>
     <licence>agplv3</licence>
-    <author mail="l.vandebroek@sendent.com" homepage="https://www.sendent.com">Sendent B.V.</author>
+    <author mail="support@sendent.nl" homepage="https://www.sendent.nl">Sendent B.V.</author>
     <namespace>SendentSynchroniser</namespace>
     <category>integration</category>
     <category>office</category>
     <category>tools</category>
-    <bugs>https://sendent.freshsales.com</bugs>
+    <website>https://www.sendent.com</website>
+    <bugs>https://sendent.com/resources/support</bugs>
+    <screenshot>https://download.sendent.nl/sendentsynchroniser/1.0.0/sendentbanner.png</screenshot>
     <dependencies>
         <nextcloud min-version="25" max-version="28"/>
     </dependencies>

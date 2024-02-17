@@ -19,25 +19,7 @@ use OCA\SendentSynchroniser\Constants;
             <button id="showSharedSecret" style="padding:0;min-width:36px"><img src="<?php print_unescaped(image_path('sendentsynchroniser', 'view.svg')); ?>" style="height:22px;width:22px" /></button>
         </div>
     </div>
-    <div class="personal-settings-setting-box">
-        <div class="settingkeyvalue">
-            <label>
-                <span class="templatesettingkeyname">
-                    <?php p($l->t('Enrollment reminders')); ?>
-                </span>
-            </label>
-			<div id="enrollmentReminderChangedOk" class="status-ok icon-checkmark ok hidden"></div>
-            <div id="enrollmentReminderChangedKo"class="status-error icon-error error hidden"></div>
-            <select class="settingkeyvalueinput" type="select" id="setReminderType">
-                <option value="1" <?php ($_['reminderType']==Constants::REMINDER_MODAL) ? p('selected') : ''; ?> >Modal dialog</option>
-                <option value="2" <?php ($_['reminderType']==Constants::REMINDER_NOTIFICATIONS) ? p('selected') : ''; ?> <?php $_['notificationsAppInstalled'] ? '' : p('disabled=disabled') ?> >Standard notifications</option>
-                <option value="3" <?php ($_['reminderType']==Constants::REMINDER_BOTH) ? p('selected') : ''; ?> <?php $_['notificationsAppInstalled'] ? '' : p('disabled="disabled"') ?> >Modal dialog and standard notifications</option>
-            </select>
-            <label <?php $_['notificationsAppInstalled'] ? p('style=display:none') : '' ?> >
-                <span class="settingkeyvalueinheritedlabel" style="color:var(--color-error-hover);font-style:italic"><?php p($l->t('You don\'t have the notifications app installed'));?></span>
-            </label>
-        </div>
-    </div>
+    
     <div class="personal-settings-setting-box">
         <div class="settingkeyvalue">
             <label>
@@ -68,8 +50,27 @@ use OCA\SendentSynchroniser\Constants;
         </div>
     </div>
     <h1>
-        <?php p($l->t('Modal dialog enrollment reminder settings')); ?>
+        <?php p($l->t('Enrollment reminders')); ?>
     </h1>
+    <div class="personal-settings-setting-box">
+        <div class="settingkeyvalue">
+            <label>
+                <span class="templatesettingkeyname">
+                    <?php p($l->t('Reminder type')); ?>
+                </span>
+            </label>
+			<div id="enrollmentReminderChangedOk" class="status-ok icon-checkmark ok hidden"></div>
+            <div id="enrollmentReminderChangedKo"class="status-error icon-error error hidden"></div>
+            <select class="settingkeyvalueinput" type="select" id="setReminderType">
+                <option value="1" <?php ($_['reminderType']==Constants::REMINDER_MODAL) ? p('selected') : ''; ?> >Modal dialog</option>
+                <option value="2" <?php ($_['reminderType']==Constants::REMINDER_NOTIFICATIONS) ? p('selected') : ''; ?> <?php $_['notificationsAppInstalled'] ? '' : p('disabled=disabled') ?> >Standard notifications</option>
+                <option value="3" <?php ($_['reminderType']==Constants::REMINDER_BOTH) ? p('selected') : ''; ?> <?php $_['notificationsAppInstalled'] ? '' : p('disabled="disabled"') ?> >Modal dialog and standard notifications</option>
+            </select>
+            <label <?php $_['notificationsAppInstalled'] ? p('style=display:none') : '' ?> >
+                <span class="settingkeyvalueinheritedlabel" style="color:var(--color-error-hover);font-style:italic"><?php p($l->t('You don\'t have the notifications app installed'));?></span>
+            </label>
+        </div>
+    </div>
     <div class="personal-settings-setting-box">
         <div class="settingkeyvalue">
             <label>
@@ -86,9 +87,6 @@ use OCA\SendentSynchroniser\Constants;
             </select>
         </div>
     </div>
-    <h1>
-        <?php p($l->t('Standard notification enrollment reminder settings')); ?>
-    </h1>
     <div class="personal-settings-setting-box">
         <div class="settingkeyvalue">
             <label>

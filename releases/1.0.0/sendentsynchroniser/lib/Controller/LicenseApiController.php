@@ -118,7 +118,7 @@ class LicenseApiController extends ApiController {
 						$statusKind = "check";
 					}
 					elseif (!$result[0]->isCheckNeeded() && !$result[0]->isLicenseExpired() && !$result[0]->isSupportedProduct()) {
-						$status = $this->l->t("Current license is not intended to be used with Sendent Synchroniser. It is only intended to be used for configuring: " . $product) .
+						$status = $this->l->t("Current license is not intended to be used with Sendent Sync. It is only intended to be used for configuring: " . $product) .
 							"</br>" .
 							$this->l->t('%1$sContact support%2$s if you experience issues with configuring your license key.', ["<a href='mailto:info@sendent.com' style='color:blue'>", "</a>"]);
 						$statusKind = "expired";
@@ -245,7 +245,7 @@ class LicenseApiController extends ApiController {
 						$statusKind = "check";
 					}
 					elseif (!$result[0]->isCheckNeeded() && !$result[0]->isLicenseExpired() && !$result[0]->isSupportedProduct()) {
-						$status = $this->l->t("Current license is not intended to be used with Sendent Synchroniser. It is only intended to be used for configuring: " . $product) .
+						$status = $this->l->t("Current license is not intended to be used with Sendent Sync. It is only intended to be used for configuring: " . $product) .
 							"</br>" .
 							$this->l->t('%1$sContact support%2$s if you experience issues with configuring your license key.', ["<a href='mailto:info@sendent.com' style='color:blue'>", "</a>"]);
 						$statusKind = "expired";

@@ -40,7 +40,7 @@ class AdminSection implements IIconSection {
 	 * @return string
 	 */
 	public function getName() {
-		return $this->l->t('Sendent Synchroniser');
+		return $this->l->t('Sendent Sync');
 	}
 
 	/**
@@ -60,6 +60,6 @@ class AdminSection implements IIconSection {
 	 * the priority values. It is required to return a value between 0 and 99.
 	 */
 	public function getPriority() {
-		return 80;
+		return 51;
 	}
 }

@@ -10,6 +10,11 @@
 	grid-area:b;
 	vertical-align: middle;
 }
+.consentflow{
+	border-color:darkslategray;
+	border-width:1px;
+	border-style:ridge;
+}
 .settingkeyvalueinherited {
 	display:flex !important;
 	position: relative;
@@ -61,6 +66,8 @@
 }
 .section {
 	z-index: -1;
+	margin-left:0px;
+	padding-left:10px;
 }
 
 .tabmenu {

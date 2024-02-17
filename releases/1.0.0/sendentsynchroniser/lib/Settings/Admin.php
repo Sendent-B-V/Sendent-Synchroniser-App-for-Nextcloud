@@ -145,6 +145,6 @@ class Admin implements ISettings {
 	 * priority values. It is required to return a value between 0 and 100.
 	 */
 	public function getPriority() {
-		return 50;
+		return 51;
 	}
 }
