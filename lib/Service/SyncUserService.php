@@ -2,6 +2,7 @@
 
 namespace OCA\SendentSynchroniser\Service;
 
+use OCP\Accounts\IAccountManager;
 use OCP\AppFramework\Services\IAppConfig;
 use OC\Authentication\Token\IProvider;
 use OCP\IGroupManager;
@@ -11,6 +12,9 @@ use OCA\SendentSynchroniser\Constants;
 use OCA\SendentSynchroniser\Db\SyncUserMapper;
 
 class SyncUserService {
+
+	/** @var IAccountManager */
+	private $accountManager;
 
 	/** @var string */
 	private $appName;
@@ -33,9 +37,10 @@ class SyncUserService {
 	/** @var IUserManager */
 	private $userManager;
 
-    public function __construct($AppName, IAppConfig $appConfig, IGroupManager $groupManager, ILogger $logger,
+    public function __construct(IAccountManager $accountManager, $AppName, IAppConfig $appConfig, IGroupManager $groupManager, ILogger $logger,
 		Iprovider $tokenProvider, IUserManager $userManager, SyncUserMapper $syncUserMapper) {
 
+		$this->accountManager = $accountManager;
 		$this->appName = $AppName;
 		$this->appConfig = $appConfig;
 		$this->groupManager = $groupManager;
@@ -116,6 +121,7 @@ class SyncUserService {
 		return $inactiveUsers;
 
 	}
+
 	public function getValidUserCount() {
 
 		// Gets active groups
@@ -148,6 +154,7 @@ class SyncUserService {
 		return $index;
 
 	}
+
 	public function getValidUsers() {
 
 		// Gets active groups
@@ -175,7 +182,25 @@ class SyncUserService {
 						$user = $syncUser->jsonSerialize();
 						$user['username'] = $user['uid'];
 						$user['uid'] = $NCUser->getUID();
-						$user['email'] = $NCUser->getEmailAddress();
+						$user['email'] = $NCUser->getEmailAddress();	// default email address
+						// Replaces email address by one of the user email addresses that matches the sync domain (if any)
+						$emailDomain = $this->appConfig->getAppValue('emailDomain', '');
+						if ($emailDomain !== '') {
+							$account = $this->accountManager->getAccount($NCUser);
+							$email = $account->getProperty(IAccountManager::PROPERTY_EMAIL);
+							$emailAddress = $email->getValue();
+							if (substr($emailAddress, -strlen($emailDomain)) === $emailDomain) {
+								$user['email'] = $email->getValue();
+							} else {
+								$emailsCollection = $account->getPropertyCollection(IAccountManager::COLLECTION_EMAIL);
+								foreach($emailsCollection->getProperties() as $email)	{
+									$emailAddress = $email->getValue();
+									if (substr($emailAddress, -strlen($emailDomain)) === $emailDomain) {
+										$user['email'] = $email->getValue();
+									}
+								}
+							}
+						}
 						$user['displayName'] = $NCUser->getDisplayName();
 						//this method replaces the mechanism with named array indexes because C# cannot deal with that.
 						if(!$this->checkIfUserInArray($activeUsers, $syncUser->getUid()))
