@@ -65,24 +65,22 @@ $(() => {
 			clearTimeout($(this).data('timer'))
 			$(this).data('timer', setTimeout(function() {
 				const emailDomain = (<HTMLInputElement>(<unknown>$('#setEmailDomain')))[0].value
-				if (emailDomain !== '') {
-					const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/emailDomain');
-					axios.post(url, {emailDomain}).then((resp) => {
-						if (resp.status === 200) {
-							$('#emailDomainChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
-								$(this).addClass("hidden");
-								$(this).removeClass("shown")
-								next();
-							});
-						} else {
-							$('#emailDomainChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
-								$(this).addClass("hidden");
-								$(this).removeClass("shown")
-								next();
-							});
-						}
-					})
-				}
+				const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/emailDomain');
+				axios.post(url, {emailDomain}).then((resp) => {
+					if (resp.status === 200) {
+						$('#emailDomainChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
+							$(this).addClass("hidden");
+							$(this).removeClass("shown")
+							next();
+						});
+					} else {
+						$('#emailDomainChangedOk').removeClass("hidden").addClass("shown").delay(1000).queue(function (next) {
+							$(this).addClass("hidden");
+							$(this).removeClass("shown")
+							next();
+						});
+					}
+				})
 			},500))
 		})
 
