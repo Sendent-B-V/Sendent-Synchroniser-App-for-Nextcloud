@@ -9,3 +9,9 @@ Synchronise your Office 365 calendar and contacts with Nextcloud Caldav and Card
 
 ### Bugfix
 - Minor bugfix for image in appstore.
+
+## 1.0.6 - 2024-03-14
+
+### Bugfix
+- Minor bugfixes and improvements.
+
