@@ -8,9 +8,9 @@
     <id>sendentsynchroniser</id>
     <name>Sendent Sync</name>
     <summary>Synchronise your Calendar and Contacts with Nextcloud</summary>
-    <description><![CDATA[Synchronise your Office 365 calendar and contacts with Nextcloud Caldav and Carddav so you can view and edit everything from Nextcloud.]]></description>
-    <version>1.0.0</version>
-    <licence>agplv3</licence>
+    <description><![CDATA[Say goodbye to manual updates! The Sendent Sync app, designed for the Nextcloud Exchange Connector, enables bi-directional syncing of agendas and contacts between your Microsoft Exchange and Nextcloud Hub. Focus on what truly matters – your work – while your data flows effortlessly.]]></description>
+    <version>1.0.5</version>
+    <licence>agpl</licence>
     <author mail="support@sendent.nl" homepage="https://www.sendent.nl">Sendent B.V.</author>
     <namespace>SendentSynchroniser</namespace>
     <category>integration</category>
@@ -18,7 +18,7 @@
     <category>tools</category>
     <website>https://www.sendent.com</website>
     <bugs>https://sendent.com/resources/support</bugs>
-    <screenshot>https://download.sendent.nl/sendentsynchroniser/1.0.0/sendentbanner.png</screenshot>
+    <screenshot>https://download.sendent.com/sendentsynchroniser/1.0.0/sendentbanner.png</screenshot>
     <dependencies>
         <nextcloud min-version="25" max-version="28"/>
     </dependencies>
