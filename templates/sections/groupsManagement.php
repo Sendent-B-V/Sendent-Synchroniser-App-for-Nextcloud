@@ -47,29 +47,38 @@
 			</div>
 		</div>
 	</div>
+	<h3 style="margin-bottom: 0px;font-weight: bold">
+        <?php p($l->t('User management')); ?>
+    </h3>
 	<div class="license-settings-setting-box">
         <div class="settingkeyvalue">
 			<div class="labelFullWidth">
 				<div style="margin-top:10px;" class="labelFullWidth">
-					<p>
+					<p style="margin-bottom: 10px">
 						<?php p($l->t('You have enabled Sendent Sync for %1$s user(s), and it is currently used by %2$s user(s).', [$_['nbEnabledUsers'],$_['nbActiveUsers']])); ?>
 					</p>
 					<p>
 						<?php p($l->t('To send a notification to non-active user(s) to remind them to setup their synchronisation, click the "Remind users" button below.')); ?>
 					</p>
+					<p>
+						<?php p($l->t('To clear the synchronisation token of active users, and force them to re-generate one, click the "Clear tokens" button below.')); ?>
+					</p>
 				</div>
 			</div>
 		</div>
 	</div>
-	<div class="license-settings-setting-box">
-        <div class="settingkeyvalue">
-            <input type="button" id="btnRemindUsers" value="Remind users" <?php $_['notificationsAppInstalled'] ? '' : p('disabled=disabled') ?>>
-            <input type="hidden" name="settingkeyname" value="checkmark">
-            <input type="hidden" name="settingkeykey" value="900">
-            <input type="hidden" name="settingkeyid" value="900">
-        </div>
-		<label <?php $_['notificationsAppInstalled'] ? p('style=display:none') : '' ?> >
-                <span class="settingkeyvalueinheritedlabel" style="color:var(--color-error-hover);font-style:italic"><?php p($l->t('You don\'t have the notifications app installed'));?></span>
-        </label>
+	<div style="display: flex; margin-top: 10px">
+		<div class="license-settings-setting-box" style="display:flex;align-items: center;margin-right: 10px">
+        	<div class="settingkeyvalue">
+	            <input type="button" id="btnRemindUsers" value="Remind users" <?php $_['notificationsAppInstalled'] ? '' : p('disabled=disabled') ?>>
+        	</div>
+			<label <?php $_['notificationsAppInstalled'] ? p('style=display:none') : '' ?> >
+            	    <span class="settingkeyvalueinheritedlabel" style="color:var(--color-error-hover);font-style:italic"><?php p($l->t('You don\'t have the notifications app installed'));?></span>
+        	</label>
+    	</div>
+		<div class="license-settings-setting-box">
+        	<div class="settingkeyvalue">
+	            <input type="button" id="btnClearTokens" value="Clear tokens">
+        	</div>
     </div>
 </div>
