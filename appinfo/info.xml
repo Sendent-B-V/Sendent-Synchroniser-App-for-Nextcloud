@@ -20,7 +20,7 @@
     <bugs>https://sendent.com/resources/support</bugs>
     <screenshot>https://download.sendent.com/sendentsynchroniser/1.0.0/sendentbanner.png</screenshot>
     <dependencies>
-        <nextcloud min-version="25" max-version="28"/>
+        <nextcloud min-version="25" max-version="30"/>
     </dependencies>
     <settings>
         <admin>OCA\SendentSynchroniser\Settings\Admin</admin>

@@ -3,7 +3,7 @@
         'name' => 'sendent/sendentsynchroniser',
         'pretty_version' => 'dev-main',
         'version' => 'dev-main',
-        'reference' => '4613510b8f9ce94fbe914e90b155f1380b1e91e6',
+        'reference' => 'bc28c056abfa08fedce0d00e520a7be7c54a8534',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -262,7 +262,7 @@
         'sendent/sendentsynchroniser' => array(
             'pretty_version' => 'dev-main',
             'version' => 'dev-main',
-            'reference' => '4613510b8f9ce94fbe914e90b155f1380b1e91e6',
+            'reference' => 'bc28c056abfa08fedce0d00e520a7be7c54a8534',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
