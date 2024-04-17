@@ -49,6 +49,14 @@ export default class GroupsManagementHandler {
 			return axios.get(url);
         });
 
+		// Action for the "Remind users" button
+		$("#btnClearTokens").on('click', (ev) => {
+            ev.preventDefault();
+			if (confirm("This will clear the synchronisation token of all sendent sync users. Are you sure?")) {
+				const url = generateUrl('/apps/sendentsynchroniser/api/1.0/user/invalidateAll');
+				return axios.post(url);
+			}
+        });
 
 		return this.instance;
 	}

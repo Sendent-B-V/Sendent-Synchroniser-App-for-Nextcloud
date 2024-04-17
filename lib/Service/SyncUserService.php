@@ -91,8 +91,12 @@ class SyncUserService {
 
 	}
 
-	public function getInvalidUsers() {
-
+	/**
+	 * 
+	 * This function returns all the users that may use the app
+	 * 
+	*/
+	public function getAllUsers() {
 		// Gets active groups
 		$activeGroups = $this->appConfig->getAppValue('activeGroups', '');
 		$activeGroups = ($activeGroups !== '' && $activeGroups !== 'null') ? json_decode($activeGroups) : [];
@@ -104,7 +108,19 @@ class SyncUserService {
 			$users = array_merge($users,$group->getUsers());
 		}
 
-		// Gets all inactive sendent sync users
+		return $users;
+	}
+
+	/**
+	 * 
+	 * This function returns all inactive users that may use the app
+	 * 
+	*/
+	public function getInvalidUsers() {
+
+		$users = $this->getAllUsers();
+
+		// Gets only inactive sendent sync users
 		$inactiveUsers = [];
 		foreach ($users as $user) {
 			$syncUsers = $this->syncUserMapper->findByUid($user->getUid());
@@ -124,18 +140,10 @@ class SyncUserService {
 
 	public function getValidUserCount() {
 
-		// Gets active groups
-		$activeGroups = $this->appConfig->getAppValue('activeGroups', '');
-		$activeGroups = ($activeGroups !== '' && $activeGroups !== 'null') ? json_decode($activeGroups) : [];
+		$users = $this->getAllUsers();
 
-		// Gets all users in active groups
-		$users = [];
-		foreach ($activeGroups as $gid) {
-			$group = $this->groupManager->get($gid);
-			$users = array_merge($users,$group->getUsers());
-		}
+		// Gets only active sendent sync users
 		$index = 0;
-		// Gets all active sendent sync users
 		$activeUsers = [];
 		foreach ($users as $user) {
 			$syncUsers = $this->syncUserMapper->findByUid($user->getUid());
@@ -155,20 +163,17 @@ class SyncUserService {
 
 	}
 
+	/**
+	 * 
+	 * This function returns all active users that may use the app
+	 * 
+	*/
 	public function getValidUsers() {
 
-		// Gets active groups
-		$activeGroups = $this->appConfig->getAppValue('activeGroups', '');
-		$activeGroups = ($activeGroups !== '' && $activeGroups !== 'null') ? json_decode($activeGroups) : [];
+		$users = $this->getAllUsers();
 
-		// Gets all users in active groups
-		$users = [];
-		foreach ($activeGroups as $gid) {
-			$group = $this->groupManager->get($gid);
-			$users = array_merge($users,$group->getUsers());
-		}
-		$index = 0;
 		// Gets all active sendent sync users
+		$index = 0;
 		$activeUsers = [];
 		foreach ($users as $user) {
 			$syncUsers = $this->syncUserMapper->findByUid($user->getUid());
