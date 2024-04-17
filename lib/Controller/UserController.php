@@ -159,16 +159,17 @@ class UserController extends Controller {
 		// Stores syncUser info
 		$syncUsers = $this->syncUserMapper->findByUid($credentials->getUID());
 		if (empty($syncUsers)) {
-			$this->logger->info('Created new Sendentsync user "' . $credentials->getUID() . '"');
 			$syncUser = new SyncUser;
 			$syncUser->setUid($credentials->getUID());
 			$syncUser->setToken($encryptedToken);
 			$syncUser->setActive(Constants::USER_STATUS_ACTIVE);
 			$this->syncUserMapper->insert($syncUser);
+			$this->logger->info('Created new Sendentsync user "' . $credentials->getUID() . '"');
 		} else {
 			$syncUsers[0]->setToken($encryptedToken);
 			$syncUsers[0]->setActive(Constants::USER_STATUS_ACTIVE);
 			$this->syncUserMapper->update($syncUsers[0]);
+			$this->logger->info('Updated Sendentsync user "' . $credentials->getUID() . '"');
 		}
 		
 		return new JSONResponse([
