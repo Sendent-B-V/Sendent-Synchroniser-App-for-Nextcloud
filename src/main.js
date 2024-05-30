@@ -34,7 +34,7 @@ $(async () => {
 			break
 		case "3":
 			// We want to display in both the Files app, and the groupware apps
-			if (!$("#app-content-files").length & !$(".app-contacts").length & !$(".app-calendar").length & !$(".app-tasks").length) {
+			if (!$("#app-content-files").length & !$(".app-files").length & !$(".app-contacts").length & !$(".app-calendar").length & !$(".app-tasks").length) {
 				return
 			}
 			break
