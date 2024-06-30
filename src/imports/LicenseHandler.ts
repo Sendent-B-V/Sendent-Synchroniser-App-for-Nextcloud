@@ -13,6 +13,7 @@ type LicenseStatus = {
     product: string,
     dateLastCheck: string,
     LatestVSTOAddinVersion : AppVersionStatus,
+    istrial : number
 }
 type AppVersionStatus = {
     ApplicationName : string
@@ -83,13 +84,14 @@ export default class LicenseHandler {
 		console.log('Refreshing license status');
         try {
             const { data: status } = await this.requestStatus();
-            
+            const offline_mode_text = "Undetermined because Offline mode is used.";
+
             let statusdateLastCheckDate = new Date(status.dateLastCheck);
-            let statusdateLastCheckDateString = statusdateLastCheckDate.toLocaleDateString('nl-NL', { timeZone: 'UTC' });
+            let statusdateLastCheckDateString = status.level == "Offline_mode" ? offline_mode_text : statusdateLastCheckDate.toLocaleDateString('nl-NL', { timeZone: 'UTC' });
             let statusdateExpirationDate = new Date(status.dateExpiration);
-            let statusdateExpirationDateString = statusdateExpirationDate.toLocaleDateString('nl-NL', { timeZone: 'UTC' });
-            
-            let statusSubscriptionLevel = status.level == '0' || status.level == ''|| status.level == null ? status.product : status.level;
+            let statusdateExpirationDateString = status.level == "Offline_mode" ? offline_mode_text : statusdateExpirationDate.toLocaleDateString('nl-NL', { timeZone: 'UTC' });
+            let statusSubscriptionType = status.level == "Offline_mode" ? offline_mode_text : status.istrial == 1 ? "Trial" : status.istrial == 0 ? "Paid subscription" : "Subscription type can't be determined";
+            let statusSubscriptionLevel = status.level == "Offline_mode" ? offline_mode_text : status.level == '0' || status.level == ''|| status.level == null ? status.product : status.level;
 
             $("#licensestatus").html(status.status);
             $("#licenselastcheck").text(statusdateLastCheckDateString);
@@ -140,6 +142,7 @@ export default class LicenseHandler {
 		        $("#licensekey").val('');
 	            this.createLicense('', '');
 	        });
+            this.hideValuesForOffline(status);
 
         } catch (err) {
             console.warn('Error while fetching license status', err);
@@ -199,7 +202,21 @@ export default class LicenseHandler {
                 .val(t("sendent", "Activate license"));
         }
     }
-
+    private hideValuesForOffline(status: LicenseStatus) {
+        if (status.level === 'Offline_mode') {
+            $(".subscriptionInformation").removeClass("shown").addClass("hidden");
+            $('#licenseOfflineMessage').removeClass("hidden").addClass("shown");
+        }
+        else{
+            $(".subscriptionInformation").removeClass("hidden").addClass("shown");
+            $('#licenseOfflineMessage').removeClass("shown").addClass("hidden");
+        }
+        if(status.level == '' || status.level == status.product ||  status.product.toLowerCase().includes(status.level.toLowerCase()))
+            {
+                $("#licenselevelcontainer").removeClass("shown").addClass("hidden");
+                $("#defaultlicenselevelcontainer").removeClass("shown").addClass("hidden");
+            }
+    }
     private showErrorStatus() {
         $("#license .licensekeyvalueinput").addClass("errorStatus").removeClass("okStatus warningStatus");
     }

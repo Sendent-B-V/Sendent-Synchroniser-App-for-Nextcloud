@@ -86,7 +86,7 @@
         </div>
     </div>
 
-    <div class="license-settings-setting-box">
+    <div class="license-settings-setting-box subscriptionInformation">
         <div class="settingkeyvalue">
             <label class="licenselabel">
                 <span class="templatesettingkeyname licenseitem">
@@ -100,7 +100,7 @@
             <input type="hidden" name="settingkeyid" value="902">
         </div>
     </div>
-    <div class="license-settings-setting-box">
+    <div class="license-settings-setting-box subscriptionInformation">
         <div class="settingkeyvalue">
             <label class="licenselabel">
                 <span class="templatesettingkeyname licenseitem">
@@ -115,7 +115,7 @@
         </div>
     </div>
 
-    <div class="license-settings-setting-box">
+    <div class="license-settings-setting-box subscriptionInformation">
         <div class="settingkeyvalue">
             <label class="licenselabel">
                 <span class="templatesettingkeyname licenseitem">
@@ -129,7 +129,7 @@
             <input type="hidden" name="settingkeyid" value="905">
         </div>
     </div>
-    <div class="license-settings-setting-box">
+    <div class="license-settings-setting-box subscriptionInformation">
         <div class="settingkeyvalue">
             <label class="licenselabel">
                 <span class="templatesettingkeyname licenseitem">
@@ -141,6 +141,19 @@
             <input type="hidden" name="settingkeyname" value="licenselastcheck">
             <input type="hidden" name="settingkeykey" value="904">
             <input type="hidden" name="settingkeyid" value="904">
+        </div>
+    </div>
+    <div class="license-settings-setting-box" id="licenseOfflineMessage">
+        <div class="settingkeyvalue">
+
+            <div class="labelFullWidth" id="lblLicenseOfflineMessage"
+                style="display:grid;float:left;text-align:left;color:slate-gray;font-style:italic;font-size:medium">
+                <?php p($l->t('You are using license configuration in Offline mode')); ?>
+                <br><br>
+            </div>
+            <input type="hidden" name="settingkeyname" value="licenseOfflineMessage">
+            <input type="hidden" name="settingkeykey" value="1000">
+            <input type="hidden" name="settingkeyid" value="1000">
         </div>
     </div>
     <br><br>

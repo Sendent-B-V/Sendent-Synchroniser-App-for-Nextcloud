@@ -10,6 +10,7 @@ use OCP\AppFramework\Db\Entity;
 class License extends Entity implements JsonSerializable {
 	public const ERROR_INCOMPLETE = 'Error_incomplete';
 	public const ERROR_VALIDATING = 'Error_validating';
+	public const OFFLINE_MODE = 'Offline_mode';
 
 	protected $licensekey;
 	protected $licensekeytoken;
@@ -27,7 +28,6 @@ class License extends Entity implements JsonSerializable {
 	protected $istrial;
 
 	public function __construct() {
-		// add types in constructor
 	}
 
 	public function jsonSerialize() {
@@ -52,7 +52,7 @@ class License extends Entity implements JsonSerializable {
 
 	public function isCheckNeeded(): bool {
 		$diffDay = new DateInterval('P7D');
-		if (date_create($this->datelastchecked) >= date_sub(date_create("now"), $diffDay) && $this->level != License::ERROR_VALIDATING) {
+		if ((date_create($this->datelastchecked) >= date_sub(date_create("now"), $diffDay) && $this->level != License::ERROR_VALIDATING) || $this->subscriptionstatus != License::OFFLINE_MODE) {
 			error_log(print_r("LICENSE-ISCHECKNEEDED: FALSE", true));
 			return false;
 		}
@@ -76,8 +76,8 @@ class License extends Entity implements JsonSerializable {
 	}
 
 	public function isLicenseExpired(): bool {
-		if ((date_create($this->datelicenseend) < date_create("now")
-		&& date_create($this->dategraceperiodend) < date_create("now"))
+		if (((date_create($this->datelicenseend) < date_create("now")
+		&& date_create($this->dategraceperiodend) < date_create("now")) && $this->subscriptionstatus != License::OFFLINE_MODE)
 		|| ($this->subscriptionstatus == "2" || $this->subscriptionstatus == "4" || $this->subscriptionstatus == "5" || $this->subscriptionstatus == "6"  || $this->subscriptionstatus == "7" )) {
 			return true;
 		}
@@ -87,7 +87,7 @@ class License extends Entity implements JsonSerializable {
 		return $this->istrial == 1;
 	}
 	public function isSupportedProduct() : bool{
-		return str_contains($this->product, 'Exchange') || str_contains($this->product, 'exchange');
+		return str_contains($this->product, 'Exchange') || str_contains($this->product, 'exchange')|| $this->subscriptionstatus == License::OFFLINE_MODE;
 	}
 	public function isLicenseSuspended(): bool {
 		return $this->subscriptionstatus == "5";

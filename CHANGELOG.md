@@ -15,3 +15,6 @@ Synchronise your Office 365 calendar and contacts with Nextcloud Caldav and Card
 ### Bugfix
 - Minor bugfixes and improvements.
 
+## 1.0.8 - 2024-06-30
+### Features
+- Support for customers that use an airgapped Nextcloud installation with no internet access.
