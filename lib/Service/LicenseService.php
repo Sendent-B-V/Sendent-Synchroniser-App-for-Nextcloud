@@ -193,7 +193,6 @@ class LicenseService {
 		$licenseobj->setDategraceperiodend(date_format(date_create("now"), "Y-m-d"));
 		$licenseobj->setDatelicenseend(date_format(date_create("now"), "Y-m-d"));
 		$licenseobj->setDatelastchecked(date_format(date_create("now"), "Y-m-d"));
-		$licenseobj->setNcgroup($ncgroup);
 
 		$licenseresult = $this->mapper->insert($licenseobj);
 		if ($this->valueIsLicenseKeyFilePath($licenseresult->getLicensekey()) !== false) {
