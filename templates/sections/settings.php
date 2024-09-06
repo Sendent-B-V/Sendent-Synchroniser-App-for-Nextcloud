@@ -38,7 +38,7 @@ use OCA\SendentSynchroniser\Constants;
             </label>
         </div>
     </div>
-    <div id="emailDomainSetting" class="license-settings-setting-box <?php !$_['IMAPSyncEnabled'] ? p('hidden') : 'shown' ?>">
+    <div id="emailDomainSetting" class="license-settings-setting-box">
         <div class="settingkeyvalue">
             <label>
                 <span class="templatesettingkeyname">
