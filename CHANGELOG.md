@@ -23,3 +23,13 @@ Synchronise your Office 365 calendar and contacts with Nextcloud Caldav and Card
 
 ### Bugfix
 - Minor bugfixes and improvements.
+
+## 1.0.10 - 2025-02-13
+
+### Support
+- Support for Nextcloud version 31
+
+## 1.0.11 - 2025-04-03
+
+### Fix
+- Fix improving support for Nextcloud version 31

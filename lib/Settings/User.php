@@ -9,7 +9,7 @@ use OCP\IGroupManager;
 use OCP\Settings\ISettings;
 use OCP\EventDispatcher\IEventDispatcher;
 use OCP\ISession;
-use \OCP\ILogger;
+use \Psr\Log\LoggerInterface;
 use OCP\Security\ISecureRandom;
 use OCP\IURLGenerator;
 use OCA\SendentSynchroniser\Constants;
@@ -26,7 +26,7 @@ class User implements ISettings {
 	/** @var IAppConfig */
 	private $appConfig;
 
-	/** @var ILogger */
+	/** @var LoggerInterface */
 	private $logger;
 
 	/** @var SyncUserMapper */
@@ -36,7 +36,7 @@ class User implements ISettings {
 		IAppManager $appManager,
 		IGroupManager $groupManager,
 		IAppConfig $appConfig,
-		ILogger $logger,
+		LoggerInterface $logger,
 		SyncUserMapper $syncUserMapper,
 		string $userId) {
 

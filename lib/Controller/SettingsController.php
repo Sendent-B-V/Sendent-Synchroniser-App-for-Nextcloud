@@ -8,7 +8,7 @@ use OCP\AppFramework\Services\IAppConfig;
 use OCP\IGroupManager;
 use OCP\IRequest;
 use OCP\Notification\IManager;
-use \OCP\ILogger;
+use \Psr\Log\LoggerInterface;
 use OCA\SendentSynchroniser\Constants;
 use OCA\SendentSynchroniser\Db\SyncUserMapper;
 use OCA\SendentSynchroniser\Service\SyncUserService;
@@ -24,7 +24,7 @@ class SettingsController extends ApiController {
 	/** @var IGroupManager */
 	private $groupManager;
 
-	/** @var ILogger */
+	/** @var LoggerInterface */
 	private $logger;
 
 	/** @var IManager */
@@ -43,7 +43,7 @@ class SettingsController extends ApiController {
 		string $userId,
 		IAppConfig $appConfig,
 		IGroupManager $groupManager,
-		ILogger $logger,
+		LoggerInterface $logger,
 		IManager $notificationManager,
 		SyncUserMapper $syncUserMapper,
 		SyncUserService $syncUserService) {

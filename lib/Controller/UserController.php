@@ -20,7 +20,7 @@ use OCP\IGroupManager;
 use OCP\IRequest;
 use OCP\ISession;
 use OCP\Security\ISecureRandom;
-use \OCP\ILogger;
+use \Psr\Log\LoggerInterface;
 use OCA\SendentSynchroniser\Constants;
 use OCA\SendentSynchroniser\Db\SyncUser;
 use OCA\SendentSynchroniser\Db\SyncUserMapper;
@@ -46,7 +46,7 @@ class UserController extends Controller {
 	/** @var IGroupManager */
 	private $groupManager;
 
-	/** @var ILogger */
+	/** @var LoggerInterface */
 	private $logger;
 
 	/** @var IProvider */
@@ -64,7 +64,7 @@ class UserController extends Controller {
 	/** @var SyncUserService */
 	private $syncUserService;
 	
-	public function __construct(ILogger $logger, $AppName, IRequest $request,
+	public function __construct(LoggerInterface $logger, $AppName, IRequest $request,
 		IAppConfig $appConfig,
 		IAppManager $appManager,
 		IEventDispatcher $eventDispatcher,

@@ -5,7 +5,7 @@ use OCP\AppFramework\Services\IAppConfig;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\BackgroundJob\TimedJob;
 use OCP\Notification\IManager;
-use \OCP\ILogger;
+use \Psr\Log\LoggerInterface;
 use OCA\SendentSynchroniser\Constants;
 use OCA\SendentSynchroniser\Service\SyncUserService;
 
@@ -14,7 +14,7 @@ class NotifyInactiveUsers extends TimedJob {
     /** @var IAppConfig */
     private $config;
 
-    /** @var ILogger */
+    /** @var LoggerInterface */
 	private $logger;
 
     /** @var IManager */
@@ -23,7 +23,7 @@ class NotifyInactiveUsers extends TimedJob {
     /** @var SyncUserService */
     private $syncUserService;
 
-    public function __construct(ITimeFactory $time, IAppConfig $config, ILogger $logger,
+    public function __construct(ITimeFactory $time, IAppConfig $config, LoggerInterface $logger,
         IManager $notificationManager, SyncUserService $syncUserService) {
         parent::__construct($time);
 

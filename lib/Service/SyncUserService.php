@@ -7,7 +7,7 @@ use OCP\AppFramework\Services\IAppConfig;
 use OC\Authentication\Token\IProvider;
 use OCP\IGroupManager;
 use OCP\IUserManager;
-use \OCP\ILogger;
+use \Psr\Log\LoggerInterface;
 use OCA\SendentSynchroniser\Constants;
 use OCA\SendentSynchroniser\Db\SyncUserMapper;
 
@@ -25,7 +25,7 @@ class SyncUserService {
 	/** @var IGroupManager */
 	private $groupManager;
 
-	/** @var ILogger */
+	/** @var LoggerInterface */
 	private $logger;
 
 	/** @var IProvider */
@@ -37,7 +37,7 @@ class SyncUserService {
 	/** @var IUserManager */
 	private $userManager;
 
-    public function __construct(IAccountManager $accountManager, $AppName, IAppConfig $appConfig, IGroupManager $groupManager, ILogger $logger,
+    public function __construct(IAccountManager $accountManager, $AppName, IAppConfig $appConfig, IGroupManager $groupManager, LoggerInterface $logger,
 		Iprovider $tokenProvider, IUserManager $userManager, SyncUserMapper $syncUserMapper) {
 
 		$this->accountManager = $accountManager;

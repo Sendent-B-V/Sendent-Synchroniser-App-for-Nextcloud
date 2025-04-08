@@ -9,7 +9,7 @@ use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Db\MultipleObjectsReturnedException;
 use OCP\AppFramework\Services\IAppConfig;
 use OCP\IUserManager;
-use \OCP\ILogger;
+use \Psr\Log\LoggerInterface;
 use OCA\SendentSynchroniser\Db\License;
 use OCA\SendentSynchroniser\Db\LicenseMapper;
 use OCA\SendentSynchroniser\Service\SendentFileStorageManager;
@@ -21,10 +21,10 @@ class LicenseService {
 	private $FileStorageManager;
 	private $userManager;
 
-	/** @var ILogger */
+	/** @var LoggerInterface */
 	private $logger;
 
-	public function __construct(IAppConfig $appConfig, ILogger $logger,
+	public function __construct(IAppConfig $appConfig, LoggerInterface $logger,
 				LicenseMapper $mapper, SendentFileStorageManager $FileStorageManager, IUserManager $userManager) {
 
 		$this->appConfig = $appConfig;
