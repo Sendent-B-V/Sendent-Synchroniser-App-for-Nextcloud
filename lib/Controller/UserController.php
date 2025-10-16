@@ -199,9 +199,7 @@ class UserController extends Controller {
 
 		$credentials = $this->credentialStore->getLoginCredentials();
 		$resp = $this->invalidate($credentials->getUID(), Constants::USER_STATUS_NOCONSENT);
-
 		return $resp;
-
 	}
 
 	/**
@@ -213,12 +211,16 @@ class UserController extends Controller {
 	 * @NoCSRFRequired
 	 * 
 	 */
-	public function invalidate(string $userId, $retractConsent = Constants::USER_STATUS_INACTIVE) {
+	public function invalidate(?string $userId = null, $retractConsent = Constants::USER_STATUS_INACTIVE) {
+		$uid = $this->request->getParam('userId', $userId);
+		if (!$uid) {
+			return new JSONResponse(['status' => 'Error', 'message' => 'Missing userId'], Http::STATUS_BAD_REQUEST);
+		}
 
-		$response = $this->syncUserService->invalidateUser($userId, $retractConsent);
+		$response = $this->syncUserService->invalidateUser($uid, $retractConsent);
 		return new JSONResponse($response);
-
 	}
+
 
 	/**
 	 * 
@@ -236,7 +238,6 @@ class UserController extends Controller {
 		}
 
 		return new JSONResponse();
-
 	}
 
 	/**
@@ -252,7 +253,6 @@ class UserController extends Controller {
 
 		$activeUsers = $this->syncUserService->getValidUsers();
 		return new JSONResponse($activeUsers);
-
 	}
 
 }
