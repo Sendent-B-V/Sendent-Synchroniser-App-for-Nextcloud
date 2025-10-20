@@ -70,7 +70,7 @@ class UserController extends Controller {
 		IEventDispatcher $eventDispatcher,
 		IGroupManager $groupManager,
 		IProvider $tokenProvider,
-		IsecureRandom $random,
+		ISecureRandom $random,
 		ISession $session,
 		IStore $credentialStore,
 		SyncUserMapper $syncUserMapper,
@@ -163,11 +163,13 @@ class UserController extends Controller {
 			$syncUser->setUid($credentials->getUID());
 			$syncUser->setToken($encryptedToken);
 			$syncUser->setActive(Constants::USER_STATUS_ACTIVE);
+			$syncUser->setUsername($credentials->getLoginName());
 			$this->syncUserMapper->insert($syncUser);
 			$this->logger->info('Created new Sendentsync user "' . $credentials->getUID() . '"');
 		} else {
 			$syncUsers[0]->setToken($encryptedToken);
 			$syncUsers[0]->setActive(Constants::USER_STATUS_ACTIVE);
+			$syncUsers[0]->setUsername($credentials->getLoginName());
 			$this->syncUserMapper->update($syncUsers[0]);
 			$this->logger->info('Updated Sendentsync user "' . $credentials->getUID() . '"');
 		}

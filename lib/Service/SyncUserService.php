@@ -185,7 +185,12 @@ class SyncUserService {
 						// Augments syncUser with some info from the corresponding NC user
 						$NCUser = $this->userManager->get($syncUser->getUid());
 						$user = $syncUser->jsonSerialize();
-						$user['username'] = $user['uid'];
+						$username = $syncUser->getUsername();
+						if($username === null || $username === ''){
+							$user['username'] = $user['uid'];
+						} else {
+							$user['username'] = $username;
+						}
 						$user['uid'] = $NCUser->getUID();
 						$user['email'] = $NCUser->getEmailAddress();	// default email address
 						// Replaces email address by one of the user email addresses that matches the sync domain (if any)
