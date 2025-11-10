@@ -12,6 +12,7 @@ return [
 		['name' => 'user#activateMail', 'url' => '/api/1.0/user/activateMail', 'verb' => 'GET'],
 		['name' => 'user#getActiveUsers', 'url' => '/api/1.0/user/actives', 'verb' => 'GET'],
 		['name' => 'user#invalidateSelf', 'url' => '/api/1.0/user/invalidate', 'verb' => 'GET'],
+        ['name' => 'user#invalidate',     'url' => '/api/1.0/user/invalidate',     'verb' => 'POST'],
 		['name' => 'user#invalidateAll', 'url' => '/api/1.0/user/invalidate', 'verb' => 'POST'],
 		['name' => 'user#invalidateAll', 'url' => '/api/1.0/user/invalidateAll', 'verb' => 'POST'],
 

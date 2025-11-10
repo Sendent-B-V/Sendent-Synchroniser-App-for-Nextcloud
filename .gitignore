@@ -146,3 +146,4 @@ certificates
 lib/.DS_Store
 .DS_Store
 /vendor/*
+/.vs
