@@ -9,7 +9,7 @@
     <name>Sendent Sync</name>
     <summary>Synchronise your Calendar and Contacts with Nextcloud</summary>
     <description><![CDATA[Say goodbye to manual updates! The Sendent Sync app, designed for the Nextcloud Exchange Connector, enables bi-directional syncing of agendas and contacts between your Microsoft Exchange and Nextcloud Hub. Focus on what truly matters – your work – while your data flows effortlessly.]]></description>
-    <version>1.1.1</version>
+    <version>1.1.2</version>
     <licence>agpl</licence>
     <author mail="support@sendent.nl" homepage="https://www.sendent.nl">Sendent B.V.</author>
     <namespace>SendentSynchroniser</namespace>
