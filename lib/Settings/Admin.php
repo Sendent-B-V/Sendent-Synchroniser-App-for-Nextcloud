@@ -59,8 +59,8 @@ class Admin implements ISettings {
 				);
 			} else {
 				return array(
-					"displayName" => $gid->getName() . ' *** DELETED GROUP ***',
-					"gid" => $gid->getName()
+					"displayName" => $gid . ' *** DELETED GROUP ***',
+					"gid" => $gid
 				);
 			}
 		}, $sendentGroups);
