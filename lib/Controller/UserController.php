@@ -119,13 +119,6 @@ class UserController extends Controller {
 			throw new OCSForbiddenException();
 		}
 
-		try {
-			$password = $credentials->getPassword();
-		} catch (PasswordUnavailableException $e) {
-			$password = null;
-			$this->logger->error('password is null');
-		}
-
 		// Invalidates existing app token
 		$this->syncUserService->invalidateUser($credentials->getUID());
 
@@ -135,7 +128,7 @@ class UserController extends Controller {
 			$token,
 			$credentials->getUID(),
 			$credentials->getLoginName(),
-			$password,
+			null,
 			$this->appName,
 			IToken::PERMANENT_TOKEN,
 			IToken::DO_NOT_REMEMBER

@@ -175,26 +175,33 @@ class SettingsController extends ApiController {
 		if (count($deletedGroup) > 0) {
 			$gid = $deletedGroup[array_keys($deletedGroup)[0]];
 			$ncGroup = $this->groupManager->get($gid);
-			foreach($ncGroup->getUsers() as $user) {
-				$active = FALSE;
-				// Finds if user is still in another active group
-				foreach($this->groupManager->getUserGroups($user) as $userGroup) {
-					if (in_array($userGroup->getGID(), $newSendentGroups)) {
-						// User is still in another active group
-						$active = TRUE;
-						break;
+
+			 if ($ncGroup === null) {
+				// Group was already deleted from Nextcloud, can't invalidate its users
+				$this->logger->warning('Group {gid} no longer exists, skipping user invalidation', ['gid' => $gid]);
+			 }
+			 else
+			 {
+				foreach($ncGroup->getUsers() as $user) {
+					$active = FALSE;
+					// Finds if user is still in another active group
+					foreach($this->groupManager->getUserGroups($user) as $userGroup) {
+						if (in_array($userGroup->getGID(), $newSendentGroups)) {
+							// User is still in another active group
+							$active = TRUE;
+							break;
+						}
 					}
-				}
-				// Invalidates user if not member of another active group
-				if (!$active) {
-					$this->syncUserService->invalidateUser($user->getUID());
+					// Invalidates user if not member of another active group
+					if (!$active) {
+						$this->syncUserService->invalidateUser($user->getUID());
+					}
 				}
 			}
 		}
 
 		// Saves new active groups list
 		return $this->appConfig->setAppValue('activeGroups', json_encode($newSendentGroups));
-
 	}
 
 	/**

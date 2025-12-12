@@ -105,7 +105,12 @@ class SyncUserService {
 		$users = [];
 		foreach ($activeGroups as $gid) {
 			$group = $this->groupManager->get($gid);
-			$users = array_merge($users,$group->getUsers());
+			if ($group === null) {
+				// In this case it's likely the group was removed
+				$this->logger->warning('Group ' . $gid . ' does not exist (anymore)');
+				continue;
+			}
+			$users = array_merge($users, $group->getUsers());
 		}
 
 		return $users;
