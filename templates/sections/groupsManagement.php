@@ -26,7 +26,7 @@
 			</h1>
 			<input id="ncGroupsFilter" type="text" placeholder="Filter list.." style="min-width: 265px">
 			<div style="display: flex; flex-direction: column; overflow: auto">
-				<ul id="ncGroups" class="connectedSortable" style="min-height: 270px; max-height: 100%;max-width: 400px">
+				<ul id="ncGroups" class="connectedSortable" style="min-height: 270px; max-height: 400px; max-width: 400px; overflow-y: auto">
 					<?php foreach ($_['ncGroups'] as $group) { ?>
 						<li class="ui-state-default" data-gid="<?php p($group['gid']); ?>"><?php p($group['displayName']); ?></li>
 					<?php } ?>
@@ -39,7 +39,7 @@
 			</h1>
 			<input id="sendentGroupsFilter" type="text" placeholder="Filter list.." style="min-width: 265px">
 			<div style="display: flex; flex-direction: column; overflow: auto">
-				<ul id="sendentGroups" class="connectedSortable" style="min-height: 270px; max-height: 228px;max-width: 400px">
+				<ul id="sendentGroups" class="connectedSortable" style="min-height: 270px; max-height: 400px; max-width: 400px; overflow-y: auto">
 					<?php foreach ($_['sendentGroups'] as $group) { ?>
 						<li class="ui-state-default" data-gid="<?php p($group['gid']); ?>"><?php p($group['displayName']); ?></li>
 					<?php } ?>
