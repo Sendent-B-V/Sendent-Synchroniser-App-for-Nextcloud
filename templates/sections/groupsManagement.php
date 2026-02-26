@@ -25,8 +25,8 @@
 		        <?php p($l->t('Inactive')); ?>
 			</h1>
 			<input id="ncGroupsFilter" type="text" placeholder="Filter list.." style="min-width: 265px">
-			<div style="display: flex; flex-direction: column; overflow: auto">
-				<ul id="ncGroups" class="connectedSortable" style="min-height: 270px; max-height: 400px; max-width: 400px; overflow-y: auto">
+			<div style="display: flex; flex-direction: column; overflow-y: auto; max-height: 270px;">
+				<ul id="ncGroups" class="connectedSortable" style="min-height: 270px; max-width: 400px;overflow-y: auto;">
 					<?php foreach ($_['ncGroups'] as $group) { ?>
 						<li class="ui-state-default" data-gid="<?php p($group['gid']); ?>"><?php p($group['displayName']); ?></li>
 					<?php } ?>
@@ -38,8 +38,8 @@
 		        <?php p($l->t('Active')); ?>
 			</h1>
 			<input id="sendentGroupsFilter" type="text" placeholder="Filter list.." style="min-width: 265px">
-			<div style="display: flex; flex-direction: column; overflow: auto">
-				<ul id="sendentGroups" class="connectedSortable" style="min-height: 270px; max-height: 400px; max-width: 400px; overflow-y: auto">
+			<div style="display: flex; flex-direction: column; overflow-y: auto; max-height: 270px;">
+				<ul id="sendentGroups" class="connectedSortable" style="min-height: 270px; max-width: 400px;overflow-y: auto;">
 					<?php foreach ($_['sendentGroups'] as $group) { ?>
 						<li class="ui-state-default" data-gid="<?php p($group['gid']); ?>"><?php p($group['displayName']); ?></li>
 					<?php } ?>
