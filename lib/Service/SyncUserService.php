@@ -174,26 +174,6 @@ class SyncUserService {
 	 * 
 	*/
 	/**
-	 * Builds a map of userId → [groupId, ...] for all users in active groups.
-	 * Used to resolve per-group default collections without calling isInGroup().
-	 */
-	private function buildUserGroupMap(): array {
-		$activeGroups = $this->appConfig->getAppValue('activeGroups', '');
-		$activeGroups = ($activeGroups !== '' && $activeGroups !== 'null') ? json_decode($activeGroups) : [];
-		$map = [];
-		foreach ($activeGroups as $gid) {
-			$group = $this->groupManager->get($gid);
-			if ($group === null) {
-				continue;
-			}
-			foreach ($group->getUsers() as $ncUser) {
-				$map[$ncUser->getUID()][] = $gid;
-			}
-		}
-		return $map;
-	}
-
-	/**
 	 *
 	 * This function returns all active users that may use the app
 	 *
@@ -202,12 +182,9 @@ class SyncUserService {
 
 		$users = $this->getAllUsers();
 
-		// Load per-group default collection maps once
-		$calendarMap = json_decode($this->appConfig->getAppValue('defaultCalendars', '{}'), true) ?: [];
-		$addressbookMap = json_decode($this->appConfig->getAppValue('defaultAddressbooks', '{}'), true) ?: [];
-
-		// Pre-build user→groups map (avoids isInGroup() calls in the loop)
-		$userGroupMap = $this->buildUserGroupMap();
+		// Load global default collection settings
+		$defaultCalendar = $this->appConfig->getAppValue('defaultCalendar', '') ?: 'personal';
+		$defaultAddressbook = $this->appConfig->getAppValue('defaultAddressbook', '') ?: 'contacts';
 
 		// Gets all active sendent sync users
 		$index = 0;
@@ -248,29 +225,14 @@ class SyncUserService {
 						}
 						$user['displayName'] = $NCUser->getDisplayName();
 
-						// Collection targets: user choice → per-group default → NC default
-						// Uses the pre-built userGroupMap — no isInGroup() calls needed
+						// Collection targets: stored value → admin default → NC default
 						$userCalendar = $syncUser->getCalendar();
-						$userAddressbook = $syncUser->getAddressbook();
-						$userGroups = $userGroupMap[$NCUser->getUID()] ?? [];
-
 						if ($userCalendar === null || $userCalendar === '') {
-							$userCalendar = 'personal';
-							foreach ($userGroups as $gid) {
-								if (!empty($calendarMap[$gid])) {
-									$userCalendar = $calendarMap[$gid];
-									break;
-								}
-							}
+							$userCalendar = $defaultCalendar;
 						}
+						$userAddressbook = $syncUser->getAddressbook();
 						if ($userAddressbook === null || $userAddressbook === '') {
-							$userAddressbook = 'contacts';
-							foreach ($userGroups as $gid) {
-								if (!empty($addressbookMap[$gid])) {
-									$userAddressbook = $addressbookMap[$gid];
-									break;
-								}
-							}
+							$userAddressbook = $defaultAddressbook;
 						}
 						$user['calendar'] = $userCalendar;
 						$user['addressbook'] = $userAddressbook;

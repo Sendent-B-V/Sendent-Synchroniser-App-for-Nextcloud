@@ -34,10 +34,8 @@
 						:data-gid="group.gid"
 						class="groups-management__item groups-management__item--sendent"
 						:class="{
-							'groups-management__item--selected': groupsStore.selectedGroupId === group.gid,
 							'groups-management__item--deleted': group.displayName.includes('*** DELETED GROUP ***'),
-						}"
-						@click="onSelectGroup(group.gid)">
+						}">
 						<span class="groups-management__drag-handle" title="Drag to reorder">&#x2630;</span>
 						<span class="groups-management__name">{{ group.displayName }}</span>
 						<button class="groups-management__remove"
@@ -78,12 +76,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
 import { useGroupsStore } from '../stores/groups'
-import { useLicenseStore } from '../stores/license'
 import { useSortable } from '../composables/useSortable'
 
 defineProps<{
@@ -93,7 +90,6 @@ defineProps<{
 }>()
 
 const groupsStore = useGroupsStore()
-const licenseStore = useLicenseStore()
 
 const ncFilter = ref('')
 const sendentFilter = ref('')
@@ -143,15 +139,6 @@ function onRemoveGroup(gid: string) {
 
 /**
  *
- * @param gid
- */
-async function onSelectGroup(gid: string) {
-	groupsStore.selectGroup(gid)
-	await licenseStore.refreshStatus()
-}
-
-/**
- *
  */
 async function onRemindUsers() {
 	const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/sendReminder')
@@ -176,12 +163,6 @@ async function onClearTokens() {
 	}
 }
 
-onMounted(() => {
-	// Select first active group if any
-	if (groupsStore.sendentGroups.length > 0 && groupsStore.selectedGroupId === null) {
-		onSelectGroup(groupsStore.sendentGroups[0].gid)
-	}
-})
 </script>
 
 <style scoped>
@@ -230,10 +211,6 @@ onMounted(() => {
 
 .groups-management__item:hover {
 	background: var(--color-background-hover);
-}
-
-.groups-management__item--selected {
-	background: var(--color-primary-element-light) !important;
 }
 
 .groups-management__item--deleted {

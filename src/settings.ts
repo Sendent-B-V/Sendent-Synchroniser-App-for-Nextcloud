@@ -20,8 +20,8 @@ if (adminEl) {
 		reminderType: state.reminderType || '2',
 		notificationMethod: state.notificationMethod || '2',
 		notificationInterval: state.notificationInterval || '7',
-		defaultCalendars: state.defaultCalendars || {},
-		defaultAddressbooks: state.defaultAddressbooks || {},
+		defaultCalendar: (state.defaultCalendar as string) || '',
+		defaultAddressbook: (state.defaultAddressbook as string) || '',
 		mailAppInstalled: state.mailAppInstalled || false,
 		notificationsAppInstalled: state.notificationsAppInstalled || false,
 	})

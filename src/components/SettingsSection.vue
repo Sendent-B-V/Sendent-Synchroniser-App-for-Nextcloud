@@ -149,13 +149,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl, imagePath } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
-import { useGroupsStore } from '../stores/groups'
-
-const groupsStore = useGroupsStore()
 
 const props = defineProps<{
 	initialSharedSecret: string
@@ -164,8 +161,8 @@ const props = defineProps<{
 	initialReminderType: string | number
 	initialNotificationMethod: string | number
 	initialNotificationInterval: string | number
-	defaultCalendars: Record<string, string>
-	defaultAddressbooks: Record<string, string>
+	initialDefaultCalendar: string
+	initialDefaultAddressbook: string
 	mailAppInstalled: boolean
 	notificationsAppInstalled: boolean
 }>()
@@ -176,27 +173,8 @@ const emailDomain = ref(props.initialEmailDomain)
 const reminderType = ref(String(props.initialReminderType))
 const notificationMethod = ref(String(props.initialNotificationMethod))
 const notificationInterval = ref(String(props.initialNotificationInterval))
-
-// Per-group defaults — read from maps using selected group
-const calendarMaps = ref<Record<string, string>>({ ...props.defaultCalendars })
-const addressbookMaps = ref<Record<string, string>>({ ...props.defaultAddressbooks })
-
-const defaultCalendar = computed({
-	get: () => (groupsStore.selectedGroupId ? calendarMaps.value[groupsStore.selectedGroupId] : '') || '',
-	set: (val: string) => {
-		if (groupsStore.selectedGroupId) {
-			calendarMaps.value = { ...calendarMaps.value, [groupsStore.selectedGroupId]: val }
-		}
-	},
-})
-const defaultAddressbook = computed({
-	get: () => (groupsStore.selectedGroupId ? addressbookMaps.value[groupsStore.selectedGroupId] : '') || '',
-	set: (val: string) => {
-		if (groupsStore.selectedGroupId) {
-			addressbookMaps.value = { ...addressbookMaps.value, [groupsStore.selectedGroupId]: val }
-		}
-	},
-})
+const defaultCalendar = ref(props.initialDefaultCalendar)
+const defaultAddressbook = ref(props.initialDefaultAddressbook)
 const showSecret = ref(false)
 const viewIconUrl = imagePath('sendentsynchroniser', 'view.svg')
 
@@ -275,12 +253,7 @@ let defaultCalendarTimer: ReturnType<typeof setTimeout>
 function debounceSaveDefaultCalendar() {
 	clearTimeout(defaultCalendarTimer)
 	defaultCalendarTimer = setTimeout(() => {
-		if (groupsStore.selectedGroupId) {
-			saveSetting('defaultCalendar', {
-				defaultCalendar: defaultCalendar.value,
-				groupId: groupsStore.selectedGroupId,
-			}, 'defaultCalendar')
-		}
+		saveSetting('defaultCalendar', { defaultCalendar: defaultCalendar.value }, 'defaultCalendar')
 	}, 500)
 }
 
@@ -291,12 +264,7 @@ let defaultAddressbookTimer: ReturnType<typeof setTimeout>
 function debounceSaveDefaultAddressbook() {
 	clearTimeout(defaultAddressbookTimer)
 	defaultAddressbookTimer = setTimeout(() => {
-		if (groupsStore.selectedGroupId) {
-			saveSetting('defaultAddressbook', {
-				defaultAddressbook: defaultAddressbook.value,
-				groupId: groupsStore.selectedGroupId,
-			}, 'defaultAddressbook')
-		}
+		saveSetting('defaultAddressbook', { defaultAddressbook: defaultAddressbook.value }, 'defaultAddressbook')
 	}, 500)
 }
 </script>

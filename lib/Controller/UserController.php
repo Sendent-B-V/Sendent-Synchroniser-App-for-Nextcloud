@@ -155,18 +155,8 @@ class UserController extends Controller {
 		$hmac = hash_hmac('sha256', $ciphertext_raw, $key, $as_binary=true);
 		$encryptedToken = base64_encode( $iv.$hmac.$ciphertext_raw );
 
-		// Resolve user's active sync groups
-		$activeGroups = $this->appConfig->getAppValue('activeGroups', '');
-		$activeGroups = ($activeGroups !== '' && $activeGroups !== 'null') ? json_decode($activeGroups) : [];
-		$userGroupIds = [];
-		foreach ($activeGroups as $gid) {
-			if ($this->groupManager->isInGroup($credentials->getUID(), $gid)) {
-				$userGroupIds[] = $gid;
-			}
-		}
-
 		// Ensure default collections exist (creates calendar/addressbook if missing)
-		$this->collectionService->ensureDefaultCollections($credentials->getUID(), $userGroupIds);
+		$this->collectionService->ensureDefaultCollections($credentials->getUID());
 
 		// Stores syncUser info
 		$syncUsers = $this->syncUserMapper->findByUid($credentials->getUID());

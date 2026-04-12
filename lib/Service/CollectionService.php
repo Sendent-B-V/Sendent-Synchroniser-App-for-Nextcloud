@@ -166,52 +166,34 @@ class CollectionService {
 		$this->createAddressbook($userId, $uri, $displayName);
 	}
 
-	// ─── Per-group default resolution ────────────────────────────
-
-	/**
-	 * Resolves the default calendar URI for a given set of group IDs.
-	 * Returns the first matching group's setting, or NC default.
-	 *
-	 * @param string[] $groupIds The user's active group IDs
-	 */
-	public function getDefaultCalendarForGroups(array $groupIds): string {
-		$map = json_decode($this->appConfig->getAppValue('defaultCalendars', '{}'), true) ?: [];
-		foreach ($groupIds as $gid) {
-			if (!empty($map[$gid])) {
-				return $map[$gid];
-			}
-		}
-		return self::DEFAULT_CALENDAR_URI;
-	}
-
-	/**
-	 * Resolves the default addressbook URI for a given set of group IDs.
-	 *
-	 * @param string[] $groupIds The user's active group IDs
-	 */
-	public function getDefaultAddressbookForGroups(array $groupIds): string {
-		$map = json_decode($this->appConfig->getAppValue('defaultAddressbooks', '{}'), true) ?: [];
-		foreach ($groupIds as $gid) {
-			if (!empty($map[$gid])) {
-				return $map[$gid];
-			}
-		}
-		return self::DEFAULT_ADDRESSBOOK_URI;
-	}
-
 	// ─── Combined ────────────────────────────────────────────────
+
+	/**
+	 * Returns the admin-configured default calendar URI, or the NC default.
+	 */
+	public function getDefaultCalendar(): string {
+		$uri = $this->appConfig->getAppValue('defaultCalendar', '');
+		return $uri !== '' ? $uri : self::DEFAULT_CALENDAR_URI;
+	}
+
+	/**
+	 * Returns the admin-configured default addressbook URI, or the NC default.
+	 */
+	public function getDefaultAddressbook(): string {
+		$uri = $this->appConfig->getAppValue('defaultAddressbook', '');
+		return $uri !== '' ? $uri : self::DEFAULT_ADDRESSBOOK_URI;
+	}
 
 	/**
 	 * Ensures the default collections exist for a user.
 	 *
 	 * Always ensures the Nextcloud defaults (personal / contacts) exist first —
-	 * other NC apps depend on these. Then, if a per-group custom default is set,
+	 * other NC apps depend on these. Then, if admin configured a custom default,
 	 * additionally ensures that collection exists.
 	 *
-	 * @param string $userId
-	 * @param string[] $groupIds The user's active sync group IDs (for per-group default resolution)
+	 * Called during activate() (consent flow).
 	 */
-	public function ensureDefaultCollections(string $userId, array $groupIds = []): void {
+	public function ensureDefaultCollections(string $userId): void {
 		// Always ensure NC defaults exist (LDAP/SAML users may not have them)
 		$calendars = $this->getUserCalendars($userId);
 		$calendarUris = array_column($calendars, 'uri');
@@ -225,15 +207,15 @@ class CollectionService {
 			$this->createAddressbook($userId, self::DEFAULT_ADDRESSBOOK_URI, self::DEFAULT_ADDRESSBOOK_NAME);
 		}
 
-		// If a per-group custom default is configured, ensure it exists too
-		$groupCalUri = $this->getDefaultCalendarForGroups($groupIds);
-		if ($groupCalUri !== self::DEFAULT_CALENDAR_URI && !in_array($groupCalUri, $calendarUris)) {
-			$this->createCalendar($userId, $groupCalUri, ucfirst($groupCalUri));
+		// If admin configured a custom default, ensure it exists too
+		$adminCalUri = $this->getDefaultCalendar();
+		if ($adminCalUri !== self::DEFAULT_CALENDAR_URI && !in_array($adminCalUri, $calendarUris)) {
+			$this->createCalendar($userId, $adminCalUri, ucfirst($adminCalUri));
 		}
 
-		$groupAbUri = $this->getDefaultAddressbookForGroups($groupIds);
-		if ($groupAbUri !== self::DEFAULT_ADDRESSBOOK_URI && !in_array($groupAbUri, $addressbookUris)) {
-			$this->createAddressbook($userId, $groupAbUri, ucfirst($groupAbUri));
+		$adminAbUri = $this->getDefaultAddressbook();
+		if ($adminAbUri !== self::DEFAULT_ADDRESSBOOK_URI && !in_array($adminAbUri, $addressbookUris)) {
+			$this->createAddressbook($userId, $adminAbUri, ucfirst($adminAbUri));
 		}
 	}
 }

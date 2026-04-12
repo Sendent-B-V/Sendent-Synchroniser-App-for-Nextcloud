@@ -106,8 +106,8 @@ class Admin implements ISettings {
 		$params['emailDomain'] = $this->appConfig->getAppValue('emailDomain', '') ;
 		$params['mailAppInstalled'] = $this->appManager->isInstalled('mail');
 		$params['notificationsAppInstalled'] = $this->appManager->isInstalled('notifications');
-		$params['defaultCalendars'] = json_decode($this->appConfig->getAppValue('defaultCalendars', '{}'), true) ?: [];
-		$params['defaultAddressbooks'] = json_decode($this->appConfig->getAppValue('defaultAddressbooks', '{}'), true) ?: [];
+		$params['defaultCalendar'] = $this->appConfig->getAppValue('defaultCalendar', '');
+		$params['defaultAddressbook'] = $this->appConfig->getAppValue('defaultAddressbook', '');
 
 		return $params;
 	}
