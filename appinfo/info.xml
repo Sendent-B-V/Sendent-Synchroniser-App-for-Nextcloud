@@ -22,13 +22,13 @@
     <dependencies>
         <nextcloud min-version="28" max-version="33"/>
     </dependencies>
+    <background-jobs>
+        <job>OCA\SendentSynchroniser\Cron\NotifyInactiveUsers</job>
+    </background-jobs>
     <settings>
         <admin>OCA\SendentSynchroniser\Settings\Admin</admin>
         <admin-section>OCA\SendentSynchroniser\Settings\AdminSection</admin-section>
         <personal>OCA\SendentSynchroniser\Settings\User</personal>
         <personal-section>OCA\SendentSynchroniser\Settings\UserSection</personal-section>
     </settings>
-    <background-jobs>
-        <job>OCA\SendentSynchroniser\Cron\NotifyInactiveUsers</job>
-    </background-jobs>
 </info>
