@@ -93,8 +93,8 @@ class Admin implements ISettings {
 			return strcmp($g1['gid'], $g2['gid']);
 		});
 
-		$params['ncGroups'] = $NCGroups;
-		$params['sendentGroups'] = $sendentGroups;
+		$params['ncGroups'] = array_values($NCGroups);
+		$params['sendentGroups'] = array_values($sendentGroups);
 		$params['nbEnabledUsers'] = $nbEnabledUsers;
 		$params['nbActiveUsers'] = count($this->syncUserService->getValidUsers());
 
@@ -106,6 +106,8 @@ class Admin implements ISettings {
 		$params['emailDomain'] = $this->appConfig->getAppValue('emailDomain', '') ;
 		$params['mailAppInstalled'] = $this->appManager->isInstalled('mail');
 		$params['notificationsAppInstalled'] = $this->appManager->isInstalled('notifications');
+		$params['defaultCalendars'] = json_decode($this->appConfig->getAppValue('defaultCalendars', '{}'), true) ?: [];
+		$params['defaultAddressbooks'] = json_decode($this->appConfig->getAppValue('defaultAddressbooks', '{}'), true) ?: [];
 
 		return $params;
 	}
@@ -115,8 +117,9 @@ class Admin implements ISettings {
 	 */
 	public function getForm() {
 		$params = $this->getParams();
+		$this->initialState->provideInitialState('admin', $params);
 
-		return new TemplateResponse('sendentsynchroniser', 'indexAdmin', $params);
+		return new TemplateResponse('sendentsynchroniser', 'indexAdmin');
 	}
 
 	/**

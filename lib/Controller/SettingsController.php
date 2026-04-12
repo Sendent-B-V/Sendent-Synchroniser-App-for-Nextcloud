@@ -158,6 +158,49 @@ class SettingsController extends ApiController {
 	}
 
 	/**
+	 *
+	 * Saves default calendar URI for a specific group.
+	 * Stored as JSON map: { "groupId": "calendarUri", ... }
+	 *
+	 * The actual collection is created per-user when they activate (Trigger 1)
+	 * or visit their settings page (Trigger 2).
+	 *
+	 * @param string $defaultCalendar The calendar URI
+	 * @param string $groupId The group ID
+	 *
+	 */
+	public function setDefaultCalendar($defaultCalendar, $groupId) {
+		$map = json_decode($this->appConfig->getAppValue('defaultCalendars', '{}'), true) ?: [];
+		if ($defaultCalendar === '') {
+			unset($map[$groupId]);
+		} else {
+			$map[$groupId] = $defaultCalendar;
+		}
+		return $this->appConfig->setAppValue('defaultCalendars', json_encode($map));
+	}
+
+	/**
+	 *
+	 * Saves default addressbook URI for a specific group.
+	 *
+	 * The actual collection is created per-user when they activate (Trigger 1)
+	 * or visit their settings page (Trigger 2).
+	 *
+	 * @param string $defaultAddressbook The addressbook URI
+	 * @param string $groupId The group ID
+	 *
+	 */
+	public function setDefaultAddressbook($defaultAddressbook, $groupId) {
+		$map = json_decode($this->appConfig->getAppValue('defaultAddressbooks', '{}'), true) ?: [];
+		if ($defaultAddressbook === '') {
+			unset($map[$groupId]);
+		} else {
+			$map[$groupId] = $defaultAddressbook;
+		}
+		return $this->appConfig->setAppValue('defaultAddressbooks', json_encode($map));
+	}
+
+	/**
 	 * 
 	 * Saves new active groups list
 	 * 

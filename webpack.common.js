@@ -1,16 +1,11 @@
 /* eslint-disable @typescript-eslint/no-var-requires */
 const path = require('path');
-const webpack = require("webpack");
+const { VueLoaderPlugin } = require('vue-loader');
 
 module.exports = {
 	entry: {
-		
-		settings: [
-			path.join(__dirname, 'src', 'settings.ts'),
-		],
-		main: [
-			path.join(__dirname, 'src', 'main.js'),
-		],
+		settings: path.join(__dirname, 'src', 'settings.ts'),
+		main: path.join(__dirname, 'src', 'main.ts'),
 	},
 	output: {
 		path: path.resolve(__dirname, './js'),
@@ -21,8 +16,20 @@ module.exports = {
 	module: {
 		rules: [
 			{
+				test: /\.vue$/,
+				loader: 'vue-loader',
+			},
+			{
 				test: /\.ts$/,
-				use: ['ts-loader'],
+				loader: 'ts-loader',
+				options: {
+					appendTsSuffixTo: [/\.vue$/],
+				},
+			},
+			{
+				test: /\.js$/,
+				loader: 'babel-loader',
+				exclude: /node_modules/,
 			},
 			{
 				test: /\.css$/,
@@ -34,22 +41,19 @@ module.exports = {
 			},
 			{
 				test: /\.(png|jpg|gif|svg)$/,
-				loader: 'url-loader',
-				options: {
-					name: '[name].[ext]?[contenthash]',
-					limit: 8192,
-				},
+				type: 'asset/inline',
 			},
 		],
 	},
 	plugins: [
-		new webpack.ProvidePlugin({
-			$: 'jquery',
-			jQuery: 'jquery'
-		}),
+		new VueLoaderPlugin(),
 	],
 	resolve: {
-		extensions: ['*', '.ts', '.js', '.scss'],
+		extensions: ['*', '.ts', '.js', '.vue', '.scss'],
+		conditionNames: ['import', 'require', 'default'],
+		alias: {
+			vue$: 'vue/dist/vue.runtime.esm-bundler.js',
+		},
 		symlinks: false,
 	},
 }

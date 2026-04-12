@@ -10,6 +10,9 @@ return [
 
 		['name' => 'user#activate', 'url' => '/api/1.0/user/activate', 'verb' => 'GET'],
 		['name' => 'user#activateMail', 'url' => '/api/1.0/user/activateMail', 'verb' => 'GET'],
+		['name' => 'user#getCalendars', 'url' => '/api/1.0/user/calendars', 'verb' => 'GET'],
+		['name' => 'user#getAddressbooks', 'url' => '/api/1.0/user/addressbooks', 'verb' => 'GET'],
+		['name' => 'user#setCollections', 'url' => '/api/1.0/user/collections', 'verb' => 'POST'],
 		['name' => 'user#getActiveUsers', 'url' => '/api/1.0/user/actives', 'verb' => 'GET'],
 		['name' => 'user#invalidateSelf', 'url' => '/api/1.0/user/invalidate', 'verb' => 'GET'],
         ['name' => 'user#invalidate',     'url' => '/api/1.0/user/invalidate',     'verb' => 'POST'],
@@ -24,6 +27,8 @@ return [
 		['name' => 'settings#setSharedSecret', 'url' => '/api/1.0/settings/sharedSecret', 'verb' => 'POST'],
 		['name' => 'settings#setIMAPSync', 'url' => '/api/1.0/settings/imapsync', 'verb' => 'POST'],
 		['name' => 'settings#setEmailDomain', 'url' => '/api/1.0/settings/emailDomain', 'verb' => 'POST'],
+		['name' => 'settings#setDefaultCalendar', 'url' => '/api/1.0/settings/defaultCalendar', 'verb' => 'POST'],
+		['name' => 'settings#setDefaultAddressbook', 'url' => '/api/1.0/settings/defaultAddressbook', 'verb' => 'POST'],
 		['name' => 'settings#shouldShowDialog', 'url' => '/api/1.0/settings/shouldShowDialog', 'verb' => 'GET'],
 		['name' => 'settings#sendReminder', 'url' => '/api/1.0/settings/sendReminder', 'verb' => 'GET'],
 

@@ -24,6 +24,7 @@ use \Psr\Log\LoggerInterface;
 use OCA\SendentSynchroniser\Constants;
 use OCA\SendentSynchroniser\Db\SyncUser;
 use OCA\SendentSynchroniser\Db\SyncUserMapper;
+use OCA\SendentSynchroniser\Service\CollectionService;
 use OCA\SendentSynchroniser\Service\SyncUserService;
 
 class UserController extends Controller {
@@ -43,6 +44,9 @@ class UserController extends Controller {
 	/** @var string */
 	protected $appName;
 
+	/** @var CollectionService */
+	private $collectionService;
+
 	/** @var IGroupManager */
 	private $groupManager;
 
@@ -54,7 +58,7 @@ class UserController extends Controller {
 
 	/** @var ISecureRandom */
 	private $random;
-	
+
 	/** @var ISession */
 	private $session;
 
@@ -63,10 +67,11 @@ class UserController extends Controller {
 
 	/** @var SyncUserService */
 	private $syncUserService;
-	
+
 	public function __construct(LoggerInterface $logger, $AppName, IRequest $request,
 		IAppConfig $appConfig,
 		IAppManager $appManager,
+		CollectionService $collectionService,
 		IEventDispatcher $eventDispatcher,
 		IGroupManager $groupManager,
 		IProvider $tokenProvider,
@@ -77,10 +82,11 @@ class UserController extends Controller {
 		SyncUserService $syncUserService) {
 
 		parent::__construct($AppName, $request);
-		
+
 		$this->appConfig = $appConfig;
 		$this->appManager = $appManager;
 		$this->appName = $AppName;
+		$this->collectionService = $collectionService;
 		$this->credentialStore = $credentialStore;
 		$this->eventDispatcher = $eventDispatcher;
 		$this->groupManager = $groupManager;
@@ -96,7 +102,7 @@ class UserController extends Controller {
 	/**
 	 *
 	 * This method activates a user for sendent synchroniser.
-	 * 
+	 *
 	 * @NoAdminRequired
 	 *
 	 * @return JSONResponse
@@ -149,6 +155,19 @@ class UserController extends Controller {
 		$hmac = hash_hmac('sha256', $ciphertext_raw, $key, $as_binary=true);
 		$encryptedToken = base64_encode( $iv.$hmac.$ciphertext_raw );
 
+		// Resolve user's active sync groups
+		$activeGroups = $this->appConfig->getAppValue('activeGroups', '');
+		$activeGroups = ($activeGroups !== '' && $activeGroups !== 'null') ? json_decode($activeGroups) : [];
+		$userGroupIds = [];
+		foreach ($activeGroups as $gid) {
+			if ($this->groupManager->isInGroup($credentials->getUID(), $gid)) {
+				$userGroupIds[] = $gid;
+			}
+		}
+
+		// Ensure default collections exist (creates calendar/addressbook if missing)
+		$this->collectionService->ensureDefaultCollections($credentials->getUID(), $userGroupIds);
+
 		// Stores syncUser info
 		$syncUsers = $this->syncUserMapper->findByUid($credentials->getUID());
 		if (empty($syncUsers)) {
@@ -166,10 +185,22 @@ class UserController extends Controller {
 			$this->syncUserMapper->update($syncUsers[0]);
 			$this->logger->info('Updated Sendentsync user "' . $credentials->getUID() . '"');
 		}
-		
+
+		// Return collections so the frontend can show pickers
+		$calendars = $this->collectionService->getUserCalendars($credentials->getUID());
+		$addressbooks = $this->collectionService->getUserAddressbooks($credentials->getUID());
+
+		// Determine pre-selected defaults (per-group)
+		$defaultCalendar = $this->collectionService->getDefaultCalendarForGroups($userGroupIds);
+		$defaultAddressbook = $this->collectionService->getDefaultAddressbookForGroups($userGroupIds);
+
 		return new JSONResponse([
 			'emailDomain' =>  '@' . $this->appConfig->getAppValue('emailDomain', ''),
-			'shouldAskMailSync' => ($this->appManager->isInstalled('mail') && ($this->appConfig->getAppValue('IMAPSyncEnabled', "false") === 'true'))
+			'shouldAskMailSync' => ($this->appManager->isInstalled('mail') && ($this->appConfig->getAppValue('IMAPSyncEnabled', "false") === 'true')),
+			'calendars' => $calendars,
+			'addressbooks' => $addressbooks,
+			'defaultCalendar' => $defaultCalendar,
+			'defaultAddressbook' => $defaultAddressbook,
 		]);
 
 	}
@@ -181,6 +212,67 @@ class UserController extends Controller {
 	 */
 	public function activateMail() {
 		return;
+	}
+
+	/**
+	 *
+	 * Returns the list of calendars for the current user.
+	 *
+	 * @NoAdminRequired
+	 *
+	 */
+	public function getCalendars() {
+		$credentials = $this->credentialStore->getLoginCredentials();
+		$this->collectionService->ensureDefaultCollections($credentials->getUID());
+		$calendars = $this->collectionService->getUserCalendars($credentials->getUID());
+		return new JSONResponse($calendars);
+	}
+
+	/**
+	 *
+	 * Returns the list of addressbooks for the current user.
+	 *
+	 * @NoAdminRequired
+	 *
+	 */
+	public function getAddressbooks() {
+		$credentials = $this->credentialStore->getLoginCredentials();
+		$this->collectionService->ensureDefaultCollections($credentials->getUID());
+		$addressbooks = $this->collectionService->getUserAddressbooks($credentials->getUID());
+		return new JSONResponse($addressbooks);
+	}
+
+	/**
+	 *
+	 * Updates the user's target calendar and/or addressbook.
+	 *
+	 * @NoAdminRequired
+	 *
+	 * @param string|null $calendar
+	 * @param string|null $addressbook
+	 *
+	 */
+	public function setCollections(?string $calendar = null, ?string $addressbook = null) {
+		$credentials = $this->credentialStore->getLoginCredentials();
+		$syncUsers = $this->syncUserMapper->findByUid($credentials->getUID());
+
+		if (empty($syncUsers)) {
+			return new JSONResponse(['status' => 'error', 'message' => 'User not found'], Http::STATUS_NOT_FOUND);
+		}
+
+		$syncUser = $syncUsers[0];
+
+		if ($calendar !== null) {
+			$syncUser->setCalendar($calendar);
+		}
+		if ($addressbook !== null) {
+			$syncUser->setAddressbook($addressbook);
+		}
+
+		$this->syncUserMapper->update($syncUser);
+		$this->logger->info('Updated collections for user "' . $credentials->getUID() . '": calendar=' . ($calendar ?? 'unchanged') . ', addressbook=' . ($addressbook ?? 'unchanged'));
+
+		return new JSONResponse(['status' => 'success']);
 	}
 
 	/**
@@ -198,13 +290,13 @@ class UserController extends Controller {
 	}
 
 	/**
-	 * 
+	 *
 	 * This method invalidates a user. It shall be called by the Sendent synchroniser
 	 * (external) service to trigger the display of the "synchronisation problem" warning
 	 * dialog to the user.
-	 * 
+	 *
 	 * @NoCSRFRequired
-	 * 
+	 *
 	 */
 	public function invalidate(?string $userId = null, $retractConsent = Constants::USER_STATUS_INACTIVE) {
 		$uid = $this->request->getParam('userId', $userId);
@@ -218,16 +310,16 @@ class UserController extends Controller {
 
 
 	/**
-	 * 
+	 *
 	 * This method invalidates all users.
-	 * 
+	 *
 	 * @NoCSRFRequired
-	 * 
+	 *
 	 */
 	public function invalidateAll($retractConsent = Constants::USER_STATUS_INACTIVE) {
 
 		$users = $this->syncUserService->getAllUsers();
-		
+
 		foreach ($users as $user) {
 			$this->syncUserService->invalidateUser($user->getUid(), $retractConsent);
 		}
@@ -239,14 +331,36 @@ class UserController extends Controller {
 	 *
 	 * This methods returns the list of active sendent sync users.
 	 *
-	 * Users that have retracted their consent to synchronise their data don't count as active
+	 * Users that have retracted their consent to synchronise their data don't count as active.
+	 * Supports pagination via `page` and `limit` query parameters.
 	 *
 	 * @NoCSRFRequired
 	 *
 	 */
-	public function getActiveUsers() {
+	public function getActiveUsers(?int $page = null, int $limit = 100) {
 
 		$activeUsers = $this->syncUserService->getValidUsers();
+		$total = count($activeUsers);
+
+		// When page parameter is provided, return paginated results
+		if ($page !== null) {
+			$page = max(1, $page);
+			$limit = max(1, min($limit, 1000));
+			$offset = ($page - 1) * $limit;
+			$pagedUsers = array_slice($activeUsers, $offset, $limit);
+
+			return new JSONResponse([
+				'data' => array_values($pagedUsers),
+				'pagination' => [
+					'page' => $page,
+					'limit' => $limit,
+					'total' => $total,
+					'totalPages' => (int)ceil($total / $limit),
+				],
+			]);
+		}
+
+		// Backwards-compatible: no page param returns flat array
 		return new JSONResponse($activeUsers);
 	}
 
