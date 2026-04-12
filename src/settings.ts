@@ -9,7 +9,7 @@ import UserSettings from './components/UserSettings.vue'
 // Admin settings page
 const adminEl = document.getElementById('sendentsynchroniser-admin')
 if (adminEl) {
-	const state = loadState('sendentsynchroniser', 'admin') as Record<string, any>
+	const state = loadState('sendentsynchroniser', 'admin') as Record<string, unknown>
 
 	const app = createApp(AdminSettings, {
 		nbEnabledUsers: state.nbEnabledUsers || 0,
@@ -41,7 +41,7 @@ if (adminEl) {
 // Personal settings page
 const userEl = document.getElementById('sendentsynchroniser-user')
 if (userEl) {
-	const state = loadState('sendentsynchroniser', 'user') as Record<string, any>
+	const state = loadState('sendentsynchroniser', 'user') as Record<string, unknown>
 
 	const app = createApp(UserSettings, {
 		activeUser: state.activeUser || false,

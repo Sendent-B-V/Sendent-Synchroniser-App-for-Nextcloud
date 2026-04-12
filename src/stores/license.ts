@@ -21,6 +21,9 @@ export const useLicenseStore = defineStore('license', () => {
 	const licenseKey = ref('')
 	const loading = ref(false)
 
+	/**
+	 *
+	 */
 	async function refreshStatus() {
 		loading.value = true
 		try {
@@ -37,6 +40,9 @@ export const useLicenseStore = defineStore('license', () => {
 		}
 	}
 
+	/**
+	 *
+	 */
 	async function activateLicense() {
 		loading.value = true
 		try {
@@ -48,6 +54,9 @@ export const useLicenseStore = defineStore('license', () => {
 		await refreshStatus()
 	}
 
+	/**
+	 *
+	 */
 	async function clearLicense() {
 		email.value = ''
 		licenseKey.value = ''

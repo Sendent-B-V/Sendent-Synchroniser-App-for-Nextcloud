@@ -2,8 +2,7 @@
 	<div id="sendentsynchroniser-admin-settings">
 		<h2>Sendent Sync</h2>
 
-		<GroupsManagement
-			:nb-enabled-users="nbEnabledUsers"
+		<GroupsManagement :nb-enabled-users="nbEnabledUsers"
 			:nb-active-users="nbActiveUsers"
 			:notifications-app-installed="notificationsAppInstalled" />
 
@@ -15,8 +14,7 @@
 
 			<LicenseSection />
 
-			<SettingsSection
-				:initial-shared-secret="sharedSecret"
+			<SettingsSection :initial-shared-secret="sharedSecret"
 				:initial-imap-sync-enabled="imapSyncEnabled"
 				:initial-email-domain="emailDomain"
 				:initial-reminder-type="reminderType"
@@ -43,7 +41,7 @@ import SettingsSection from './SettingsSection.vue'
 
 const groupsStore = useGroupsStore()
 
-const props = defineProps<{
+defineProps<{
 	nbEnabledUsers: number
 	nbActiveUsers: number
 	sharedSecret: string

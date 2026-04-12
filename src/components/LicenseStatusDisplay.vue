@@ -31,6 +31,10 @@ const props = defineProps<{
 	status: LicenseStatus | null
 }>()
 
+/**
+ *
+ * @param dateStr
+ */
 function formatDate(dateStr: string): string {
 	if (!dateStr) return '-'
 	const date = new Date(dateStr)

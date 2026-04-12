@@ -19,17 +19,24 @@ export const useGroupsStore = defineStore('groups', () => {
 		return sendentGroups.value.find(g => g.gid === selectedGroupId.value) ?? null
 	})
 
+	/**
+	 *
+	 */
 	function loadInitialState() {
 		try {
-			const state = loadState('sendentsynchroniser', 'admin') as Record<string, any>
-			ncGroups.value = state.ncGroups || []
-			sendentGroups.value = state.sendentGroups || []
+			const state = loadState('sendentsynchroniser', 'admin') as Record<string, unknown>
+			ncGroups.value = (state.ncGroups || []) as GroupItem[]
+			sendentGroups.value = (state.sendentGroups || []) as GroupItem[]
 		} catch {
 			ncGroups.value = []
 			sendentGroups.value = []
 		}
 	}
 
+	/**
+	 *
+	 * @param gid
+	 */
 	function addGroup(gid: string) {
 		const index = ncGroups.value.findIndex(g => g.gid === gid)
 		if (index === -1) return
@@ -38,6 +45,10 @@ export const useGroupsStore = defineStore('groups', () => {
 		syncToBackend()
 	}
 
+	/**
+	 *
+	 * @param gid
+	 */
 	function removeGroup(gid: string) {
 		const index = sendentGroups.value.findIndex(g => g.gid === gid)
 		if (index === -1) return
@@ -53,15 +64,26 @@ export const useGroupsStore = defineStore('groups', () => {
 		syncToBackend()
 	}
 
+	/**
+	 *
+	 * @param newOrder
+	 */
 	function reorderGroups(newOrder: GroupItem[]) {
 		sendentGroups.value = newOrder
 		syncToBackend()
 	}
 
+	/**
+	 *
+	 * @param gid
+	 */
 	function selectGroup(gid: string) {
 		selectedGroupId.value = gid
 	}
 
+	/**
+	 *
+	 */
 	async function syncToBackend() {
 		const newSendentGroups = sendentGroups.value.map(g => g.gid)
 		const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/activeGroups')

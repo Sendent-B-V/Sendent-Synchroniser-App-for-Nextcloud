@@ -8,21 +8,21 @@
 		<template v-if="isActive">
 			<div class="user-settings__collections">
 				<h3>{{ t('sendentsynchroniser', 'Sync targets') }}</h3>
-				<p class="user-settings__subtitle">{{ t('sendentsynchroniser', 'Choose which calendar and addressbook receive your Exchange data.') }}</p>
+				<p class="user-settings__subtitle">
+					{{ t('sendentsynchroniser', 'Choose which calendar and addressbook receive your Exchange data.') }}
+				</p>
 
-				<CollectionSelector
-					ref="calSelector"
+				<CollectionSelector ref="calSelector"
+					v-model="selectedCalendar"
 					:label="t('sendentsynchroniser', 'Target calendar')"
 					:collections="calendars"
-					v-model="selectedCalendar"
 					:create-placeholder="t('sendentsynchroniser', 'New calendar name')"
 					@create="onCreateCalendar" />
 
-				<CollectionSelector
-					ref="abSelector"
+				<CollectionSelector ref="abSelector"
+					v-model="selectedAddressbook"
 					:label="t('sendentsynchroniser', 'Target addressbook')"
 					:collections="addressbooks"
-					v-model="selectedAddressbook"
 					:create-placeholder="t('sendentsynchroniser', 'New addressbook name')"
 					@create="onCreateAddressbook" />
 
@@ -65,6 +65,9 @@ const selectedCalendar = ref('')
 const selectedAddressbook = ref('')
 const saveSuccess = ref(false)
 
+/**
+ *
+ */
 async function loadCollections() {
 	if (!isActive.value) return
 
@@ -88,16 +91,29 @@ async function loadCollections() {
 	}
 }
 
+/**
+ *
+ * @param uri
+ * @param displayName
+ */
 function onCreateCalendar(uri: string, displayName: string) {
 	calendars.value.push({ id: 0, uri, displayName })
 	selectedCalendar.value = uri
 }
 
+/**
+ *
+ * @param uri
+ * @param displayName
+ */
 function onCreateAddressbook(uri: string, displayName: string) {
 	addressbooks.value.push({ id: 0, uri, displayName })
 	selectedAddressbook.value = uri
 }
 
+/**
+ *
+ */
 async function saveCollections() {
 	try {
 		const url = generateUrl('/apps/sendentsynchroniser/api/1.0/user/collections')

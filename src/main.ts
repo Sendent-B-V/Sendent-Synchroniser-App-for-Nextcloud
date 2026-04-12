@@ -3,6 +3,9 @@ import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
 import ConsentModal from './components/ConsentModal.vue'
 
+/**
+ *
+ */
 async function init() {
 	// Check if we might want to display the sendent synchronisation modal dialog
 	const shouldShowUrl = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/shouldShowDialog')
@@ -19,19 +22,20 @@ async function init() {
 	const hasFiles = document.getElementById('app-content-files') || document.querySelector('.app-files')
 
 	switch (notificationMethod) {
-		case '1':
-			if (!hasGroupware) return
-			break
-		case '2':
-			if (!document.getElementById('app-content-files')) return
-			break
-		case '3':
-			if (!hasFiles && !hasGroupware) return
-			break
-		default:
-			return
+	case '1':
+		if (!hasGroupware) return
+		break
+	case '2':
+		if (!document.getElementById('app-content-files')) return
+		break
+	case '3':
+		if (!hasFiles && !hasGroupware) return
+		break
+	default:
+		return
 	}
 
+	// eslint-disable-next-line no-console
 	console.log('Injecting Sendent Synchronizer modal dialog')
 
 	// Create a mount point and mount the Vue modal

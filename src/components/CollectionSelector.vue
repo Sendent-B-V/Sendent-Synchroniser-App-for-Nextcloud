@@ -11,7 +11,9 @@
 					:value="item.uri">
 					{{ item.displayName }}
 				</option>
-				<option value="__create__">+ Create new...</option>
+				<option value="__create__">
+					+ Create new...
+				</option>
 			</select>
 			<span v-if="saved" class="collection-selector__saved">&#x2713;</span>
 		</div>
@@ -25,7 +27,9 @@
 			<button class="primary" :disabled="!newUri.trim()" @click="onCreateAndSelect">
 				Create
 			</button>
-			<button @click="showCreate = false">Cancel</button>
+			<button @click="showCreate = false">
+				Cancel
+			</button>
 		</div>
 	</div>
 </template>
@@ -61,6 +65,9 @@ watch(() => props.modelValue, (val) => {
 	selected.value = val
 })
 
+/**
+ *
+ */
 function onChange() {
 	if (selected.value === '__create__') {
 		showCreate.value = true
@@ -70,6 +77,9 @@ function onChange() {
 	emit('update:modelValue', selected.value)
 }
 
+/**
+ *
+ */
 function onCreateAndSelect() {
 	const uri = newUri.value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '-')
 	const displayName = newUri.value.trim()
@@ -78,6 +88,9 @@ function onCreateAndSelect() {
 	showCreate.value = false
 }
 
+/**
+ *
+ */
 function flashSaved() {
 	saved.value = true
 	setTimeout(() => { saved.value = false }, 1500)

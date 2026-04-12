@@ -1,19 +1,21 @@
 <template>
 	<div class="settings-section">
 		<h3>{{ t('sendentsynchroniser', 'Settings') }}</h3>
-		<p class="settings-section__subtitle">Changes are saved automatically</p>
+		<p class="settings-section__subtitle">
+			Changes are saved automatically
+		</p>
 
 		<!-- Shared secret -->
 		<div class="settings-section__field">
 			<label>{{ t('sendentsynchroniser', 'Shared secret') }}</label>
 			<div class="settings-section__input-row">
-				<input :type="showSecret ? 'text' : 'password'"
-					v-model="sharedSecret"
+				<input v-model="sharedSecret"
+					:type="showSecret ? 'text' : 'password'"
 					class="settings-section__input"
 					@keyup="debounceSaveSecret">
 				<button class="settings-section__toggle"
 					@click.prevent="showSecret = !showSecret">
-					<img :src="viewIconUrl" style="height:20px;width:20px" />
+					<img :src="viewIconUrl" style="height:20px;width:20px">
 				</button>
 				<span v-if="saved.sharedSecret" class="settings-section__saved">&#x2713;</span>
 			</div>
@@ -27,8 +29,12 @@
 					class="settings-section__input"
 					:disabled="!mailAppInstalled"
 					@change="saveIMAPSync">
-					<option value="true">{{ t('sendentsynchroniser', 'Enabled') }}</option>
-					<option value="false">{{ t('sendentsynchroniser', 'Disabled') }}</option>
+					<option value="true">
+						{{ t('sendentsynchroniser', 'Enabled') }}
+					</option>
+					<option value="false">
+						{{ t('sendentsynchroniser', 'Disabled') }}
+					</option>
 				</select>
 				<span v-if="!mailAppInstalled" class="settings-section__warning">
 					{{ t('sendentsynchroniser', "You don't have the mail app installed") }}
@@ -50,7 +56,9 @@
 		</div>
 
 		<h3>{{ t('sendentsynchroniser', 'Default collections') }}</h3>
-		<p class="settings-section__subtitle">{{ t('sendentsynchroniser', 'When set, these collections are automatically created for users during activation. Leave empty to use Nextcloud defaults (Personal / Contacts).') }}</p>
+		<p class="settings-section__subtitle">
+			{{ t('sendentsynchroniser', 'When set, these collections are automatically created for users during activation. Leave empty to use Nextcloud defaults (Personal / Contacts).') }}
+		</p>
 
 		<!-- Default calendar -->
 		<div class="settings-section__field">
@@ -85,9 +93,15 @@
 				<select v-model="reminderType"
 					class="settings-section__input"
 					@change="saveReminderType">
-					<option value="1">Modal dialog</option>
-					<option value="2" :disabled="!notificationsAppInstalled">Standard notifications</option>
-					<option value="3" :disabled="!notificationsAppInstalled">Modal dialog and standard notifications</option>
+					<option value="1">
+						Modal dialog
+					</option>
+					<option value="2" :disabled="!notificationsAppInstalled">
+						Standard notifications
+					</option>
+					<option value="3" :disabled="!notificationsAppInstalled">
+						Modal dialog and standard notifications
+					</option>
 				</select>
 				<span v-if="!notificationsAppInstalled" class="settings-section__warning">
 					{{ t('sendentsynchroniser', "You don't have the notifications app installed") }}
@@ -103,9 +117,15 @@
 				<select v-model="notificationMethod"
 					class="settings-section__input"
 					@change="saveNotificationMethod">
-					<option value="1">Show in Mail, Calendar, Contacts, and Tasks</option>
-					<option value="2">Show in Files</option>
-					<option value="3">Show everywhere (options 1 and 2 combined)</option>
+					<option value="1">
+						Show in Mail, Calendar, Contacts, and Tasks
+					</option>
+					<option value="2">
+						Show in Files
+					</option>
+					<option value="3">
+						Show everywhere (options 1 and 2 combined)
+					</option>
 				</select>
 				<span v-if="saved.notificationMethod" class="settings-section__saved">&#x2713;</span>
 			</div>
@@ -129,7 +149,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, watch } from 'vue'
+import { ref, reactive, computed } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl, imagePath } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
@@ -182,11 +202,21 @@ const viewIconUrl = imagePath('sendentsynchroniser', 'view.svg')
 
 const saved = reactive<Record<string, boolean>>({})
 
+/**
+ *
+ * @param key
+ */
 function showSaved(key: string) {
 	saved[key] = true
 	setTimeout(() => { saved[key] = false }, 1500)
 }
 
+/**
+ *
+ * @param endpoint
+ * @param data
+ * @param feedbackKey
+ */
 async function saveSetting(endpoint: string, data: Record<string, string>, feedbackKey: string) {
 	const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/' + endpoint)
 	try {
@@ -198,6 +228,9 @@ async function saveSetting(endpoint: string, data: Record<string, string>, feedb
 }
 
 let secretTimer: ReturnType<typeof setTimeout>
+/**
+ *
+ */
 function debounceSaveSecret() {
 	clearTimeout(secretTimer)
 	secretTimer = setTimeout(() => {
@@ -208,6 +241,9 @@ function debounceSaveSecret() {
 }
 
 let emailDomainTimer: ReturnType<typeof setTimeout>
+/**
+ *
+ */
 function debounceSaveEmailDomain() {
 	clearTimeout(emailDomainTimer)
 	emailDomainTimer = setTimeout(() => {
@@ -215,12 +251,27 @@ function debounceSaveEmailDomain() {
 	}, 500)
 }
 
+/**
+ *
+ */
 function saveIMAPSync() { saveSetting('imapsync', { IMAPSyncEnabled: imapSyncEnabled.value }, 'imapSync') }
+/**
+ *
+ */
 function saveReminderType() { saveSetting('reminderType', { reminderType: reminderType.value }, 'reminderType') }
+/**
+ *
+ */
 function saveNotificationMethod() { saveSetting('notificationMethod', { notificationMethod: notificationMethod.value }, 'notificationMethod') }
+/**
+ *
+ */
 function saveNotificationInterval() { saveSetting('notificationInterval', { notificationInterval: notificationInterval.value }, 'notificationInterval') }
 
 let defaultCalendarTimer: ReturnType<typeof setTimeout>
+/**
+ *
+ */
 function debounceSaveDefaultCalendar() {
 	clearTimeout(defaultCalendarTimer)
 	defaultCalendarTimer = setTimeout(() => {
@@ -234,6 +285,9 @@ function debounceSaveDefaultCalendar() {
 }
 
 let defaultAddressbookTimer: ReturnType<typeof setTimeout>
+/**
+ *
+ */
 function debounceSaveDefaultAddressbook() {
 	clearTimeout(defaultAddressbookTimer)
 	defaultAddressbookTimer = setTimeout(() => {

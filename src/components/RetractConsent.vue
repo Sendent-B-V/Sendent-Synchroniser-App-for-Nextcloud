@@ -15,6 +15,9 @@ import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
 
+/**
+ *
+ */
 async function retractConsent() {
 	const url = generateUrl('/apps/sendentsynchroniser/api/1.0/user/invalidate')
 	await axios.get(url)

@@ -8,6 +8,11 @@ interface SortableOptions {
 	animation?: number
 }
 
+/**
+ *
+ * @param elementRef
+ * @param options
+ */
 export function useSortable(
 	elementRef: Ref<HTMLElement | null>,
 	options: SortableOptions = {},

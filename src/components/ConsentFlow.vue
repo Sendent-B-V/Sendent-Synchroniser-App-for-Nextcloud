@@ -12,29 +12,33 @@
 		</template>
 
 		<div class="consent-flow__content">
-			<h3 v-if="title">{{ title }}</h3>
-			<p v-if="text">{{ text }}</p>
+			<h3 v-if="title">
+				{{ title }}
+			</h3>
+			<p v-if="text">
+				{{ text }}
+			</p>
 
 			<!-- Collection selection step -->
 			<template v-if="step === 'collections'">
 				<div class="consent-flow__collections">
-					<CollectionSelector
+					<CollectionSelector v-model="selectedCalendar"
 						:label="t('sendentsynchroniser', 'Target calendar')"
 						:collections="calendars"
-						v-model="selectedCalendar"
 						:create-placeholder="t('sendentsynchroniser', 'New calendar name')"
 						@create="onCreateCalendar" />
-					<CollectionSelector
+					<CollectionSelector v-model="selectedAddressbook"
 						:label="t('sendentsynchroniser', 'Target addressbook')"
 						:collections="addressbooks"
-						v-model="selectedAddressbook"
 						:create-placeholder="t('sendentsynchroniser', 'New addressbook name')"
 						@create="onCreateAddressbook" />
 				</div>
 			</template>
 
 			<div v-if="showButton" class="consent-flow__actions">
-				<button class="primary" @click="handleClick">{{ buttonLabel }}</button>
+				<button class="primary" @click="handleClick">
+					{{ buttonLabel }}
+				</button>
 			</div>
 		</div>
 	</div>
@@ -71,6 +75,9 @@ const text = ref('')
 const buttonLabel = ref('')
 const showButton = ref(true)
 
+// Stored activate() response for use across steps
+let activateResponseData: Record<string, unknown> = {}
+
 // Collection data from activate() response
 const calendars = ref<CollectionItem[]>([])
 const addressbooks = ref<CollectionItem[]>([])
@@ -88,6 +95,11 @@ if (props.activeUser) {
 	buttonLabel.value = t('sendentsynchroniser', 'Start consent flow')
 }
 
+/**
+ *
+ * @param uri
+ * @param displayName
+ */
 async function onCreateCalendar(uri: string, displayName: string) {
 	// The backend createCalendar is implicitly done via ensureDefaultCollections,
 	// but for user-created ones we just add it to the list optimistically
@@ -96,11 +108,19 @@ async function onCreateCalendar(uri: string, displayName: string) {
 	selectedCalendar.value = uri
 }
 
+/**
+ *
+ * @param uri
+ * @param displayName
+ */
 async function onCreateAddressbook(uri: string, displayName: string) {
 	addressbooks.value.push({ id: 0, uri, displayName })
 	selectedAddressbook.value = uri
 }
 
+/**
+ *
+ */
 async function handleClick() {
 	if (step.value === 'idle') {
 		step.value = 'step1'
@@ -128,8 +148,8 @@ async function handleClick() {
 			text.value = t('sendentsynchroniser', 'Select which calendar and addressbook should receive your Exchange data.')
 			buttonLabel.value = t('sendentsynchroniser', 'Continue')
 
-			// Store activate response for later
-			;(window as any).__sendentActivateResponse = response.data
+			// Store activate response for use in later steps
+			activateResponseData = response.data
 
 		} catch (err) {
 			console.warn('Error during consent flow activation', err)
@@ -149,7 +169,7 @@ async function handleClick() {
 			console.warn('Error saving collection choices', err)
 		}
 
-		const activateData = (window as any).__sendentActivateResponse || {}
+		const activateData = activateResponseData
 
 		if (activateData.shouldAskMailSync) {
 			const domain = activateData.emailDomain

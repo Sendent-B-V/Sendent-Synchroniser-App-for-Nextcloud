@@ -52,10 +52,16 @@ import LicenseStatusDisplay from './LicenseStatusDisplay.vue'
 
 const licenseStore = useLicenseStore()
 
+/**
+ *
+ */
 async function onActivate() {
 	await licenseStore.activateLicense()
 }
 
+/**
+ *
+ */
 async function onClear() {
 	await licenseStore.clearLicense()
 }

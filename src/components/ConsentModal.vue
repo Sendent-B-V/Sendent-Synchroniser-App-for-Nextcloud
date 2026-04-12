@@ -25,6 +25,9 @@ import ConsentFlow from './ConsentFlow.vue'
 
 const visible = ref(true)
 
+/**
+ *
+ */
 function close() {
 	visible.value = false
 }
