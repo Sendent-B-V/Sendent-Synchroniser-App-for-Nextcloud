@@ -9,9 +9,9 @@
       "target": "ES6",
       "strictNullChecks": true,
       "sourceMap": true,
-      "jsx": "react",
-      "allowSyntheticDefaultImports": true
+      "allowSyntheticDefaultImports": true,
+      "esModuleInterop": true
     },
-    "include": ["src/**/*"],
+    "include": ["src/**/*", "src/**/*.vue"],
     "exclude": ["node_modules"]
 }

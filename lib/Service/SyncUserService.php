@@ -173,9 +173,41 @@ class SyncUserService {
 	 * This function returns all active users that may use the app
 	 * 
 	*/
+	/**
+	 * Builds a map of userId → [groupId, ...] for all users in active groups.
+	 * Used to resolve per-group default collections without calling isInGroup().
+	 */
+	private function buildUserGroupMap(): array {
+		$activeGroups = $this->appConfig->getAppValue('activeGroups', '');
+		$activeGroups = ($activeGroups !== '' && $activeGroups !== 'null') ? json_decode($activeGroups) : [];
+		$map = [];
+		foreach ($activeGroups as $gid) {
+			$group = $this->groupManager->get($gid);
+			if ($group === null) {
+				continue;
+			}
+			foreach ($group->getUsers() as $ncUser) {
+				$map[$ncUser->getUID()][] = $gid;
+			}
+		}
+		return $map;
+	}
+
+	/**
+	 *
+	 * This function returns all active users that may use the app
+	 *
+	*/
 	public function getValidUsers() {
 
 		$users = $this->getAllUsers();
+
+		// Load per-group default collection maps once
+		$calendarMap = json_decode($this->appConfig->getAppValue('defaultCalendars', '{}'), true) ?: [];
+		$addressbookMap = json_decode($this->appConfig->getAppValue('defaultAddressbooks', '{}'), true) ?: [];
+
+		// Pre-build user→groups map (avoids isInGroup() calls in the loop)
+		$userGroupMap = $this->buildUserGroupMap();
 
 		// Gets all active sendent sync users
 		$index = 0;
@@ -185,9 +217,7 @@ class SyncUserService {
 			if (!empty($syncUsers)) {
 				$syncUser = $syncUsers[0];
 				if ($syncUser->getActive() === Constants::USER_STATUS_ACTIVE) {
-					// Makes sure we don't create duplicates
 					if(!array_key_exists($syncUser->getUid(), $activeUsers)) {
-						// Augments syncUser with some info from the corresponding NC user
 						$NCUser = $this->userManager->get($syncUser->getUid());
 						$user = $syncUser->jsonSerialize();
 						$username = $syncUser->getUsername();
@@ -197,7 +227,7 @@ class SyncUserService {
 							$user['username'] = $username;
 						}
 						$user['uid'] = $NCUser->getUID();
-						$user['email'] = $NCUser->getEmailAddress();	// default email address
+						$user['email'] = $NCUser->getEmailAddress();
 						// Replaces email address by one of the user email addresses that matches the sync domain (if any)
 						$emailDomain = $this->appConfig->getAppValue('emailDomain', '');
 						if ($emailDomain !== '') {
@@ -217,6 +247,33 @@ class SyncUserService {
 							}
 						}
 						$user['displayName'] = $NCUser->getDisplayName();
+
+						// Collection targets: user choice → per-group default → NC default
+						// Uses the pre-built userGroupMap — no isInGroup() calls needed
+						$userCalendar = $syncUser->getCalendar();
+						$userAddressbook = $syncUser->getAddressbook();
+						$userGroups = $userGroupMap[$NCUser->getUID()] ?? [];
+
+						if ($userCalendar === null || $userCalendar === '') {
+							$userCalendar = 'personal';
+							foreach ($userGroups as $gid) {
+								if (!empty($calendarMap[$gid])) {
+									$userCalendar = $calendarMap[$gid];
+									break;
+								}
+							}
+						}
+						if ($userAddressbook === null || $userAddressbook === '') {
+							$userAddressbook = 'contacts';
+							foreach ($userGroups as $gid) {
+								if (!empty($addressbookMap[$gid])) {
+									$userAddressbook = $addressbookMap[$gid];
+									break;
+								}
+							}
+						}
+						$user['calendar'] = $userCalendar;
+						$user['addressbook'] = $userAddressbook;
 						//this method replaces the mechanism with named array indexes because C# cannot deal with that.
 						if(!$this->checkIfUserInArray($activeUsers, $syncUser->getUid()))
 						{
