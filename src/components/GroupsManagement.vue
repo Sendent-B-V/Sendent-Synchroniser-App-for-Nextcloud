@@ -68,7 +68,7 @@
 				<span v-if="!notificationsAppInstalled" class="groups-management__warning">
 					{{ t('sendentsynchroniser', "You don't have the notifications app installed") }}
 				</span>
-				<button class="groups-management__btn-warning"
+				<button class="groups-management__btn-danger"
 					@click="onClearTokens">
 					Clear tokens
 				</button>
@@ -301,7 +301,8 @@ onMounted(() => {
 	font-size: 13px;
 }
 
-.groups-management__btn-warning {
-	color: var(--color-warning);
+.groups-management__btn-danger {
+	color: var(--color-error-text);
+	border-color: var(--color-error-text);
 }
 </style>

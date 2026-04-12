@@ -43,8 +43,8 @@
 			</div>
 		</div>
 
-		<!-- Email domain -->
-		<div v-if="imapSyncEnabled === 'true'" class="settings-section__field">
+		<!-- Email domain — used to match a user's Nextcloud email address to the Exchange domain -->
+		<div class="settings-section__field">
 			<label>{{ t('sendentsynchroniser', 'Email domain') }}</label>
 			<div class="settings-section__input-row">
 				<input v-model="emailDomain"

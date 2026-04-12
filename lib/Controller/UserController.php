@@ -186,21 +186,9 @@ class UserController extends Controller {
 			$this->logger->info('Updated Sendentsync user "' . $credentials->getUID() . '"');
 		}
 
-		// Return collections so the frontend can show pickers
-		$calendars = $this->collectionService->getUserCalendars($credentials->getUID());
-		$addressbooks = $this->collectionService->getUserAddressbooks($credentials->getUID());
-
-		// Determine pre-selected defaults (per-group)
-		$defaultCalendar = $this->collectionService->getDefaultCalendarForGroups($userGroupIds);
-		$defaultAddressbook = $this->collectionService->getDefaultAddressbookForGroups($userGroupIds);
-
 		return new JSONResponse([
 			'emailDomain' =>  '@' . $this->appConfig->getAppValue('emailDomain', ''),
 			'shouldAskMailSync' => ($this->appManager->isInstalled('mail') && ($this->appConfig->getAppValue('IMAPSyncEnabled', "false") === 'true')),
-			'calendars' => $calendars,
-			'addressbooks' => $addressbooks,
-			'defaultCalendar' => $defaultCalendar,
-			'defaultAddressbook' => $defaultAddressbook,
 		]);
 
 	}
@@ -212,67 +200,6 @@ class UserController extends Controller {
 	 */
 	public function activateMail() {
 		return;
-	}
-
-	/**
-	 *
-	 * Returns the list of calendars for the current user.
-	 *
-	 * @NoAdminRequired
-	 *
-	 */
-	public function getCalendars() {
-		$credentials = $this->credentialStore->getLoginCredentials();
-		$this->collectionService->ensureDefaultCollections($credentials->getUID());
-		$calendars = $this->collectionService->getUserCalendars($credentials->getUID());
-		return new JSONResponse($calendars);
-	}
-
-	/**
-	 *
-	 * Returns the list of addressbooks for the current user.
-	 *
-	 * @NoAdminRequired
-	 *
-	 */
-	public function getAddressbooks() {
-		$credentials = $this->credentialStore->getLoginCredentials();
-		$this->collectionService->ensureDefaultCollections($credentials->getUID());
-		$addressbooks = $this->collectionService->getUserAddressbooks($credentials->getUID());
-		return new JSONResponse($addressbooks);
-	}
-
-	/**
-	 *
-	 * Updates the user's target calendar and/or addressbook.
-	 *
-	 * @NoAdminRequired
-	 *
-	 * @param string|null $calendar
-	 * @param string|null $addressbook
-	 *
-	 */
-	public function setCollections(?string $calendar = null, ?string $addressbook = null) {
-		$credentials = $this->credentialStore->getLoginCredentials();
-		$syncUsers = $this->syncUserMapper->findByUid($credentials->getUID());
-
-		if (empty($syncUsers)) {
-			return new JSONResponse(['status' => 'error', 'message' => 'User not found'], Http::STATUS_NOT_FOUND);
-		}
-
-		$syncUser = $syncUsers[0];
-
-		if ($calendar !== null) {
-			$syncUser->setCalendar($calendar);
-		}
-		if ($addressbook !== null) {
-			$syncUser->setAddressbook($addressbook);
-		}
-
-		$this->syncUserMapper->update($syncUser);
-		$this->logger->info('Updated collections for user "' . $credentials->getUID() . '": calendar=' . ($calendar ?? 'unchanged') . ', addressbook=' . ($addressbook ?? 'unchanged'));
-
-		return new JSONResponse(['status' => 'success']);
 	}
 
 	/**

@@ -7,7 +7,7 @@
 		</div>
 		<template v-else>
 			<div class="license-section__info">
-				<p>Find out how to configure your license <a href="https://sendent.freshdesk.com/support/solutions/articles/80000592300-configuring-your-license">here</a>.</p>
+				<p>Find out how to configure your license <a href="https://help.sendent.com/nextcloud-exchange-connector/how-to-configure-your-license">here</a>.</p>
 				<p>{{ t('sendentsynchroniser', "You only need a license key if you are using one of the paid plans of Sendent. If you don't have a valid license key anymore, you will automatically be downgraded to Sendent Free.") }}</p>
 			</div>
 
