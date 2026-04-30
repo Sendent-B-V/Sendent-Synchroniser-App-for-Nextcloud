@@ -18,4 +18,7 @@ class Constants {
 	public const NOTIFICATIONMETHOD_MODAL_FILE = 2;
 	public const NOTIFICATIONMETHOD_MODAL_BOTH = 3;
 	public const NOTIFICATIONMETHOD_MODAL_DEFAULT = self::NOTIFICATIONMETHOD_MODAL_FILE;
+
+	public const GRAPH_API_MODE_KEY = 'graphApiMode';
+	public const GRAPH_API_MODE_DEFAULT = 'false';
 }

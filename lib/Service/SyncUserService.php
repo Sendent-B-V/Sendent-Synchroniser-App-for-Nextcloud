@@ -173,9 +173,18 @@ class SyncUserService {
 	 * This function returns all active users that may use the app
 	 * 
 	*/
+	/**
+	 *
+	 * This function returns all active users that may use the app
+	 *
+	*/
 	public function getValidUsers() {
 
 		$users = $this->getAllUsers();
+
+		// Load global default collection settings
+		$defaultCalendar = $this->appConfig->getAppValue('defaultCalendar', '') ?: 'personal';
+		$defaultAddressbook = $this->appConfig->getAppValue('defaultAddressbook', '') ?: 'contacts';
 
 		// Gets all active sendent sync users
 		$index = 0;
@@ -185,9 +194,7 @@ class SyncUserService {
 			if (!empty($syncUsers)) {
 				$syncUser = $syncUsers[0];
 				if ($syncUser->getActive() === Constants::USER_STATUS_ACTIVE) {
-					// Makes sure we don't create duplicates
 					if(!array_key_exists($syncUser->getUid(), $activeUsers)) {
-						// Augments syncUser with some info from the corresponding NC user
 						$NCUser = $this->userManager->get($syncUser->getUid());
 						$user = $syncUser->jsonSerialize();
 						$username = $syncUser->getUsername();
@@ -197,7 +204,7 @@ class SyncUserService {
 							$user['username'] = $username;
 						}
 						$user['uid'] = $NCUser->getUID();
-						$user['email'] = $NCUser->getEmailAddress();	// default email address
+						$user['email'] = $NCUser->getEmailAddress();
 						// Replaces email address by one of the user email addresses that matches the sync domain (if any)
 						$emailDomain = $this->appConfig->getAppValue('emailDomain', '');
 						if ($emailDomain !== '') {
@@ -217,6 +224,18 @@ class SyncUserService {
 							}
 						}
 						$user['displayName'] = $NCUser->getDisplayName();
+
+						// Collection targets: stored value → admin default → NC default
+						$userCalendar = $syncUser->getCalendar();
+						if ($userCalendar === null || $userCalendar === '') {
+							$userCalendar = $defaultCalendar;
+						}
+						$userAddressbook = $syncUser->getAddressbook();
+						if ($userAddressbook === null || $userAddressbook === '') {
+							$userAddressbook = $defaultAddressbook;
+						}
+						$user['calendar'] = $userCalendar;
+						$user['addressbook'] = $userAddressbook;
 						//this method replaces the mechanism with named array indexes because C# cannot deal with that.
 						if(!$this->checkIfUserInArray($activeUsers, $syncUser->getUid()))
 						{

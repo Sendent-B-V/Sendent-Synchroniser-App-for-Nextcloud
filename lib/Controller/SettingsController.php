@@ -147,6 +147,22 @@ class SettingsController extends ApiController {
 	}
 
 	/**
+	 * Saves Graph API mode setting.
+	 *
+	 * When enabled, Nextcloud suppresses iMip emails and internal CalDAV iTip
+	 * delivery for events on synced Sendent calendars; Exchange/Graph becomes
+	 * the sole sender of meeting invitations.
+	 *
+	 * @param string $graphApiMode 'true' or 'false'
+	 */
+	public function setGraphApiMode($graphApiMode) {
+		return $this->appConfig->setAppValue(
+			\OCA\SendentSynchroniser\Constants::GRAPH_API_MODE_KEY,
+			$graphApiMode
+		);
+	}
+
+	/**
 	 *
 	 * Saves emailDomain setting
 	 *
@@ -155,6 +171,30 @@ class SettingsController extends ApiController {
 	 */
 	public function setEmailDomain($emailDomain) {
 		return $this->appConfig->setAppValue('emailDomain', $emailDomain);
+	}
+
+	/**
+	 *
+	 * Saves default calendar URI (global).
+	 *
+	 * The actual collection is created per-user when they activate (consent flow).
+	 *
+	 * @param string $defaultCalendar The calendar URI
+	 *
+	 */
+	public function setDefaultCalendar($defaultCalendar) {
+		return $this->appConfig->setAppValue('defaultCalendar', $defaultCalendar);
+	}
+
+	/**
+	 *
+	 * Saves default addressbook URI (global).
+	 *
+	 * @param string $defaultAddressbook The addressbook URI
+	 *
+	 */
+	public function setDefaultAddressbook($defaultAddressbook) {
+		return $this->appConfig->setAppValue('defaultAddressbook', $defaultAddressbook);
 	}
 
 	/**

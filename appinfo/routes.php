@@ -23,7 +23,10 @@ return [
 		['name' => 'settings#setReminderType', 'url' => '/api/1.0/settings/reminderType', 'verb' => 'POST'],
 		['name' => 'settings#setSharedSecret', 'url' => '/api/1.0/settings/sharedSecret', 'verb' => 'POST'],
 		['name' => 'settings#setIMAPSync', 'url' => '/api/1.0/settings/imapsync', 'verb' => 'POST'],
+		['name' => 'settings#setGraphApiMode', 'url' => '/api/1.0/settings/graphApiMode', 'verb' => 'POST'],
 		['name' => 'settings#setEmailDomain', 'url' => '/api/1.0/settings/emailDomain', 'verb' => 'POST'],
+		['name' => 'settings#setDefaultCalendar', 'url' => '/api/1.0/settings/defaultCalendar', 'verb' => 'POST'],
+		['name' => 'settings#setDefaultAddressbook', 'url' => '/api/1.0/settings/defaultAddressbook', 'verb' => 'POST'],
 		['name' => 'settings#shouldShowDialog', 'url' => '/api/1.0/settings/shouldShowDialog', 'verb' => 'GET'],
 		['name' => 'settings#sendReminder', 'url' => '/api/1.0/settings/sendReminder', 'verb' => 'GET'],
 

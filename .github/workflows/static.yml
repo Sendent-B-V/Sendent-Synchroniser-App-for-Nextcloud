@@ -1,0 +1,32 @@
+name: Static analysis
+on: [push, pull_request]
+
+jobs:
+  code-style:
+    runs-on: ubuntu-latest
+    name: Code style
+    steps:
+        - name: Checkout
+          uses: actions/checkout@v6
+        - name: Set up php
+          uses: shivammathur/setup-php@v2
+          with:
+            php-version: '8.4'
+            coverage: none
+        - name: Install dependencies
+          run: composer install --no-interaction
+        - name: Run code style check
+          run: composer run cs:check
+  frontend-build:
+    runs-on: ubuntu-latest
+    name: Frontend build
+    steps:
+        - name: Checkout
+          uses: actions/checkout@v6
+        - uses: actions/setup-node@v6
+          with:
+            node-version: '22'
+        - name: Install dependencies
+          run: npm ci
+        - name: Build bundle
+          run: npm run build

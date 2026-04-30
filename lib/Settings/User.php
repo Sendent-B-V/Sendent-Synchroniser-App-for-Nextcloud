@@ -5,13 +5,10 @@ namespace OCA\SendentSynchroniser\Settings;
 use OCP\App\IAppManager;
 use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Services\IAppConfig;
+use OCP\AppFramework\Services\IInitialState;
 use OCP\IGroupManager;
 use OCP\Settings\ISettings;
-use OCP\EventDispatcher\IEventDispatcher;
-use OCP\ISession;
 use \Psr\Log\LoggerInterface;
-use OCP\Security\ISecureRandom;
-use OCP\IURLGenerator;
 use OCA\SendentSynchroniser\Constants;
 use OCA\SendentSynchroniser\Db\SyncUserMapper;
 
@@ -26,16 +23,23 @@ class User implements ISettings {
 	/** @var IAppConfig */
 	private $appConfig;
 
+	/** @var IInitialState */
+	private $initialState;
+
 	/** @var LoggerInterface */
 	private $logger;
 
 	/** @var SyncUserMapper */
 	private $syncUserMapper;
 
+	/** @var string */
+	private $userId;
+
 	public function __construct(
 		IAppManager $appManager,
 		IGroupManager $groupManager,
 		IAppConfig $appConfig,
+		IInitialState $initialState,
 		LoggerInterface $logger,
 		SyncUserMapper $syncUserMapper,
 		string $userId) {
@@ -43,29 +47,30 @@ class User implements ISettings {
 		$this->appConfig = $appConfig;
 		$this->appManager = $appManager;
 		$this->groupManager = $groupManager;
+		$this->initialState = $initialState;
 		$this->logger = $logger;
 		$this->syncUserMapper = $syncUserMapper;
 		$this->userId = $userId;
 	}
 
 	/**
-	 * 
+	 *
 	 * @return TemplateResponse
-	 * 
+	 *
 	 */
 	public function getForm() {
 		$syncUsers = $this->syncUserMapper->findByUid($this->userId);
-		if (empty($syncUsers) || $syncUsers[0]->getActive() !== Constants::USER_STATUS_ACTIVE) {
-			// User is not active
-			return new TemplateResponse('sendentsynchroniser', 'indexUser', ['activeUser' => false]);
-		} else {
-			// User is active
-			return new TemplateResponse('sendentsynchroniser', 'indexUser', ['activeUser' => true]);
-		}
+		$activeUser = !empty($syncUsers) && $syncUsers[0]->getActive() === Constants::USER_STATUS_ACTIVE;
+
+		$this->initialState->provideInitialState('user', [
+			'activeUser' => $activeUser,
+		]);
+
+		return new TemplateResponse('sendentsynchroniser', 'indexUser');
 	}
 
 	/**
-	 * 
+	 *
 	 * @param string $appId
 	 *
 	 * @return false|string
@@ -79,9 +84,9 @@ class User implements ISettings {
 	}
 
 	/**
-	 * 
+	 *
 	 * @return string the section ID, e.g. 'sharing'
-	 * 
+	 *
 	 */
 	public function getSection() {
 		if ($this->isUserAllowed())
@@ -100,21 +105,19 @@ class User implements ISettings {
 	}
 
 	/**
-	 * 
+	 *
 	 * This function tells if an user is allowed to use Sendent synchroniser
-	 * 
+	 *
 	 * @return bool
-	 * 
+	 *
 	 */
 	private function isUserAllowed() : bool
-	{					
+	{
 
 		// Is shared secret configured?
 		if (empty($this->appConfig->getAppValue('sharedSecret', ''))) {
 			return false;
 		};
-
-		// Shall I check licensing here?
 
 		// Is user member of an active group?
 		$activeGroups = $this->appConfig->getAppValue('activeGroups');

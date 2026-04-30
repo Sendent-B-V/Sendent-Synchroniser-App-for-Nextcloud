@@ -10,6 +10,8 @@ class SyncUser extends Entity implements JsonSerializable {
 	protected $token;
 	protected $uid;
 	protected $username;
+	protected $calendar;
+	protected $addressbook;
 
 	public function __construct() {
 		// add types in constructor
@@ -21,7 +23,9 @@ class SyncUser extends Entity implements JsonSerializable {
 			'uid' => $this->uid,
 			'token' => $this->token,
 			'active' => $this->active,
-			'username' => $this->username
+			'username' => $this->username,
+			'calendar' => $this->calendar,
+			'addressbook' => $this->addressbook,
 		];
 	}
 }
