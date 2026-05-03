@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-// SPDX-FileCopyrightText: Sendent B.V. <l.vandebroek@sendent.com>
+// SPDX-FileCopyrightText: Sendent B.V. <l.pasmans@sendent.com>
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 namespace OCA\SendentSynchroniser\Service\Room;
@@ -31,8 +31,8 @@ class HiddenUserService {
 	 * We do NOT call `IUserManager::createUserFromBackend()`: NC's manager
 	 * requires the backend to implement `ICreateUserBackend::createUser()`,
 	 * but for a virtual lookup-only backend like ours there's nothing to
-	 * create — the room IS the user. RoomVox follows this same pattern
-	 * (no createUser call; just registerBackend + userExists callback).
+	 * create — the room IS the user. Pattern: no createUser call, just
+	 * registerBackend + userExists callback.
 	 *
 	 * Caller contract: `RoomService::create()` must insert the room row
 	 * before any code path that relies on `userExists()` (e.g. CalDAV
