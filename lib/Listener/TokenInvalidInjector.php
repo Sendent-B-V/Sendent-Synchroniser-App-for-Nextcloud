@@ -31,7 +31,7 @@ use OCP\Util;
 
 class TokenInvalidInjector implements IEventListener {
         public function handle(Event $event): void {
-                if (!$event instanceof BeforeTemplateRenderedEvent && !event instanceof LoadAdditionalScriptsEvent) {
+                if (!$event instanceof BeforeTemplateRenderedEvent && !$event instanceof LoadAdditionalScriptsEvent) {
                         return;
                 }
 

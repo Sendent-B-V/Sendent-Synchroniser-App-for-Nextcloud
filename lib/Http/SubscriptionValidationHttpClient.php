@@ -13,7 +13,7 @@ class SubscriptionValidationHttpClient {
 	/** @var LicenseHttpClient */
 	protected $licenseHttpClient;
 
-	/** @var ConnectedUserService */
+	/** @var SyncUserService */
 	protected $syncuserService;
 
 	/** @var LoggerInterface */

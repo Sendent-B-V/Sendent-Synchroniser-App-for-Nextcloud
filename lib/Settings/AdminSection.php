@@ -40,7 +40,7 @@ class AdminSection implements IIconSection {
 	 * @return string
 	 */
 	public function getName() {
-		return $this->l->t('Sendent Sync');
+		return $this->l->t('Synchronizer');
 	}
 
 	/**

@@ -11,7 +11,6 @@ use OCP\AppFramework\Db\MultipleObjectsReturnedException;
 use OCP\AppFramework\Services\IAppConfig;
 use OCA\SendentSynchroniser\Controller\Dto\LicenseStatus;
 use OCA\SendentSynchroniser\Db\License;
-use OCA\SendentSynchroniser\Service\ConnectedUserService;
 use OCA\SendentSynchroniser\Service\LicenseManager;
 use OCA\SendentSynchroniser\Service\LicenseService;
 use OCA\SendentSynchroniser\Service\NotFoundException;
@@ -330,35 +329,5 @@ class LicenseApiController extends ApiController {
 	public function delete() {
 		// Deletes requested settinglicense
 		return $this->licensemanager->deleteLicense();
-	}
-/**
-	 * @NoAdminRequired
-	 * @NoCSRFRequired
-	 */
-	public function renew() {
-		// Finds out user's license
-		$license = $this->licenseservice->findAll();
-		// Unlicensed?
-		if (is_null($license)) {
-			return false;
-		}
-		$this->licensemanager->renewLicense($license[0]);
-	}
-
-	/**
-	 * @NoAdminRequired
-	 * @NoCSRFRequired
-	 */
-	public function validate() {
-		// Finds out user's license
-		$license = $this->licenseservice->findAll();
-
-		// Unlicensed?
-		if (is_null($license)) {
-			return false;
-		}
-
-		$this->licensemanager->renewLicense($license[0]);
-		return $this->licensemanager->isLocalValid($license[0]);
 	}
 }
