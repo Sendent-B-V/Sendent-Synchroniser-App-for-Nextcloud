@@ -33,7 +33,7 @@ class Version000004Date20260502InstallRooms extends SimpleMigrationStep {
 			$t->addColumn('active', Types::BOOLEAN, ['notnull' => false, 'default' => true]);
 			$t->addColumn('created_at', Types::DATETIME, ['notnull' => true]);
 			$t->addColumn('updated_at', Types::DATETIME, ['notnull' => true]);
-			$t->setPrimaryKey(['id']);
+			$t->setPrimaryKey(['id'], 'sndntsync_rooms_pk');
 			$t->addIndex(['group_id'], 'sndntsync_room_group_idx');
 		}
 
@@ -42,7 +42,7 @@ class Version000004Date20260502InstallRooms extends SimpleMigrationStep {
 			$t->addColumn('id', Types::BIGINT, ['notnull' => true, 'autoincrement' => true]);
 			$t->addColumn('room_id', Types::STRING, ['notnull' => true, 'length' => 64]);
 			$t->addColumn('facility', Types::STRING, ['notnull' => true, 'length' => 64]);
-			$t->setPrimaryKey(['id']);
+			$t->setPrimaryKey(['id'], 'sndntsync_room_fac_pk');
 			$t->addUniqueIndex(['room_id', 'facility'], 'sndntsync_room_facility_uniq');
 		}
 
@@ -51,7 +51,7 @@ class Version000004Date20260502InstallRooms extends SimpleMigrationStep {
 			$t->addColumn('id', Types::STRING, ['notnull' => true, 'length' => 64]);
 			$t->addColumn('name', Types::STRING, ['notnull' => true, 'length' => 255]);
 			$t->addColumn('description', Types::TEXT, ['notnull' => false]);
-			$t->setPrimaryKey(['id']);
+			$t->setPrimaryKey(['id'], 'sndntsync_room_group_pk');
 		}
 
 		if (!$schema->hasTable('sndntsync_room_permissions')) {
@@ -62,7 +62,7 @@ class Version000004Date20260502InstallRooms extends SimpleMigrationStep {
 			$t->addColumn('role', Types::STRING, ['notnull' => true, 'length' => 16]);
 			$t->addColumn('principal_type', Types::STRING, ['notnull' => true, 'length' => 16]);
 			$t->addColumn('principal_id', Types::STRING, ['notnull' => true, 'length' => 255]);
-			$t->setPrimaryKey(['id']);
+			$t->setPrimaryKey(['id'], 'sndntsync_room_perm_pk');
 			$t->addIndex(['room_id'], 'sndntsync_perm_room_idx');
 			$t->addIndex(['group_id'], 'sndntsync_perm_group_idx');
 		}
@@ -82,7 +82,7 @@ class Version000004Date20260502InstallRooms extends SimpleMigrationStep {
 			$t->addColumn('last_events_pulled', Types::INTEGER, ['notnull' => true, 'default' => 0]);
 			$t->addColumn('created_at', Types::DATETIME, ['notnull' => true]);
 			$t->addColumn('updated_at', Types::DATETIME, ['notnull' => true]);
-			$t->setPrimaryKey(['room_id']);
+			$t->setPrimaryKey(['room_id'], 'sndntsync_room_bind_pk');
 			$t->addIndex(['kind'], 'sndntsync_binding_kind_idx');
 		}
 
