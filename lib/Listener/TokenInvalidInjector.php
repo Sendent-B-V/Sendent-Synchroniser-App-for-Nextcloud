@@ -27,16 +27,24 @@ use \OCA\Files\Event\LoadAdditionalScriptsEvent;
 use OCP\AppFramework\Http\Events\BeforeTemplateRenderedEvent;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
+use OCP\IUserSession;
 use OCP\Util;
 
 class TokenInvalidInjector implements IEventListener {
+        public function __construct(
+                private IUserSession $userSession,
+        ) {
+        }
+
         public function handle(Event $event): void {
                 if (!$event instanceof BeforeTemplateRenderedEvent && !$event instanceof LoadAdditionalScriptsEvent) {
                         return;
                 }
 
-                if ($event->isLoggedIn()) {
-                        Util::addScript('sendentsynchroniser', 'main');
+                if ($this->userSession->getUser() === null) {
+                        return;
                 }
-        } 
+
+                Util::addScript('sendentsynchroniser', 'main');
+        }
 }
