@@ -2,8 +2,12 @@
 	<div class="rooms-bookings">
 		<div class="rooms-bookings__toolbar">
 			<select v-model="selectedRoomId">
-				<option :value="null" disabled>{{ t('sendentsynchroniser', 'Select a room…') }}</option>
-				<option v-for="r in rooms.rooms" :key="r.id" :value="r.id">{{ r.name }}</option>
+				<option :value="null" disabled>
+					{{ t('sendentsynchroniser', 'Select a room…') }}
+				</option>
+				<option v-for="r in rooms.rooms" :key="r.id" :value="r.id">
+					{{ r.name }}
+				</option>
 			</select>
 			<label>
 				{{ t('sendentsynchroniser', 'From') }}
@@ -20,8 +24,12 @@
 			</button>
 		</div>
 
-		<p v-if="loading" class="rooms-bookings__status">{{ t('sendentsynchroniser', 'Loading…') }}</p>
-		<p v-if="error" class="rooms-bookings__error">{{ error }}</p>
+		<p v-if="loading" class="rooms-bookings__status">
+			{{ t('sendentsynchroniser', 'Loading…') }}
+		</p>
+		<p v-if="error" class="rooms-bookings__error">
+			{{ error }}
+		</p>
 
 		<table v-if="pagedEvents.length > 0" class="rooms-bookings__table">
 			<thead>
@@ -29,7 +37,7 @@
 					<th>{{ t('sendentsynchroniser', 'Summary') }}</th>
 					<th>{{ t('sendentsynchroniser', 'Start') }}</th>
 					<th>{{ t('sendentsynchroniser', 'End') }}</th>
-					<th></th>
+					<th />
 				</tr>
 			</thead>
 			<tbody>
@@ -53,8 +61,7 @@
 			{{ t('sendentsynchroniser', 'No bookings in range.') }}
 		</p>
 
-		<Pagination
-			:page="page"
+		<Pagination :page="page"
 			:per-page="perPage"
 			:total="parsed.length"
 			@update:page="(p) => page = p"
@@ -87,6 +94,9 @@ interface ParsedEvent { uid: string; summary: string; dtstart: string; dtend: st
 const parsed = computed<ParsedEvent[]>(() => events.value.map(parseICal))
 const pagedEvents = computed<ParsedEvent[]>(() => parsed.value.slice((page.value - 1) * perPage.value, page.value * perPage.value))
 
+/**
+ *
+ */
 async function reload(): Promise<void> {
 	if (!selectedRoomId.value) return
 	loading.value = true
@@ -107,6 +117,10 @@ async function reload(): Promise<void> {
 	}
 }
 
+/**
+ *
+ * @param uid
+ */
 async function onCancel(uid: string): Promise<void> {
 	if (!selectedRoomId.value) return
 	if (!confirm(t('sendentsynchroniser', 'Cancel booking {uid}?', { uid }))) return
@@ -122,11 +136,19 @@ async function onCancel(uid: string): Promise<void> {
 	}
 }
 
+/**
+ *
+ * @param n
+ */
 function onPerPageChange(n: number): void {
 	perPage.value = n
 	page.value = 1
 }
 
+/**
+ *
+ * @param ev
+ */
 function parseICal(ev: BookingDto): ParsedEvent {
 	const data = ev.calendardata
 	return {
@@ -137,12 +159,21 @@ function parseICal(ev: BookingDto): ParsedEvent {
 	}
 }
 
+/**
+ *
+ * @param ical
+ * @param field
+ */
 function extract(ical: string, field: string): string | null {
 	const re = new RegExp(`(?:^|\\r?\\n)${field}(?:;[^:]*)?:([^\\r\\n]*)`)
 	const m = ical.match(re)
 	return m ? m[1] : null
 }
 
+/**
+ *
+ * @param e
+ */
 function extractMessage(e: unknown): string {
 	if (typeof e === 'object' && e !== null && 'response' in e) {
 		const resp = (e as { response?: { data?: { error?: { message?: string } } } }).response

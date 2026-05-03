@@ -90,7 +90,8 @@ class BindingService {
 		$b->setInitialSyncRequested(true);
 		$b->setLastError(null);
 		$b->setUpdatedAt(new DateTime());
-		return $this->bindings->update($b);
+		$this->bindings->update($b);
+		return $b;
 	}
 
 	public function applyStatus(string $roomId, int $linkVersion, string $state,

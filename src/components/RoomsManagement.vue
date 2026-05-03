@@ -68,24 +68,38 @@ const licenseStore = useLicenseStore()
 // See src/components/LicenseStatusDisplay.vue:47-53 for the canonical mapping.
 const licensed = computed<boolean>(() => licenseStore.status?.statusKind === 'valid')
 
+/**
+ *
+ * @param id
+ */
 function onView(id: string): void {
 	editTarget.value = store.rooms.find(r => r.id === id) ?? null
 	editorMode.value = 'view'
 	editorOpen.value = true
 }
 
+/**
+ *
+ * @param id
+ */
 function onEdit(id: string): void {
 	editTarget.value = store.rooms.find(r => r.id === id) ?? null
 	editorMode.value = 'edit'
 	editorOpen.value = true
 }
 
+/**
+ *
+ */
 function onCreate(): void {
 	editTarget.value = null
 	editorMode.value = 'edit'
 	editorOpen.value = true
 }
 
+/**
+ *
+ */
 function onAfterEdit(): void {
 	editorOpen.value = false
 	store.refresh()

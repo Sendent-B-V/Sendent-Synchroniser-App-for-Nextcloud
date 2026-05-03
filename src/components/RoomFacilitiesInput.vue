@@ -28,6 +28,9 @@ const emit = defineEmits<{ (e: 'update:modelValue', value: string[]): void }>()
 
 const draft = ref('')
 
+/**
+ *
+ */
 function commit(): void {
 	const v = draft.value.trim()
 	if (v === '') return
@@ -39,6 +42,10 @@ function commit(): void {
 	draft.value = ''
 }
 
+/**
+ *
+ * @param i
+ */
 function remove(i: number | string): void {
 	const next = [...props.modelValue]
 	next.splice(Number(i), 1)

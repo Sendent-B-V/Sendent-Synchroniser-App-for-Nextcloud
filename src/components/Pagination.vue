@@ -45,6 +45,10 @@ const emit = defineEmits<{
 
 const pages = computed<number>(() => Math.max(1, Math.ceil(props.total / props.perPage)))
 
+/**
+ *
+ * @param ev
+ */
 function onPerPageChange(ev: Event): void {
 	const v = Number((ev.target as HTMLSelectElement).value)
 	emit('update:perPage', v)

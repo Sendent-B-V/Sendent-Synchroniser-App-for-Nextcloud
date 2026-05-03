@@ -33,10 +33,7 @@ class RoomGroupService {
 		$page = max(1, $page);
 		$needle = $q === null ? null : (trim($q) === '' ? null : trim($q));
 		$total = $this->groups->countAll($needle);
-		if ($total === 0) {
-			return ['items' => [], 'total' => 0, 'page' => 1, 'perPage' => $perPage];
-		}
-		$lastPage = (int) ceil($total / $perPage);
+		$lastPage = max(1, (int) ceil($total / $perPage));
 		if ($page > $lastPage) {
 			$page = $lastPage;
 		}

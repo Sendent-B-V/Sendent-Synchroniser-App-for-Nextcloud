@@ -37,7 +37,9 @@
 			</div>
 			<div v-if="binding.lastError" class="rooms-binding__prop">
 				<dt>{{ t('sendentsynchroniser', 'Last error') }}</dt>
-				<dd class="rooms-binding__error">{{ binding.lastError }}</dd>
+				<dd class="rooms-binding__error">
+					{{ binding.lastError }}
+				</dd>
 			</div>
 			<div class="rooms-binding__prop">
 				<dt>{{ t('sendentsynchroniser', 'Events') }}</dt>
@@ -64,6 +66,10 @@ defineProps<{
 	licensed: boolean
 }>()
 
+/**
+ *
+ * @param iso
+ */
 function formatDate(iso: string): string {
 	try {
 		return new Date(iso).toLocaleString()

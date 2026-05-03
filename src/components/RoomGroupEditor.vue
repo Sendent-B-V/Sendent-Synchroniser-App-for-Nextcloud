@@ -7,25 +7,37 @@
 			<label class="rooms-group-editor__label" for="rooms-group-editor-id">
 				{{ t('sendentsynchroniser', 'ID') }}
 			</label>
-			<input id="rooms-group-editor-id" v-model.trim="form.id" type="text" disabled>
+			<input id="rooms-group-editor-id"
+				v-model.trim="form.id"
+				type="text"
+				disabled>
 		</div>
 		<div class="rooms-group-editor__field">
 			<label class="rooms-group-editor__label" for="rooms-group-editor-name">
 				{{ t('sendentsynchroniser', 'Name') }}
 			</label>
-			<input id="rooms-group-editor-name" v-model.trim="form.name" type="text" required>
+			<input id="rooms-group-editor-name"
+				v-model.trim="form.name"
+				type="text"
+				required>
 		</div>
 		<div class="rooms-group-editor__field">
 			<label class="rooms-group-editor__label" for="rooms-group-editor-description">
 				{{ t('sendentsynchroniser', 'Description') }}
 			</label>
-			<textarea id="rooms-group-editor-description" v-model="form.description" rows="2"></textarea>
+			<textarea id="rooms-group-editor-description" v-model="form.description" rows="2" />
 		</div>
 
-		<p v-if="error" class="rooms-group-editor__error">{{ error }}</p>
+		<p v-if="error" class="rooms-group-editor__error">
+			{{ error }}
+		</p>
 		<div class="rooms-group-editor__actions">
-			<button type="submit">{{ isCreate ? t('sendentsynchroniser', 'Create') : t('sendentsynchroniser', 'Save') }}</button>
-			<button type="button" @click="$emit('cancel')">{{ t('sendentsynchroniser', 'Cancel') }}</button>
+			<button type="submit">
+				{{ isCreate ? t('sendentsynchroniser', 'Create') : t('sendentsynchroniser', 'Save') }}
+			</button>
+			<button type="button" @click="$emit('cancel')">
+				{{ t('sendentsynchroniser', 'Cancel') }}
+			</button>
 		</div>
 	</form>
 </template>
@@ -53,6 +65,9 @@ watch(() => props.group, (g) => {
 	form.description = g?.description ?? null
 }, { immediate: true })
 
+/**
+ *
+ */
 async function onSave(): Promise<void> {
 	error.value = null
 	try {
@@ -72,6 +87,10 @@ async function onSave(): Promise<void> {
 	}
 }
 
+/**
+ *
+ * @param name
+ */
 function slugify(name: string): string {
 	return name
 		.toLowerCase()
@@ -84,6 +103,10 @@ function slugify(name: string): string {
 		.replace(/-+$/g, '')
 }
 
+/**
+ *
+ * @param e
+ */
 function extractMessage(e: unknown): string {
 	if (typeof e === 'object' && e !== null && 'response' in e) {
 		const resp = (e as { response?: { data?: { error?: { message?: string } } } }).response
