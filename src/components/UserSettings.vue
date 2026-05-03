@@ -1,6 +1,6 @@
 <template>
 	<div id="sendentsynchroniser-user-settings">
-		<h2>Sendent Sync</h2>
+		<h2>Synchronizer</h2>
 		<ConsentFlow :active-user="isActive"
 			@consent-changed="isActive = true" />
 		<RetractConsent v-if="isActive" />

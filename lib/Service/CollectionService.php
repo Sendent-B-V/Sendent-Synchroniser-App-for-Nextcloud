@@ -5,6 +5,7 @@ namespace OCA\SendentSynchroniser\Service;
 use OCA\DAV\CalDAV\CalDavBackend;
 use OCA\DAV\CardDAV\CardDavBackend;
 use OCP\AppFramework\Services\IAppConfig;
+use OCP\IConfig;
 use \Psr\Log\LoggerInterface;
 
 class CollectionService {
@@ -18,6 +19,9 @@ class CollectionService {
 	/** @var IAppConfig */
 	private $appConfig;
 
+	/** @var IConfig */
+	private $config;
+
 	/** @var LoggerInterface */
 	private $logger;
 
@@ -30,11 +34,13 @@ class CollectionService {
 		CalDavBackend $calDav,
 		CardDavBackend $cardDav,
 		IAppConfig $appConfig,
+		IConfig $config,
 		LoggerInterface $logger
 	) {
 		$this->calDav = $calDav;
 		$this->cardDav = $cardDav;
 		$this->appConfig = $appConfig;
+		$this->config = $config;
 		$this->logger = $logger;
 	}
 
@@ -217,5 +223,64 @@ class CollectionService {
 		if ($adminAbUri !== self::DEFAULT_ADDRESSBOOK_URI && !in_array($adminAbUri, $addressbookUris)) {
 			$this->createAddressbook($userId, $adminAbUri, ucfirst($adminAbUri));
 		}
+	}
+
+	// ─── Nextcloud-side default detection ────────────────────────
+
+	/**
+	 * Detects the user's Nextcloud default calendar URI, as set by the user
+	 * in Nextcloud (independent of any Sendent admin configuration).
+	 *
+	 * Reads the per-user preference under app=`dav`:
+	 *   - `defaultCalendarId` (current NC; numeric calendar id) — resolved to URI
+	 *   - `defaultCalendar`   (legacy NC; URI string) — used as fallback
+	 *
+	 * @return string|null The calendar URI, or null if no NC default is set/resolvable
+	 */
+	public function detectUserDefaultCalendar(string $userId): ?string {
+		$idValue = $this->config->getUserValue($userId, 'dav', 'defaultCalendarId', '');
+		if ($idValue !== '' && is_numeric($idValue)) {
+			$targetId = (int)$idValue;
+			foreach ($this->getUserCalendars($userId) as $cal) {
+				if ((int)$cal['id'] === $targetId) {
+					return $cal['uri'];
+				}
+			}
+		}
+
+		$legacyUri = $this->config->getUserValue($userId, 'dav', 'defaultCalendar', '');
+		if ($legacyUri !== '') {
+			foreach ($this->getUserCalendars($userId) as $cal) {
+				if ($cal['uri'] === $legacyUri) {
+					return $cal['uri'];
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Heuristic detection of the user's "default" addressbook.
+	 *
+	 * Nextcloud has no per-user default-addressbook preference, so we mirror
+	 * the Contacts app convention: prefer the URI `contacts`, otherwise the
+	 * first non-deleted addressbook returned for the user.
+	 *
+	 * @return string|null The addressbook URI, or null if the user has none
+	 */
+	public function detectUserDefaultAddressbook(string $userId): ?string {
+		$books = $this->getUserAddressbooks($userId);
+		if ($books === []) {
+			return null;
+		}
+
+		foreach ($books as $book) {
+			if ($book['uri'] === self::DEFAULT_ADDRESSBOOK_URI) {
+				return $book['uri'];
+			}
+		}
+
+		return $books[0]['uri'];
 	}
 }
