@@ -13,6 +13,9 @@ export const useRoomGroupsStore = defineStore('roomGroups', () => {
 	const q = ref('')
 	const total = ref(0)
 
+	/**
+	 *
+	 */
 	async function refresh(): Promise<void> {
 		loading.value = true
 		error.value = null
@@ -32,35 +35,60 @@ export const useRoomGroupsStore = defineStore('roomGroups', () => {
 		}
 	}
 
+	/**
+	 *
+	 * @param p
+	 */
 	function setPage(p: number): void {
 		page.value = p
 		refresh()
 	}
 
+	/**
+	 *
+	 * @param n
+	 */
 	function setPerPage(n: number): void {
 		perPage.value = n
 		page.value = 1
 		refresh()
 	}
 
+	/**
+	 *
+	 * @param s
+	 */
 	function setQuery(s: string): void {
 		q.value = s
 		page.value = 1
 		refresh()
 	}
 
+	/**
+	 *
+	 * @param data
+	 */
 	async function create(data: Partial<RoomGroupDto>): Promise<RoomGroupDto> {
 		const resp = await api.createGroup(data)
 		await refresh()
 		return resp.data
 	}
 
+	/**
+	 *
+	 * @param id
+	 * @param patch
+	 */
 	async function update(id: string, patch: Partial<RoomGroupDto>): Promise<RoomGroupDto> {
 		const resp = await api.updateGroup(id, patch)
 		await refresh()
 		return resp.data
 	}
 
+	/**
+	 *
+	 * @param id
+	 */
 	async function remove(id: string): Promise<void> {
 		await api.deleteGroup(id)
 		await refresh()

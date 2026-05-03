@@ -5,7 +5,7 @@
 			<button v-if="isView"
 				type="button"
 				class="rooms-editor__edit-toggle"
-				@click="$emit('switchToEdit')">
+				@click="$emit('switch-to-edit')">
 				{{ t('sendentsynchroniser', 'Edit') }}
 			</button>
 		</h3>
@@ -78,29 +78,46 @@
 				<label class="rooms-editor__label" for="rooms-editor-roomNumber">
 					{{ t('sendentsynchroniser', 'Room number') }}
 				</label>
-				<input id="rooms-editor-roomNumber" v-model.trim="form.roomNumber" type="text" :disabled="isView">
+				<input id="rooms-editor-roomNumber"
+					v-model.trim="form.roomNumber"
+					type="text"
+					:disabled="isView">
 			</div>
 			<div class="rooms-editor__field">
 				<label class="rooms-editor__label" for="rooms-editor-floor">
 					{{ t('sendentsynchroniser', 'Floor') }}
 				</label>
-				<input id="rooms-editor-floor" v-model.trim="form.floor" type="text" :disabled="isView">
+				<input id="rooms-editor-floor"
+					v-model.trim="form.floor"
+					type="text"
+					:disabled="isView">
 			</div>
 			<div class="rooms-editor__field">
 				<label class="rooms-editor__label" for="rooms-editor-address">
 					{{ t('sendentsynchroniser', 'Address') }}
 				</label>
-				<input id="rooms-editor-address" v-model.trim="form.address" type="text" :disabled="isView">
+				<input id="rooms-editor-address"
+					v-model.trim="form.address"
+					type="text"
+					:disabled="isView">
 			</div>
 			<div class="rooms-editor__field">
 				<label class="rooms-editor__label" for="rooms-editor-roomType">
 					{{ t('sendentsynchroniser', 'Type') }}
 				</label>
 				<select id="rooms-editor-roomType" v-model="form.roomType" :disabled="isView">
-					<option value="meeting-room">meeting-room</option>
-					<option value="board-room">board-room</option>
-					<option value="phone-booth">phone-booth</option>
-					<option value="office">office</option>
+					<option value="meeting-room">
+						meeting-room
+					</option>
+					<option value="board-room">
+						board-room
+					</option>
+					<option value="phone-booth">
+						phone-booth
+					</option>
+					<option value="office">
+						office
+					</option>
 				</select>
 			</div>
 			<div class="rooms-editor__field">
@@ -108,12 +125,19 @@
 					{{ t('sendentsynchroniser', 'Group') }}
 				</label>
 				<select id="rooms-editor-group" v-model="form.groupId" :disabled="isView">
-					<option :value="null">—</option>
-					<option v-for="g in groupsStore.groups" :key="g.id" :value="g.id">{{ g.name }}</option>
+					<option :value="null">
+						—
+					</option>
+					<option v-for="g in groupsStore.groups" :key="g.id" :value="g.id">
+						{{ g.name }}
+					</option>
 				</select>
 			</div>
 			<div class="rooms-editor__field rooms-editor__field--checkbox">
-				<input id="rooms-editor-active" v-model="form.active" type="checkbox" :disabled="isView">
+				<input id="rooms-editor-active"
+					v-model="form.active"
+					type="checkbox"
+					:disabled="isView">
 				<label class="rooms-editor__label rooms-editor__label--inline" for="rooms-editor-active">
 					{{ t('sendentsynchroniser', 'Active') }}
 				</label>
@@ -124,7 +148,10 @@
 			<label class="rooms-editor__label" for="rooms-editor-description">
 				{{ t('sendentsynchroniser', 'Description') }}
 			</label>
-			<textarea id="rooms-editor-description" v-model="form.description" rows="3" :disabled="isView"></textarea>
+			<textarea id="rooms-editor-description"
+				v-model="form.description"
+				rows="3"
+				:disabled="isView" />
 		</div>
 
 		<div v-if="!isView" class="rooms-editor__field rooms-editor__field--full">
@@ -144,7 +171,9 @@
 
 		<RoomPermissionEditor v-if="!isCreate && !isView" :room-id="props.room!.id" />
 
-		<p v-if="error" class="rooms-editor__error">{{ error }}</p>
+		<p v-if="error" class="rooms-editor__error">
+			{{ error }}
+		</p>
 
 		<div class="rooms-editor__actions">
 			<button v-if="!isView"
@@ -181,7 +210,7 @@ const props = withDefaults(
 )
 const emit = defineEmits<{
 	(e: 'saved' | 'cancel' | 'deleted'): void
-	(e: 'switchToEdit'): void
+	(e: 'switch-to-edit'): void
 }>()
 
 const store = useRoomsStore()
@@ -198,6 +227,10 @@ const titleLabel = computed(() => {
 
 // Lock everything in view mode; otherwise apply the binding-aware lock for
 // Exchange-owned fields (name/email/capacity).
+/**
+ *
+ * @param field
+ */
 function inputDisabled(field: string): boolean {
 	return isView.value || lockedFields.value.has(field)
 }
@@ -260,6 +293,9 @@ watch(() => props.room, (r) => {
 	}
 }, { immediate: true })
 
+/**
+ *
+ */
 async function onSave(): Promise<void> {
 	saving.value = true
 	error.value = null
@@ -295,6 +331,10 @@ async function onSave(): Promise<void> {
 	}
 }
 
+/**
+ *
+ * @param name
+ */
 function slugify(name: string): string {
 	return name
 		.toLowerCase()
@@ -307,6 +347,9 @@ function slugify(name: string): string {
 		.replace(/-+$/g, '') // re-trim after substring may have left a trailing hyphen
 }
 
+/**
+ *
+ */
 async function onDelete(): Promise<void> {
 	if (!props.room) return
 	if (!confirm(t('sendentsynchroniser', 'Delete room "{name}"?', { name: props.room.name }))) return
@@ -319,6 +362,10 @@ async function onDelete(): Promise<void> {
 	}
 }
 
+/**
+ *
+ * @param e
+ */
 function extractMessage(e: unknown): string {
 	if (typeof e === 'object' && e !== null && 'response' in e) {
 		const resp = (e as { response?: { data?: { error?: { message?: string } } } }).response

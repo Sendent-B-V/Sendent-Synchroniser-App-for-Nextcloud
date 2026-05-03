@@ -22,7 +22,7 @@
 					<th>{{ t('sendentsynchroniser', 'Name') }}</th>
 					<th>{{ t('sendentsynchroniser', 'ID') }}</th>
 					<th>{{ t('sendentsynchroniser', 'Description') }}</th>
-					<th></th>
+					<th />
 				</tr>
 			</thead>
 			<tbody>
@@ -31,8 +31,12 @@
 					<td><code>{{ g.id }}</code></td>
 					<td>{{ g.description ?? '—' }}</td>
 					<td>
-						<button type="button" @click="onEdit(g)">{{ t('sendentsynchroniser', 'Edit') }}</button>
-						<button type="button" class="rooms-groups__btn-danger" @click="onDelete(g.id, g.name)">×</button>
+						<button type="button" @click="onEdit(g)">
+							{{ t('sendentsynchroniser', 'Edit') }}
+						</button>
+						<button type="button" class="rooms-groups__btn-danger" @click="onDelete(g.id, g.name)">
+							×
+						</button>
 					</td>
 				</tr>
 			</tbody>
@@ -50,7 +54,9 @@
 			@update:page="store.setPage"
 			@update:per-page="store.setPerPage" />
 
-		<p v-if="error" class="rooms-groups__error">{{ error }}</p>
+		<p v-if="error" class="rooms-groups__error">
+			{{ error }}
+		</p>
 	</div>
 </template>
 
@@ -76,10 +82,25 @@ watch(filter, (v) => {
 	}, 300)
 })
 
+/**
+ *
+ */
 function onCreate(): void { editTarget.value = null; editing.value = true }
+/**
+ *
+ * @param g
+ */
 function onEdit(g: RoomGroupDto): void { editTarget.value = g; editing.value = true }
+/**
+ *
+ */
 function onSaved(): void { editing.value = false }
 
+/**
+ *
+ * @param id
+ * @param name
+ */
 async function onDelete(id: string, name: string): Promise<void> {
 	if (!confirm(t('sendentsynchroniser', 'Delete group "{name}"? Rooms will be unassigned.', { name }))) return
 	try { await store.remove(id) } catch (e) { error.value = e instanceof Error ? e.message : 'Failed' }

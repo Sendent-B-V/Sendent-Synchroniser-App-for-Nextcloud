@@ -8,7 +8,7 @@
 					<th>{{ t('sendentsynchroniser', 'Role') }}</th>
 					<th>{{ t('sendentsynchroniser', 'Type') }}</th>
 					<th>{{ t('sendentsynchroniser', 'Principal') }}</th>
-					<th></th>
+					<th />
 				</tr>
 			</thead>
 			<tbody>
@@ -32,13 +32,23 @@
 
 		<div class="rooms-perms__form">
 			<select v-model="newRole">
-				<option value="viewer">viewer</option>
-				<option value="booker">booker</option>
-				<option value="manager">manager</option>
+				<option value="viewer">
+					viewer
+				</option>
+				<option value="booker">
+					booker
+				</option>
+				<option value="manager">
+					manager
+				</option>
 			</select>
 			<select v-model="newPrincipalType">
-				<option value="user">user</option>
-				<option value="group">group</option>
+				<option value="user">
+					user
+				</option>
+				<option value="group">
+					group
+				</option>
 			</select>
 			<input v-model="newPrincipalId"
 				type="text"
@@ -47,7 +57,9 @@
 				{{ t('sendentsynchroniser', 'Grant') }}
 			</button>
 		</div>
-		<p v-if="error" class="rooms-perms__error">{{ error }}</p>
+		<p v-if="error" class="rooms-perms__error">
+			{{ error }}
+		</p>
 	</fieldset>
 </template>
 
@@ -69,6 +81,9 @@ const newPrincipalId = ref('')
 
 const canGrant = computed(() => newPrincipalId.value.trim() !== '')
 
+/**
+ *
+ */
 async function reload(): Promise<void> {
 	error.value = null
 	try {
@@ -78,6 +93,9 @@ async function reload(): Promise<void> {
 	}
 }
 
+/**
+ *
+ */
 async function onGrant(): Promise<void> {
 	error.value = null
 	try {
@@ -89,6 +107,10 @@ async function onGrant(): Promise<void> {
 	}
 }
 
+/**
+ *
+ * @param permId
+ */
 async function onRevoke(permId: number): Promise<void> {
 	error.value = null
 	try {
@@ -99,6 +121,10 @@ async function onRevoke(permId: number): Promise<void> {
 	}
 }
 
+/**
+ *
+ * @param e
+ */
 function extractMessage(e: unknown): string {
 	if (typeof e === 'object' && e !== null && 'response' in e) {
 		const resp = (e as { response?: { data?: { error?: { message?: string } } } }).response

@@ -10,8 +10,12 @@
 			</button>
 		</div>
 
-		<p v-if="store.loading" class="rooms-list__status">{{ t('sendentsynchroniser', 'Loading…') }}</p>
-		<p v-else-if="store.error" class="rooms-list__error">{{ store.error }}</p>
+		<p v-if="store.loading" class="rooms-list__status">
+			{{ t('sendentsynchroniser', 'Loading…') }}
+		</p>
+		<p v-else-if="store.error" class="rooms-list__error">
+			{{ store.error }}
+		</p>
 
 		<table v-if="store.rooms.length > 0" class="rooms-list__table">
 			<thead>
@@ -22,7 +26,9 @@
 					<th>{{ t('sendentsynchroniser', 'Group') }}</th>
 					<th>{{ t('sendentsynchroniser', 'Binding') }}</th>
 					<th>{{ t('sendentsynchroniser', 'Active') }}</th>
-					<th class="rooms-list__actions-col">{{ t('sendentsynchroniser', 'Actions') }}</th>
+					<th class="rooms-list__actions-col">
+						{{ t('sendentsynchroniser', 'Actions') }}
+					</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -66,8 +72,7 @@
 				: t('sendentsynchroniser', 'No rooms match your search.') }}
 		</p>
 
-		<Pagination
-			:page="store.page"
+		<Pagination :page="store.page"
 			:per-page="store.perPage"
 			:total="store.total"
 			@update:page="store.setPage"
@@ -101,6 +106,10 @@ watch(filter, (v) => {
 	}, 300)
 })
 
+/**
+ *
+ * @param id
+ */
 function groupName(id: string | null): string {
 	if (id === null) return '—'
 	return groupsStore.groups.find(g => g.id === id)?.name ?? id

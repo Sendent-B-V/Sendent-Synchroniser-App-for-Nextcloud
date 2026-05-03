@@ -25,22 +25,36 @@
 		<section v-if="tab === 'general'" class="admin-tab-panel">
 			<div class="admin-overview">
 				<div class="admin-overview__card">
-					<div class="admin-overview__label">{{ t('sendentsynchroniser', 'Users enabled for sync') }}</div>
-					<div class="admin-overview__value">{{ nbEnabledUsers }}</div>
+					<div class="admin-overview__label">
+						{{ t('sendentsynchroniser', 'Users enabled for sync') }}
+					</div>
+					<div class="admin-overview__value">
+						{{ nbEnabledUsers }}
+					</div>
 				</div>
 				<div class="admin-overview__card">
-					<div class="admin-overview__label">{{ t('sendentsynchroniser', 'Users actively syncing') }}</div>
-					<div class="admin-overview__value">{{ nbActiveUsers }}</div>
+					<div class="admin-overview__label">
+						{{ t('sendentsynchroniser', 'Users actively syncing') }}
+					</div>
+					<div class="admin-overview__value">
+						{{ nbActiveUsers }}
+					</div>
 				</div>
 				<div class="admin-overview__card">
-					<div class="admin-overview__label">{{ t('sendentsynchroniser', 'Rooms') }}</div>
-					<div class="admin-overview__value">{{ roomsStore.rooms.length }}</div>
+					<div class="admin-overview__label">
+						{{ t('sendentsynchroniser', 'Rooms') }}
+					</div>
+					<div class="admin-overview__value">
+						{{ roomsStore.rooms.length }}
+					</div>
 					<div v-if="boundRoomsCount > 0" class="admin-overview__sub">
 						{{ t('sendentsynchroniser', '{n} bound to Exchange', { n: String(boundRoomsCount) }) }}
 					</div>
 				</div>
 				<div class="admin-overview__card">
-					<div class="admin-overview__label">{{ t('sendentsynchroniser', 'License') }}</div>
+					<div class="admin-overview__label">
+						{{ t('sendentsynchroniser', 'License') }}
+					</div>
 					<div class="admin-overview__value admin-overview__value--small"
 						:class="`admin-overview__license--${licenseStatusKind}`">
 						{{ licenseStatusLabel }}
@@ -135,6 +149,10 @@ const licenseStatusLabel = computed<string>(() => {
 	}
 })
 
+/**
+ *
+ * @param iso
+ */
 function formatDate(iso: string): string {
 	if (!iso) return ''
 	try { return new Date(iso).toLocaleDateString() } catch { return iso }
