@@ -30,7 +30,7 @@ class Version000004Date20260502InstallRooms extends SimpleMigrationStep {
 			$t->addColumn('backing_principal_uri', Types::STRING, ['notnull' => true, 'length' => 255]);
 			$t->addColumn('backing_calendar_uri', Types::STRING, ['notnull' => true, 'length' => 255]);
 			$t->addColumn('group_id', Types::STRING, ['notnull' => false, 'length' => 64]);
-			$t->addColumn('active', Types::BOOLEAN, ['notnull' => true, 'default' => true]);
+			$t->addColumn('active', Types::BOOLEAN, ['notnull' => false, 'default' => true]);
 			$t->addColumn('created_at', Types::DATETIME, ['notnull' => true]);
 			$t->addColumn('updated_at', Types::DATETIME, ['notnull' => true]);
 			$t->setPrimaryKey(['id']);
@@ -77,7 +77,7 @@ class Version000004Date20260502InstallRooms extends SimpleMigrationStep {
 			$t->addColumn('state', Types::STRING, ['notnull' => true, 'length' => 16, 'default' => 'pending']);
 			$t->addColumn('last_synced_at', Types::DATETIME, ['notnull' => false]);
 			$t->addColumn('last_error', Types::TEXT, ['notnull' => false]);
-			$t->addColumn('initial_sync_requested', Types::BOOLEAN, ['notnull' => true, 'default' => true]);
+			$t->addColumn('initial_sync_requested', Types::BOOLEAN, ['notnull' => false, 'default' => true]);
 			$t->addColumn('last_events_pushed', Types::INTEGER, ['notnull' => true, 'default' => 0]);
 			$t->addColumn('last_events_pulled', Types::INTEGER, ['notnull' => true, 'default' => 0]);
 			$t->addColumn('created_at', Types::DATETIME, ['notnull' => true]);
