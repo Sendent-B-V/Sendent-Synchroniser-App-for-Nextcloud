@@ -31,7 +31,7 @@ class Application extends App implements IBootstrap {
 		$context->registerEventListener(\OCP\AppFramework\Http\Events\BeforeTemplateRenderedEvent::class, TokenInvalidInjector::class);
 		$context->registerEventListener(\OCA\Files\Event\LoadAdditionalScriptsEvent::class, TokenInvalidInjector::class);
 		$context->registerEventListener(
-			\OCA\DAV\Events\SabrePluginAddPluginEvent::class,
+			\OCA\DAV\Events\SabrePluginAuthInitEvent::class,
 			\OCA\SendentSynchroniser\Listener\SabrePluginRegistrationListener::class,
 		);
 

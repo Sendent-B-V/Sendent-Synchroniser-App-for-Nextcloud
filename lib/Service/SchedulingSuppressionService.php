@@ -4,32 +4,32 @@ declare(strict_types=1);
 namespace OCA\SendentSynchroniser\Service;
 
 use OCA\SendentSynchroniser\Constants;
-use OCA\SendentSynchroniser\Db\SyncUser;
-use OCA\SendentSynchroniser\Db\SyncUserMapper;
 use OCP\AppFramework\Services\IAppConfig;
+use OCP\IGroupManager;
 
 class SchedulingSuppressionService {
 
 	public function __construct(
 		private IAppConfig $appConfig,
-		private SyncUserMapper $syncUserMapper,
+		private IGroupManager $groupManager,
 	) {}
 
 	/**
-	 * Decide whether to suppress Nextcloud's iTip processing for the given
-	 * CalDAV request.
+	 * Decide whether to suppress Nextcloud's iTip + iMIP processing for the
+	 * given CalDAV scheduling request.
 	 *
 	 * Returns true ONLY when:
 	 *   - Graph API mode is enabled in admin settings, AND
-	 *   - $uid resolves to an active SyncUser, AND
-	 *   - $requestPath targets that user's synced calendar.
+	 *   - $uid is a member of at least one group listed in `activeGroups`.
 	 *
-	 * Fail-closed on path-parse ambiguity: if we cannot determine the
-	 * calendar segment, we return false so the user still receives
-	 * invitations from at least one source.
+	 * No SyncUser, consent, or calendar-URI check: the rule is "if the user is
+	 * in the Sendent active group while Graph API mode is on, NC scheduling is
+	 * out of the way." Admin owns `activeGroups` scoping.
 	 *
-	 * @param string|null $uid           the authenticated NC user, or null
-	 * @param string      $requestPath   Sabre request URI (e.g. "calendars/alice/exchange/1.ics")
+	 * @param string|null $uid          the authenticated NC user, or null
+	 * @param string      $requestPath  retained on the signature for source
+	 *                                  compatibility with the plugin call
+	 *                                  site; not consulted.
 	 */
 	public function shouldSuppress(?string $uid, string $requestPath): bool {
 		if ($this->appConfig->getAppValue(
@@ -43,44 +43,32 @@ class SchedulingSuppressionService {
 			return false;
 		}
 
-		$syncUsers = $this->syncUserMapper->findByUid($uid);
-		if (count($syncUsers) === 0) {
-			return false;
+		foreach ($this->getActiveGroups() as $gid) {
+			if ($this->groupManager->isInGroup($uid, $gid)) {
+				return true;
+			}
 		}
 
-		/** @var SyncUser $syncUser */
-		$syncUser = $syncUsers[0];
-		if (!$syncUser->getActive()) {
-			return false;
-		}
-
-		$calendarUri = $this->extractCalendarUri($requestPath);
-		if ($calendarUri === null) {
-			return false;
-		}
-
-		return $calendarUri === $syncUser->getCalendar();
+		return false;
 	}
 
 	/**
-	 * Extract the calendar URI segment from a CalDAV request path.
+	 * Defensive parse of `activeGroups` app-config: handles missing, '',
+	 * 'null', and malformed JSON by returning an empty list.
 	 *
-	 * Expected shape: "calendars/<uid>/<calendar-uri>/<event>.ics" (with or
-	 * without leading slash). Returns null on any deviation.
+	 * @return string[]
 	 */
-	private function extractCalendarUri(string $requestPath): ?string {
-		$trimmed = ltrim($requestPath, '/');
-		$segments = explode('/', $trimmed);
-
-		if (count($segments) < 3 || $segments[0] !== 'calendars') {
-			return null;
+	private function getActiveGroups(): array {
+		$raw = $this->appConfig->getAppValue('activeGroups', '');
+		if ($raw === '' || $raw === 'null') {
+			return [];
 		}
 
-		$calendarUri = $segments[2];
-		if ($calendarUri === '') {
-			return null;
+		$decoded = json_decode($raw, true);
+		if (!is_array($decoded)) {
+			return [];
 		}
 
-		return $calendarUri;
+		return array_values(array_filter($decoded, 'is_string'));
 	}
 }
