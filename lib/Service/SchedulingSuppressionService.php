@@ -15,26 +15,17 @@ class SchedulingSuppressionService {
 	) {}
 
 	/**
-	 * Decide whether to suppress Nextcloud's iTip + iMIP processing for the
-	 * given CalDAV scheduling request.
+	 * Group membership is the sole user gate — SyncUser status is NOT
+	 * consulted. Users in an active group always get suppression while
+	 * the toggle is on, regardless of whether they've enrolled, retracted
+	 * consent, or been invalidated.
 	 *
-	 * Returns true ONLY when:
-	 *   - Graph API mode is enabled in admin settings, AND
-	 *   - $uid is a member of at least one group listed in `activeGroups`.
-	 *
-	 * No SyncUser, consent, or calendar-URI check: the rule is "if the user is
-	 * in the Sendent active group while Graph API mode is on, NC scheduling is
-	 * out of the way." Admin owns `activeGroups` scoping.
-	 *
-	 * @param string|null $uid          the authenticated NC user, or null
-	 * @param string      $requestPath  retained on the signature for source
-	 *                                  compatibility with the plugin call
-	 *                                  site; not consulted.
+	 * @param string $requestPath  not consulted (kept for call-site signature)
 	 */
 	public function shouldSuppress(?string $uid, string $requestPath): bool {
 		if ($this->appConfig->getAppValue(
-				Constants::GRAPH_API_MODE_KEY,
-				Constants::GRAPH_API_MODE_DEFAULT
+				Constants::DISABLE_ITIP_IMIP_KEY,
+				Constants::DISABLE_ITIP_IMIP_DEFAULT
 			) !== 'true') {
 			return false;
 		}

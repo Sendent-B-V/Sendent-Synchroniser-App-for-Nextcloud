@@ -22,7 +22,6 @@ if (adminEl) {
 		notificationInterval: state.notificationInterval || '7',
 		defaultCalendar: (state.defaultCalendar as string) || '',
 		defaultAddressbook: (state.defaultAddressbook as string) || '',
-		graphApiMode: state.graphApiMode || false,
 		mailAppInstalled: state.mailAppInstalled || false,
 		notificationsAppInstalled: state.notificationsAppInstalled || false,
 	})

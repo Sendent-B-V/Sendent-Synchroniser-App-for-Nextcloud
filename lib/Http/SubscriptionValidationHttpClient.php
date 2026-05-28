@@ -27,18 +27,15 @@ class SubscriptionValidationHttpClient {
 
 	public function validate(License $licenseData, $connectedUserCount = null): ?License {
 		$this->logger->info('SUBSCRIPTIONVALIDATIONHTTPCLIENT-VALIDATE');
-		error_log(print_r('SUBSCRIPTIONVALIDATIONHTTPCLIENT-VALIDATE', true));
 
 		if ($licenseData->getLicensekey() === "" || $licenseData->getEmail() === "") {
 			$this->logger->info('SUBSCRIPTIONVALIDATIONHTTPCLIENT-VALIDATE: No key or email information found for license');
-			error_log(print_r('SUBSCRIPTIONVALIDATIONHTTPCLIENT-VALIDATE: No key or email information found for license', true));
 			return null;
 		}
 
 		$connectedUserCount = $connectedUserCount ?? $this->syncuserService->getValidUserCount();
 
 		$this->logger->info('SUBSCRIPTIONVALIDATIONHTTPCLIENT-USERCOUNT= ' . $connectedUserCount);
-		error_log(print_r('SUBSCRIPTIONVALIDATIONHTTPCLIENT-USERCOUNT= ' . $connectedUserCount, true));
 
 		$data = new SubscriptionIn($licenseData, $connectedUserCount);
 
@@ -67,8 +64,6 @@ class SubscriptionValidationHttpClient {
 				$this->logger->info('SUBSCRIPTIONVALIDATIONHTTPCLIENT-LEVEL=		' . $result->level);
 				$this->logger->info('SUBSCRIPTIONVALIDATIONHTTPCLIENT-KEY=			' . $result->key);
 
-				error_log(print_r('SUBSCRIPTIONVALIDATIONHTTPCLIENT-LEVEL=		' . $result->level, true));
-
 				return $validatedLicense;
 			}
 			else
@@ -78,14 +73,12 @@ class SubscriptionValidationHttpClient {
 				$validatedLicense->setIstrial(-1);
 				$validatedLicense->setTechnicallevel(License::ERROR_VALIDATING);
 				$validatedLicense->setProduct(License::ERROR_VALIDATING);
-				error_log(print_r("SUBSCRIPTIONVALIDATIONHTTPCLIENT-VALIDATE SETTING LEVEL TO ERROR_VALIDATING", true));
-
+				$this->logger->warning('SUBSCRIPTIONVALIDATIONHTTPCLIENT-VALIDATE SETTING LEVEL TO ERROR_VALIDATING');
 			}
 		} catch (Exception $e) {
 			$this->logger->error('SUBSCRIPTIONVALIDATIONHTTPCLIENT-VALIDATE-EXCEPTION: ' . $e->getMessage(), [
 				'exception' => $e,
 			]);
-			error_log(print_r('SUBSCRIPTIONVALIDATIONHTTPCLIENT-VALIDATE-EXCEPTION: ' . $e->getMessage(), true));
 			$validatedLicense->setSubscriptionstatus(License::ERROR_VALIDATING);
 			$validatedLicense->setLevel(License::ERROR_VALIDATING);
 			$validatedLicense->setIstrial(-1);

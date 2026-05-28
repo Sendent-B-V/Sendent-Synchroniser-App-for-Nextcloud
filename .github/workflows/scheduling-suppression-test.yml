@@ -1,0 +1,69 @@
+name: Scheduling Suppression Tests
+
+# Focused, fast feedback for the SchedulingSuppression service + Sabre plugin.
+# The full php-test.yml matrix still exercises these tests across all
+# supported NC/PHP combos; this workflow is a quick PR gate that only fires
+# when the suppression-related files change.
+
+on:
+  push:
+    paths:
+      - 'lib/Service/SchedulingSuppressionService.php'
+      - 'lib/Sabre/SchedulingSuppressorPlugin.php'
+      - 'lib/Constants.php'
+      - 'tests/Unit/Service/SchedulingSuppressionServiceTest.php'
+      - 'tests/Unit/Sabre/SchedulingSuppressorPluginTest.php'
+      - '.github/workflows/scheduling-suppression-test.yml'
+      - 'composer.json'
+      - 'composer.lock'
+  pull_request:
+    paths:
+      - 'lib/Service/SchedulingSuppressionService.php'
+      - 'lib/Sabre/SchedulingSuppressorPlugin.php'
+      - 'lib/Constants.php'
+      - 'tests/Unit/Service/SchedulingSuppressionServiceTest.php'
+      - 'tests/Unit/Sabre/SchedulingSuppressorPluginTest.php'
+      - '.github/workflows/scheduling-suppression-test.yml'
+      - 'composer.json'
+      - 'composer.lock'
+
+jobs:
+  scheduling-suppression:
+    name: SchedulingSuppression unit tests
+    runs-on: ubuntu-latest
+    env:
+      CI: true
+    steps:
+      - name: Set up PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: ctype, curl, dom, gd, gmp, iconv, intl, json, mbstring, openssl, pdo_sqlite, posix, sqlite, xml, zip
+          coverage: none
+
+      - name: Checkout Nextcloud (stable33)
+        # tests/bootstrap.php resolves NC's server bootstrap via ../../../tests,
+        # so the app must live under nextcloud/apps/sendentsynchroniser.
+        run: git clone https://github.com/nextcloud/server.git --recursive --depth 1 -b stable33 nextcloud
+
+      - name: Install Nextcloud
+        run: php -f nextcloud/occ maintenance:install --database-name oc_autotest --database-user oc_autotest --admin-user admin --admin-pass admin --database sqlite --database-pass=''
+
+      - name: Checkout the app
+        uses: actions/checkout@v6
+        with:
+          path: nextcloud/apps/sendentsynchroniser
+
+      - name: Install composer dependencies
+        working-directory: nextcloud/apps/sendentsynchroniser
+        run: composer update --no-interaction
+
+      - name: Enable app
+        run: php -f nextcloud/occ app:enable sendentsynchroniser
+
+      - name: Run SchedulingSuppression tests
+        working-directory: nextcloud/apps/sendentsynchroniser
+        run: |
+          vendor/bin/phpunit -c phpunit.xml --testdox \
+            tests/Unit/Service/SchedulingSuppressionServiceTest.php \
+            tests/Unit/Sabre/SchedulingSuppressorPluginTest.php

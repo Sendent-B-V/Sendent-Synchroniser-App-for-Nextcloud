@@ -35,9 +35,6 @@ async function init() {
 		return
 	}
 
-	// eslint-disable-next-line no-console
-	console.log('Injecting Sendent Synchronizer modal dialog')
-
 	// Create a mount point and mount the Vue modal
 	const mountPoint = document.createElement('div')
 	mountPoint.id = 'sendentsynchroniser-modal'

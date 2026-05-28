@@ -9,11 +9,6 @@
 				{{ t('sendentsynchroniser', 'General') }}
 			</button>
 			<button type="button"
-				:class="['admin-tabs__tab', { 'admin-tabs__tab--active': tab === 'rooms' }]"
-				@click="tab = 'rooms'">
-				{{ t('sendentsynchroniser', 'Rooms Management') }}
-			</button>
-			<button type="button"
 				:class="['admin-tabs__tab', { 'admin-tabs__tab--active': tab === 'sync' }]"
 				@click="tab = 'sync'">
 				{{ t('sendentsynchroniser', 'Synchronization Management') }}
@@ -42,17 +37,6 @@
 				</div>
 				<div class="admin-overview__card">
 					<div class="admin-overview__label">
-						{{ t('sendentsynchroniser', 'Rooms') }}
-					</div>
-					<div class="admin-overview__value">
-						{{ roomsStore.rooms.length }}
-					</div>
-					<div v-if="boundRoomsCount > 0" class="admin-overview__sub">
-						{{ t('sendentsynchroniser', '{n} bound to Exchange', { n: String(boundRoomsCount) }) }}
-					</div>
-				</div>
-				<div class="admin-overview__card">
-					<div class="admin-overview__label">
 						{{ t('sendentsynchroniser', 'License') }}
 					</div>
 					<div class="admin-overview__value admin-overview__value--small"
@@ -72,11 +56,6 @@
 			</div>
 		</section>
 
-		<!-- Tab 2: Rooms Management -->
-		<section v-else-if="tab === 'rooms'" class="admin-tab-panel">
-			<RoomsManagement />
-		</section>
-
 		<!-- Tab 3: Synchronization Management — groups → license → user (Connector) settings -->
 		<section v-else-if="tab === 'sync'" class="admin-tab-panel">
 			<GroupsManagement :nb-enabled-users="nbEnabledUsers"
@@ -93,7 +72,6 @@
 				:initial-notification-interval="notificationInterval"
 				:initial-default-calendar="defaultCalendar"
 				:initial-default-addressbook="defaultAddressbook"
-				:initial-graph-api-mode="graphApiMode"
 				:mail-app-installed="mailAppInstalled"
 				:notifications-app-installed="notificationsAppInstalled" />
 		</section>
@@ -106,8 +84,6 @@ import { translate as t } from '@nextcloud/l10n'
 import GroupsManagement from './GroupsManagement.vue'
 import LicenseSection from './LicenseSection.vue'
 import SettingsSection from './SettingsSection.vue'
-import RoomsManagement from './RoomsManagement.vue'
-import { useRoomsStore } from '../stores/rooms'
 import { useLicenseStore } from '../stores/license'
 
 defineProps<{
@@ -121,19 +97,13 @@ defineProps<{
 	notificationInterval: string | number
 	defaultCalendar: string
 	defaultAddressbook: string
-	graphApiMode: boolean
 	mailAppInstalled: boolean
 	notificationsAppInstalled: boolean
 }>()
 
-const tab = ref<'general' | 'rooms' | 'sync'>('general')
+const tab = ref<'general' | 'sync'>('general')
 
-const roomsStore = useRoomsStore()
 const licenseStore = useLicenseStore()
-
-const boundRoomsCount = computed(
-	() => roomsStore.rooms.filter(r => r.binding !== null && r.binding !== undefined).length,
-)
 
 const licenseStatusKind = computed<string>(() => licenseStore.status?.statusKind ?? 'nolicense')
 const licenseExpiration = computed<string>(() => licenseStore.status?.dateExpiration ?? '')
@@ -159,9 +129,6 @@ function formatDate(iso: string): string {
 }
 
 onMounted(() => {
-	// Refresh rooms once on mount so the General tab can show an accurate count
-	// even if the user never opens the Rooms tab.
-	roomsStore.refresh()
 	// License status is loaded by settings.ts on initial mount; refresh here is
 	// a defensive no-op if the store is already populated.
 	if (licenseStore.status === null) {

@@ -108,10 +108,6 @@ class Admin implements ISettings {
 		$params['notificationsAppInstalled'] = $this->appManager->isInstalled('notifications');
 		$params['defaultCalendar'] = $this->appConfig->getAppValue('defaultCalendar', '');
 		$params['defaultAddressbook'] = $this->appConfig->getAppValue('defaultAddressbook', '');
-		$params['graphApiMode'] = ($this->appConfig->getAppValue(
-			\OCA\SendentSynchroniser\Constants::GRAPH_API_MODE_KEY,
-			\OCA\SendentSynchroniser\Constants::GRAPH_API_MODE_DEFAULT
-		) === 'true');
 
 		return $params;
 	}

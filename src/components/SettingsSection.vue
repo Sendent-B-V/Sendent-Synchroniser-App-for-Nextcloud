@@ -23,7 +23,7 @@
 
 		<!-- IMAP Sync -->
 		<div class="settings-section__field">
-			<label>{{ t('sendentsynchroniser', 'Enable IMAP synchronisation') }}</label>
+			<label>{{ t('sendentsynchroniser', 'Enable IMAP Setup push') }}</label>
 			<div class="settings-section__input-row">
 				<select v-model="imapSyncEnabled"
 					class="settings-section__input"
@@ -41,27 +41,6 @@
 				</span>
 				<span v-if="saved.imapSync" class="settings-section__saved">&#x2713;</span>
 			</div>
-		</div>
-
-		<!-- Graph API mode -->
-		<div class="settings-section__field">
-			<label>{{ t('sendentsynchroniser', 'Graph API mode') }}</label>
-			<div class="settings-section__input-row">
-				<select v-model="graphApiMode"
-					class="settings-section__input"
-					@change="saveGraphApiMode">
-					<option value="true">
-						{{ t('sendentsynchroniser', 'Enabled') }}
-					</option>
-					<option value="false">
-						{{ t('sendentsynchroniser', 'Disabled') }}
-					</option>
-				</select>
-				<span v-if="saved.graphApiMode" class="settings-section__saved">&#x2713;</span>
-			</div>
-			<p class="settings-section__subtitle">
-				{{ t('sendentsynchroniser', 'Enable when Sendent Sync uses Microsoft Graph (rather than Exchange Web Services). While enabled, Nextcloud will not send meeting invitations or process internal scheduling messages for calendars synced by Sendent Sync; Exchange/Graph becomes the sole sender of meeting invitations. Leave disabled if Sendent Sync is using EWS, otherwise attendees may not receive invitations.') }}
-			</p>
 		</div>
 
 		<!-- Email domain — used to match a user's Nextcloud email address to the Exchange domain -->
@@ -187,14 +166,12 @@ const props = defineProps<{
 	initialNotificationInterval: string | number
 	initialDefaultCalendar: string
 	initialDefaultAddressbook: string
-	initialGraphApiMode: boolean
 	mailAppInstalled: boolean
 	notificationsAppInstalled: boolean
 }>()
 
 const sharedSecret = ref(props.initialSharedSecret)
 const imapSyncEnabled = ref(props.initialImapSyncEnabled ? 'true' : 'false')
-const graphApiMode = ref(props.initialGraphApiMode ? 'true' : 'false')
 const emailDomain = ref(props.initialEmailDomain)
 const reminderType = ref(String(props.initialReminderType))
 const notificationMethod = ref(String(props.initialNotificationMethod))
@@ -259,12 +236,6 @@ function debounceSaveEmailDomain() {
  *
  */
 function saveIMAPSync() { saveSetting('imapsync', { IMAPSyncEnabled: imapSyncEnabled.value }, 'imapSync') }
-/**
- *
- */
-function saveGraphApiMode() {
-	saveSetting('graphApiMode', { graphApiMode: graphApiMode.value }, 'graphApiMode')
-}
 /**
  *
  */
