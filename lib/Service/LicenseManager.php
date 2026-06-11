@@ -229,44 +229,4 @@ class LicenseManager
 	{
 		return $this->syncUserService->getValidUsers()->getCount();
 	}
-
-	private const KNOWN_ENTITLEMENTS = [
-		'rooms.sync',
-	];
-
-	/**
-	 * Returns the most recently activated license, or null if none.
-	 * Wraps LicenseService's lookup; safe to call without a license present.
-	 */
-	public function currentOrNull(): ?License
-	{
-		try {
-			$list = $this->licenseservice->findAll();
-			if (is_array($list) && !empty($list)) {
-				$first = reset($list);
-				return $first instanceof License ? $first : null;
-			}
-			return null;
-		} catch (\Throwable) {
-			return null;
-		}
-	}
-
-	/**
-	 * Returns true iff the named entitlement is known AND a locally-valid
-	 * license is present. Today the entitlement set is coarse — `rooms.sync`
-	 * is the only one — and is checked against KNOWN_ENTITLEMENTS rather than
-	 * encoded into the license itself.
-	 */
-	public function hasEntitlement(string $entitlement): bool
-	{
-		if (!in_array($entitlement, self::KNOWN_ENTITLEMENTS, true)) {
-			return false;
-		}
-		$license = $this->currentOrNull();
-		if ($license === null) {
-			return false;
-		}
-		return $this->isLocalValid($license);
-	}
 }
