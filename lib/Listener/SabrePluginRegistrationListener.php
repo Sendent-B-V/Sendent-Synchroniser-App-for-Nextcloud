@@ -4,8 +4,6 @@ declare(strict_types=1);
 namespace OCA\SendentSynchroniser\Listener;
 
 use OCA\DAV\Events\SabrePluginAuthInitEvent;
-use OCA\SendentSynchroniser\Constants;
-use OCA\SendentSynchroniser\Sabre\RoomSchedulingPlugin;
 use OCA\SendentSynchroniser\Sabre\SchedulingSuppressorPlugin;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
@@ -23,7 +21,6 @@ class SabrePluginRegistrationListener implements IEventListener {
 
 	public function __construct(
 		private SchedulingSuppressorPlugin $suppressor,
-		private RoomSchedulingPlugin $roomScheduling,
 		private LoggerInterface $logger,
 	) {}
 
@@ -33,8 +30,5 @@ class SabrePluginRegistrationListener implements IEventListener {
 		}
 		$this->logger->info('SabrePluginRegistrationListener attaching plugins', ['app' => 'sendentsynchroniser']);
 		$event->getServer()->addPlugin($this->suppressor);
-		if (Constants::ROOMS_FEATURE_ENABLED) {
-			$event->getServer()->addPlugin($this->roomScheduling);
-		}
 	}
 }
