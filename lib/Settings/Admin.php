@@ -108,6 +108,7 @@ class Admin implements ISettings {
 		$params['notificationsAppInstalled'] = $this->appManager->isInstalled('notifications');
 		$params['defaultCalendar'] = $this->appConfig->getAppValue('defaultCalendar', '');
 		$params['defaultAddressbook'] = $this->appConfig->getAppValue('defaultAddressbook', '');
+		$params['graphApiMode'] = $this->appConfig->getAppValue(Constants::DISABLE_ITIP_IMIP_KEY, Constants::DISABLE_ITIP_IMIP_DEFAULT);
 
 		return $params;
 	}

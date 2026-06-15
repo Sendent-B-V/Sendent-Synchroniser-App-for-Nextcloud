@@ -72,6 +72,7 @@
 				:initial-notification-interval="notificationInterval"
 				:initial-default-calendar="defaultCalendar"
 				:initial-default-addressbook="defaultAddressbook"
+				:initial-graph-api-mode="graphApiMode"
 				:mail-app-installed="mailAppInstalled"
 				:notifications-app-installed="notificationsAppInstalled" />
 		</section>
@@ -97,6 +98,7 @@ defineProps<{
 	notificationInterval: string | number
 	defaultCalendar: string
 	defaultAddressbook: string
+	graphApiMode: string
 	mailAppInstalled: boolean
 	notificationsAppInstalled: boolean
 }>()

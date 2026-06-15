@@ -148,6 +148,54 @@
 				<span v-if="saved.notificationInterval" class="settings-section__saved">&#x2713;</span>
 			</div>
 		</div>
+
+		<h3>{{ t('sendentsynchroniser', 'Meeting invitations') }}</h3>
+
+		<!-- iMIP/iTip suppression. Stored value graphApiMode: 'true' = suppression ON
+			 (Nextcloud silent, Exchange/Graph sole sender). Default ON. -->
+		<div class="settings-section__field">
+			<label>{{ t('sendentsynchroniser', 'Disable Nextcloud meeting invitations') }}</label>
+			<div class="settings-section__input-row">
+				<select v-model="graphApiMode"
+					class="settings-section__input"
+					@change="onGraphApiModeChange">
+					<option value="true">
+						{{ t('sendentsynchroniser', 'Enabled') }}
+					</option>
+					<option value="false">
+						{{ t('sendentsynchroniser', 'Disabled') }}
+					</option>
+				</select>
+				<span v-if="saved.graphApiMode" class="settings-section__saved">&#x2713;</span>
+			</div>
+			<p class="settings-section__hint">
+				{{ graphApiMode === 'true'
+					? t('sendentsynchroniser', 'Nextcloud will not send meeting invitations. Exchange is the sole sender, which prevents attendees from receiving duplicate invitations.')
+					: t('sendentsynchroniser', 'Nextcloud sends its own meeting invitations. Attendees may receive duplicate invitations.') }}
+			</p>
+		</div>
+
+		<!-- Consequences gate — only shown when disabling suppression -->
+		<div v-if="showSuppressionWarning"
+			class="suppression-modal__overlay"
+			@click.self="cancelDisableSuppression">
+			<div class="suppression-modal__content">
+				<div class="suppression-modal__header">
+					<h2>{{ t('sendentsynchroniser', 'Let Nextcloud send invitations again?') }}</h2>
+				</div>
+				<div class="suppression-modal__body">
+					<p>{{ t('sendentsynchroniser', 'Nextcloud will start sending its own meeting invitations again. Attendees may receive duplicate invitations — one from Nextcloud and one from Exchange.') }}</p>
+				</div>
+				<div class="suppression-modal__footer">
+					<button class="button" @click="cancelDisableSuppression">
+						{{ t('sendentsynchroniser', 'Cancel') }}
+					</button>
+					<button class="button suppression-modal__confirm" @click="confirmDisableSuppression">
+						{{ t('sendentsynchroniser', 'Enable Nextcloud invitations') }}
+					</button>
+				</div>
+			</div>
+		</div>
 	</div>
 </template>
 
@@ -166,6 +214,7 @@ const props = defineProps<{
 	initialNotificationInterval: string | number
 	initialDefaultCalendar: string
 	initialDefaultAddressbook: string
+	initialGraphApiMode: string
 	mailAppInstalled: boolean
 	notificationsAppInstalled: boolean
 }>()
@@ -178,6 +227,8 @@ const notificationMethod = ref(String(props.initialNotificationMethod))
 const notificationInterval = ref(String(props.initialNotificationInterval))
 const defaultCalendar = ref(props.initialDefaultCalendar)
 const defaultAddressbook = ref(props.initialDefaultAddressbook)
+const graphApiMode = ref(props.initialGraphApiMode === 'false' ? 'false' : 'true')
+const showSuppressionWarning = ref(false)
 const showSecret = ref(false)
 const viewIconUrl = imagePath('sendentsynchroniser', 'view.svg')
 
@@ -248,6 +299,36 @@ function saveNotificationMethod() { saveSetting('notificationMethod', { notifica
  *
  */
 function saveNotificationInterval() { saveSetting('notificationInterval', { notificationInterval: notificationInterval.value }, 'notificationInterval') }
+
+/**
+ * Save the toggle. Re-enabling suppression ('true') is the safe direction and
+ * saves immediately. Disabling ('false') re-enables Nextcloud's own invitations
+ * and risks duplicate invites, so it is gated behind a confirmation modal and is
+ * NOT saved here — confirmDisableSuppression() does the save.
+ */
+function onGraphApiModeChange() {
+	if (graphApiMode.value === 'false') {
+		showSuppressionWarning.value = true
+	} else {
+		saveSetting('graphApiMode', { graphApiMode: 'true' }, 'graphApiMode')
+	}
+}
+
+/**
+ * Cancel the disable: revert the dropdown to Enabled and send nothing.
+ */
+function cancelDisableSuppression() {
+	graphApiMode.value = 'true'
+	showSuppressionWarning.value = false
+}
+
+/**
+ * Confirm the disable: persist 'false' and close the modal.
+ */
+function confirmDisableSuppression() {
+	saveSetting('graphApiMode', { graphApiMode: 'false' }, 'graphApiMode')
+	showSuppressionWarning.value = false
+}
 
 let defaultCalendarTimer: ReturnType<typeof setTimeout>
 /**
@@ -341,5 +422,61 @@ function debounceSaveDefaultAddressbook() {
 
 .settings-section__hidden {
 	display: none;
+}
+
+.settings-section__hint {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+	margin: 4px 0 0 0;
+	max-width: 400px;
+}
+
+.suppression-modal__overlay {
+	position: fixed;
+	inset: 0;
+	z-index: 10000;
+	background: rgba(0, 0, 0, 0.6);
+}
+
+.suppression-modal__content {
+	position: fixed;
+	left: 50%;
+	top: 50%;
+	transform: translate(-50%, -50%);
+	z-index: 11000;
+	width: 520px;
+	max-width: 90vw;
+	background: var(--color-main-background);
+	border-radius: var(--border-radius-large);
+	box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+}
+
+.suppression-modal__header {
+	padding: 16px 20px;
+	border-bottom: 1px solid var(--color-border);
+}
+
+.suppression-modal__header h2 {
+	font-size: 18px;
+	font-weight: 600;
+	margin: 0;
+}
+
+.suppression-modal__body {
+	padding: 20px;
+}
+
+.suppression-modal__footer {
+	display: flex;
+	justify-content: flex-end;
+	gap: 8px;
+	padding: 12px 20px;
+	border-top: 1px solid var(--color-border);
+}
+
+.suppression-modal__confirm {
+	background: var(--color-error, #c62828);
+	color: #fff;
+	border-color: var(--color-error, #c62828);
 }
 </style>
