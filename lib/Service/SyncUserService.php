@@ -204,21 +204,28 @@ class SyncUserService {
 							$user['username'] = $username;
 						}
 						$user['uid'] = $NCUser->getUID();
-						$user['email'] = $NCUser->getEmailAddress();
-						// Replaces email address by one of the user email addresses that matches the sync domain (if any)
-						$emailDomain = $this->appConfig->getAppValue('emailDomain', '');
-						if ($emailDomain !== '') {
-							$account = $this->accountManager->getAccount($NCUser);
-							$email = $account->getProperty(IAccountManager::PROPERTY_EMAIL);
-							$emailAddress = $email->getValue();
-							if (substr($emailAddress, -strlen($emailDomain)) === $emailDomain) {
-								$user['email'] = $email->getValue();
-							} else {
-								$emailsCollection = $account->getPropertyCollection(IAccountManager::COLLECTION_EMAIL);
-								foreach($emailsCollection->getProperties() as $email)	{
-									$emailAddress = $email->getValue();
-									if (substr($emailAddress, -strlen($emailDomain)) === $emailDomain) {
-										$user['email'] = $email->getValue();
+						// When an email template is configured (occ sendentsynchroniser:email-template),
+						// the email address is built from it and the account email addresses are ignored
+						$emailTemplate = $this->appConfig->getAppValue('emailTemplate', '');
+						if ($emailTemplate !== '') {
+							$user['email'] = str_replace(['{userId}', '{username}'], [$NCUser->getUID(), $user['username']], $emailTemplate);
+						} else {
+							$user['email'] = $NCUser->getEmailAddress();
+							// Replaces email address by one of the user email addresses that matches the sync domain (if any)
+							$emailDomain = $this->appConfig->getAppValue('emailDomain', '');
+							if ($emailDomain !== '') {
+								$account = $this->accountManager->getAccount($NCUser);
+								$email = $account->getProperty(IAccountManager::PROPERTY_EMAIL);
+								$emailAddress = $email->getValue();
+								if (substr($emailAddress, -strlen($emailDomain)) === $emailDomain) {
+									$user['email'] = $email->getValue();
+								} else {
+									$emailsCollection = $account->getPropertyCollection(IAccountManager::COLLECTION_EMAIL);
+									foreach($emailsCollection->getProperties() as $email)	{
+										$emailAddress = $email->getValue();
+										if (substr($emailAddress, -strlen($emailDomain)) === $emailDomain) {
+											$user['email'] = $email->getValue();
+										}
 									}
 								}
 							}
