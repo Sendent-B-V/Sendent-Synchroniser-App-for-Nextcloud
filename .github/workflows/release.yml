@@ -2,6 +2,8 @@ name: Release
 
 on:
   workflow_dispatch:
+  push:
+    branches: [feat/release-workflow]   # temp
 
 env:
   APP_NAME: sendentsynchroniser
@@ -142,7 +144,7 @@ jobs:
 
       - name: Verify tarball contents
         run: |
-          if ! tar tzf "${APP_NAME}.tar.gz" | grep -q "^${APP_NAME}/signature.json$"; then
+          if ! tar tzf "${APP_NAME}.tar.gz" | grep -q "^${APP_NAME}/appinfo/signature.json$"; then
             echo "::error::signature.json missing - code signing did not run correctly."
             exit 1
           fi
@@ -154,6 +156,8 @@ jobs:
           fi
 
       - name: Create GitHub Release
+        # temp
+        if: github.ref == 'refs/heads/feat/release-workflow'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag }}
@@ -165,9 +169,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to Nextcloud App Store
+        # temp
+        if: github.ref == 'refs/heads/feat/release-workflow'
         uses: nextcloud-releases/nextcloud-appstore-push-action@a011fe619bcf6e77ddebc96f9908e1af4071b9c1 # v1.0.3
         with:
           app_name: ${{ env.APP_NAME }}
           appstore_token: ${{ secrets.NEXTCLOUD_APPSTORE_TOKEN }}
           download_url: https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/${{ env.APP_NAME }}.tar.gz
           app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
+          nightly: true   # TEMPORARY
