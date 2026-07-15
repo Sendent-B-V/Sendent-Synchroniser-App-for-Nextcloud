@@ -21,6 +21,9 @@
     <background-jobs>
         <job>OCA\SendentSynchroniser\Cron\NotifyInactiveUsers</job>
     </background-jobs>
+    <commands>
+        <command>OCA\SendentSynchroniser\Command\EmailTemplate</command>
+    </commands>
     <settings>
         <admin>OCA\SendentSynchroniser\Settings\Admin</admin>
         <admin-section>OCA\SendentSynchroniser\Settings\AdminSection</admin-section>
