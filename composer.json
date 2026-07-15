@@ -15,7 +15,7 @@
         "lint": "find . -name \\*.php -not -path './vendor/*' -exec php -l \"{}\" \\;"
     },
     "require-dev": {
-        "phpunit/phpunit": "^13.2.4",
+        "phpunit/phpunit": "^10.5 || ^11.0 || ^12.0 || ^13.0",
         "nextcloud/coding-standard": "^1.0.0"
     },
     "require": {
