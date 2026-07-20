@@ -1,12 +1,11 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - '[0-9]*'
+  workflow_dispatch:
 
 env:
   APP_NAME: sendentsynchroniser
+  NEXTCLOUD_SERVER_MAJOR: '30'
 
 jobs:
   release:
@@ -16,33 +15,33 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: ${{ env.APP_NAME }}
 
-      - name: Extract version from tag
+      - name: Read version from info.xml
         id: version
-        run: |
-          TAG="${GITHUB_REF#refs/tags/}"
-          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "version=${TAG}" >> "$GITHUB_OUTPUT"
-          echo "Extracted version: ${TAG}"
-
-      - name: Validate info.xml version matches tag
         working-directory: ${{ env.APP_NAME }}
         run: |
-          INFO_VERSION=$(grep -oP '<version>\K[^<]+' appinfo/info.xml)
-          TAG_VERSION="${{ steps.version.outputs.version }}"
-          echo "info.xml version: ${INFO_VERSION}"
-          echo "Tag version:      ${TAG_VERSION}"
-          if [ "${INFO_VERSION}" != "${TAG_VERSION}" ]; then
-            echo "::error::Version mismatch! info.xml has '${INFO_VERSION}' but tag is '${TAG_VERSION}'"
+          VERSION=$(grep -oP '<version>\K[^<]+' appinfo/info.xml)
+          if [ -z "$VERSION" ]; then
+            echo "::error::Could not read <version> from appinfo/info.xml"
             exit 1
           fi
-          echo "Version match confirmed."
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=Release-${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "Releasing version ${VERSION}"
+
+      - name: Ensure this version is not already released
+        working-directory: ${{ env.APP_NAME }}
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/${{ steps.version.outputs.tag }}" >/dev/null 2>&1; then
+            echo "::error::${{ steps.version.outputs.tag }} already exists. Bump <version> in appinfo/info.xml before releasing."
+            exit 1
+          fi
 
       - name: Set up Node.js
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: 'npm'
@@ -63,107 +62,114 @@ jobs:
           find js/ -name '*.LICENSE.txt' -delete
           find css/ -name '*.map' -delete 2>/dev/null || true
 
-      - name: Create release tarball
+      - name: Stage clean app package
         run: |
-          tar czf sendentsynchroniser.tar.gz \
-            --exclude='./${{ env.APP_NAME }}/.git' \
-            --exclude='./${{ env.APP_NAME }}/.github' \
-            --exclude='./${{ env.APP_NAME }}/.gitignore' \
-            --exclude='./${{ env.APP_NAME }}/.eslintrc.*' \
-            --exclude='./${{ env.APP_NAME }}/.php_cs*' \
-            --exclude='./${{ env.APP_NAME }}/.php-cs-fixer.dist.php' \
-            --exclude='./${{ env.APP_NAME }}/.phpunit.result.cache' \
-            --exclude='./${{ env.APP_NAME }}/.env' \
-            --exclude='./${{ env.APP_NAME }}/.vscode' \
-            --exclude='./${{ env.APP_NAME }}/.vs' \
-            --exclude='./${{ env.APP_NAME }}/.DS_Store' \
-            --exclude='./${{ env.APP_NAME }}/.claude' \
-            --exclude='./${{ env.APP_NAME }}/node_modules' \
-            --exclude='./${{ env.APP_NAME }}/vendor' \
-            --exclude='./${{ env.APP_NAME }}/src' \
-            --exclude='./${{ env.APP_NAME }}/tests' \
-            --exclude='./${{ env.APP_NAME }}/build' \
-            --exclude='./${{ env.APP_NAME }}/releases' \
-            --exclude='./${{ env.APP_NAME }}/certificates' \
-            --exclude='./${{ env.APP_NAME }}/package.json' \
-            --exclude='./${{ env.APP_NAME }}/package-lock.json' \
-            --exclude='./${{ env.APP_NAME }}/composer.json' \
-            --exclude='./${{ env.APP_NAME }}/composer.lock' \
-            --exclude='./${{ env.APP_NAME }}/composer.phar' \
-            --exclude='./${{ env.APP_NAME }}/yarn.lock' \
-            --exclude='./${{ env.APP_NAME }}/webpack.common.js' \
-            --exclude='./${{ env.APP_NAME }}/webpack.dev.js' \
-            --exclude='./${{ env.APP_NAME }}/webpack.prod.js' \
-            --exclude='./${{ env.APP_NAME }}/tsconfig.json' \
-            --exclude='./${{ env.APP_NAME }}/Makefile' \
-            --exclude='./${{ env.APP_NAME }}/psalm.xml' \
-            --exclude='./${{ env.APP_NAME }}/phpunit.xml' \
-            --exclude='./${{ env.APP_NAME }}/phpunit.integration.xml' \
-            --exclude='./${{ env.APP_NAME }}/babel.config.js' \
-            --exclude='./${{ env.APP_NAME }}/stylelint.config.js' \
-            ./${{ env.APP_NAME }}/
+          tar czf clean.tar.gz \
+            --exclude="./${APP_NAME}/.git" \
+            --exclude="./${APP_NAME}/.github" \
+            --exclude="./${APP_NAME}/.gitignore" \
+            --exclude="./${APP_NAME}/.gitattributes" \
+            --exclude="./${APP_NAME}/.yarnrc" \
+            --exclude="./${APP_NAME}/.eslintrc.*" \
+            --exclude="./${APP_NAME}/.php_cs*" \
+            --exclude="./${APP_NAME}/.php-cs-fixer.dist.php" \
+            --exclude="./${APP_NAME}/.phpunit.result.cache" \
+            --exclude="./${APP_NAME}/.env" \
+            --exclude="./${APP_NAME}/.vscode" \
+            --exclude="./${APP_NAME}/.vs" \
+            --exclude="./${APP_NAME}/.DS_Store" \
+            --exclude="./${APP_NAME}/.claude" \
+            --exclude="./${APP_NAME}/node_modules" \
+            --exclude="./${APP_NAME}/vendor" \
+            --exclude="./${APP_NAME}/src" \
+            --exclude="./${APP_NAME}/tests" \
+            --exclude="./${APP_NAME}/build" \
+            --exclude="./${APP_NAME}/releases" \
+            --exclude="./${APP_NAME}/certificates" \
+            --exclude="./${APP_NAME}/Postman" \
+            --exclude="./${APP_NAME}/package.json" \
+            --exclude="./${APP_NAME}/package-lock.json" \
+            --exclude="./${APP_NAME}/composer.json" \
+            --exclude="./${APP_NAME}/composer.lock" \
+            --exclude="./${APP_NAME}/composer.phar" \
+            --exclude="./${APP_NAME}/yarn.lock" \
+            --exclude="./${APP_NAME}/webpack.common.js" \
+            --exclude="./${APP_NAME}/webpack.config.js" \
+            --exclude="./${APP_NAME}/webpack.dev.js" \
+            --exclude="./${APP_NAME}/webpack.prod.js" \
+            --exclude="./${APP_NAME}/tsconfig.json" \
+            --exclude="./${APP_NAME}/babel.config.js" \
+            --exclude="./${APP_NAME}/stylelint.config.js" \
+            --exclude="./${APP_NAME}/Makefile" \
+            --exclude="./${APP_NAME}/psalm.xml" \
+            --exclude="./${APP_NAME}/phpunit.xml" \
+            --exclude="./${APP_NAME}/phpunit.integration.xml" \
+            "./${APP_NAME}/"
+          mkdir -p stage
+          tar xzf clean.tar.gz -C stage
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: ctype,curl,dom,gd,intl,json,mbstring,openssl,posix,xml,zip,bz2,fileinfo,gmp,bcmath
+          coverage: none
+
+      - name: Fetch Nextcloud server (provides occ)
+        run: |
+          curl -fsSL -o nextcloud.tar.bz2 \
+            "https://download.nextcloud.com/server/releases/latest-${NEXTCLOUD_SERVER_MAJOR}.tar.bz2"
+          tar xjf nextcloud.tar.bz2
+
+      - name: Code-sign app
+        env:
+          APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
+        run: |
+          if [ -z "$APP_PRIVATE_KEY" ]; then
+            echo "::error::APP_PRIVATE_KEY secret is not set."
+            exit 1
+          fi
+          printf '%s\n' "$APP_PRIVATE_KEY" > private_key.pem
+          curl -fsSL -o "${APP_NAME}.crt" \
+            "https://raw.githubusercontent.com/nextcloud/app-certificate-requests/master/${APP_NAME}/${APP_NAME}.crt"
+          php nextcloud/occ integrity:sign-app \
+            --privateKey="${PWD}/private_key.pem" \
+            --certificate="${PWD}/${APP_NAME}.crt" \
+            --path="${PWD}/stage/${APP_NAME}"
+          # sign the staged copy, then re-pack it unchanged so the signed and shipped files are identical
+          tar czf "${APP_NAME}.tar.gz" -C stage "${APP_NAME}"
+          rm -f private_key.pem
 
       - name: Verify tarball contents
         run: |
-          echo "=== Tarball top-level entries ==="
-          tar tzf sendentsynchroniser.tar.gz | head -30
-          echo ""
-          echo "=== Checking for files that must NOT be present ==="
-          FORBIDDEN=$(tar tzf sendentsynchroniser.tar.gz | grep -E '(node_modules|\.git/|/src/|/tests/|/vendor/|package\.json|webpack\.|tsconfig|\.map$|\.LICENSE\.txt$)' || true)
+          if ! tar tzf "${APP_NAME}.tar.gz" | grep -q "^${APP_NAME}/appinfo/signature.json$"; then
+            echo "::error::signature.json missing - code signing did not run correctly."
+            exit 1
+          fi
+          FORBIDDEN=$(tar tzf "${APP_NAME}.tar.gz" | grep -E '(node_modules|\.git/|/src/|/tests/|/vendor/|package\.json|webpack\.|tsconfig|\.map$|\.LICENSE\.txt$)' || true)
           if [ -n "$FORBIDDEN" ]; then
             echo "::error::Tarball contains forbidden files:"
             echo "$FORBIDDEN"
             exit 1
           fi
-          echo "Tarball verification passed."
-
-      - name: Sign tarball with Nextcloud private key
-        id: sign
-        env:
-          APP_PRIVATE_KEY: ${{ secrets.APP_PRIVATE_KEY }}
-        run: |
-          echo "$APP_PRIVATE_KEY" > private_key.pem
-          SIGNATURE=$(openssl dgst -sha512 -sign private_key.pem sendentsynchroniser.tar.gz | openssl base64 -A)
-          echo "signature=${SIGNATURE}" >> "$GITHUB_OUTPUT"
-          rm private_key.pem
 
       - name: Create GitHub Release
-        id: create_release
-        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ steps.version.outputs.tag }}
           name: ${{ steps.version.outputs.version }}
-          draft: false
-          prerelease: false
+          target_commitish: ${{ github.sha }}
           generate_release_notes: true
-          files: sendentsynchroniser.tar.gz
+          files: ${{ env.APP_NAME }}.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish to Nextcloud App Store
-        env:
-          NEXTCLOUD_APPSTORE_TOKEN: ${{ secrets.NEXTCLOUD_APPSTORE_TOKEN }}
-        run: |
-          DOWNLOAD_URL="https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/sendentsynchroniser.tar.gz"
-          SIGNATURE="${{ steps.sign.outputs.signature }}"
-
-          echo "Publishing to Nextcloud App Store..."
-          echo "Download URL: ${DOWNLOAD_URL}"
-
-          HTTP_STATUS=$(curl -s -o response.txt -w "%{http_code}" \
-            -X POST \
-            -H "Authorization: Token ${NEXTCLOUD_APPSTORE_TOKEN}" \
-            -H "Content-Type: application/json" \
-            -d "{\"download\": \"${DOWNLOAD_URL}\", \"signature\": \"${SIGNATURE}\", \"nightly\": false}" \
-            https://apps.nextcloud.com/api/v1/apps/releases)
-
-          echo "HTTP Status: ${HTTP_STATUS}"
-          cat response.txt
-          echo ""
-
-          if [ "$HTTP_STATUS" -ge 400 ]; then
-            echo "::error::App Store publish failed with HTTP ${HTTP_STATUS}"
-            exit 1
-          fi
-
-          echo "Successfully published to Nextcloud App Store."
+        if: github.ref == 'refs/heads/main'
+        uses: nextcloud-releases/nextcloud-appstore-push-action@a011fe619bcf6e77ddebc96f9908e1af4071b9c1 # v1.0.3
+        with:
+          app_name: ${{ env.APP_NAME }}
+          appstore_token: ${{ secrets.NEXTCLOUD_APPSTORE_TOKEN }}
+          download_url: https://github.com/${{ github.repository }}/releases/download/${{ steps.version.outputs.tag }}/${{ env.APP_NAME }}.tar.gz
+          app_private_key: ${{ secrets.APP_PRIVATE_KEY }}
