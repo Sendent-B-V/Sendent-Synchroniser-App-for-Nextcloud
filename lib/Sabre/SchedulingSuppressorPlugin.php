@@ -26,6 +26,11 @@ use Sabre\VObject\ITip\Message;
  * and users who haven't picked a default in NC Calendar (property unset)
  * both fall through to NC's normal scheduling. No IConfig
  * `dav.defaultCalendar` fallback.
+ *
+ * Permanent deletes from the calendar trash bin (`calendars/{uid}/trashbin/{id}`)
+ * are a special case: NC regenerates a CANCEL on purge, but the path carries no
+ * real calendar name, so the CALENDAR GATE resolves the trashed event's origin
+ * calendar from the node itself before comparing to the default.
  */
 class SchedulingSuppressorPlugin extends ServerPlugin {
 
@@ -36,6 +41,14 @@ class SchedulingSuppressorPlugin extends ServerPlugin {
 	public const SCHEDULE_PRIORITY = 50;
 
 	private const SCHEDULE_DEFAULT_CALENDAR_PROP = '{urn:ietf:params:xml:ns:caldav}schedule-default-calendar-URL';
+
+	/**
+	 * Calendar-home child that holds soft-deleted events (NC calendar trash bin).
+	 * A permanent delete from the trash targets `calendars/{uid}/trashbin/{id}`,
+	 * so extractCalendarUriFromPath() yields this literal instead of a real
+	 * calendar name — signalling we must resolve the event's origin calendar.
+	 */
+	private const TRASHBIN_URI_SEGMENT = 'trashbin';
 
 	private Server $server;
 
@@ -69,8 +82,23 @@ class SchedulingSuppressorPlugin extends ServerPlugin {
 			return null;
 		}
 
+		if ($uid === null || $uid === '') {
+			return null;
+		}
+
 		$currentCalendarUri = $this->extractCalendarUriFromPath($requestPath);
-		if ($currentCalendarUri === null || $uid === null || $uid === '') {
+
+		// Permanent delete from the calendar trash bin. NC's DeletedCalendarObject
+		// implements ICalendarObject, so Sabre's beforeUnbind regenerates a CANCEL on
+		// purge (server#36051) — but the request path is calendars/{uid}/trashbin/{id},
+		// whose calendar segment is the literal "trashbin", not the event's origin
+		// calendar. Resolve the trashed node's origin so the default-calendar gate below
+		// still applies and mirrors what happened at move-to-trash time.
+		if ($currentCalendarUri === self::TRASHBIN_URI_SEGMENT) {
+			$currentCalendarUri = $this->resolveTrashbinOriginCalendarUri($requestPath);
+		}
+
+		if ($currentCalendarUri === null) {
 			return null;
 		}
 
@@ -119,6 +147,38 @@ class SchedulingSuppressorPlugin extends ServerPlugin {
 	}
 
 	/**
+	 * Resolves the origin calendar URI of a trashed calendar object from its
+	 * trash-bin path (`calendars/{uid}/trashbin/{id}`). NC's DeletedCalendarObject
+	 * exposes it via getCalendarUri()/getSourceCalendarUri(); we duck-type so we
+	 * neither depend on the class nor break if it is absent on older NC. Returns
+	 * null when the node can't be loaded or isn't a recognisable trash object —
+	 * failing safe to NC's normal scheduling rather than over-suppressing.
+	 */
+	private function resolveTrashbinOriginCalendarUri(string $requestPath): ?string {
+		try {
+			$node = $this->server->tree->getNodeForPath($requestPath);
+		} catch (\Throwable $e) {
+			$this->logger->warning('Failed to load trash-bin node {path}: {msg}', [
+				'path' => $requestPath,
+				'msg' => $e->getMessage(),
+				'app' => 'sendentsynchroniser',
+			]);
+			return null;
+		}
+
+		foreach (['getCalendarUri', 'getSourceCalendarUri'] as $method) {
+			if (method_exists($node, $method)) {
+				$uri = $node->$method();
+				if (is_string($uri) && $uri !== '') {
+					return $uri;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
 	 * Extracts the calendar URI segment from a Sabre path like
 	 * `calendars/alice/personal/abc.ics`, `calendars/alice/personal/`, or
 	 * `/remote.php/dav/calendars/alice/personal/`. Returns null on outbox/
@@ -132,7 +192,12 @@ class SchedulingSuppressorPlugin extends ServerPlugin {
 		$value = trim($value, '/');
 		$segments = explode('/', $value);
 		if (count($segments) >= 3 && $segments[0] === 'calendars') {
-			return $segments[2];
+			// Normalise percent-encoding: the request path may arrive decoded
+			// (`persönlich`) while the schedule-default-calendar-URL href is
+			// encoded (`pers%C3%B6nlich`), or vice versa. rawurldecode() collapses
+			// both to the same form so non-ASCII / localized slugs still match.
+			// No-op for plain ASCII slugs like `personal`. See NC server#40512.
+			return rawurldecode($segments[2]);
 		}
 		return null;
 	}
