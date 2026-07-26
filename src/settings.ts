@@ -23,6 +23,7 @@ if (adminEl) {
 		defaultCalendar: (state.defaultCalendar as string) || '',
 		defaultAddressbook: (state.defaultAddressbook as string) || '',
 		graphApiMode: (state.graphApiMode as string) || 'true',
+		trashbinScrubEnabled: (state.trashbinScrubEnabled as string) || 'false',
 		mailAppInstalled: state.mailAppInstalled || false,
 		notificationsAppInstalled: state.notificationsAppInstalled || false,
 	})

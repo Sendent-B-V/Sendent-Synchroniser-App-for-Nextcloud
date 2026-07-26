@@ -22,4 +22,10 @@ class Constants {
 	// Storage key value stays 'graphApiMode' to preserve existing admin settings across the rename.
 	public const DISABLE_ITIP_IMIP_KEY = 'graphApiMode';
 	public const DISABLE_ITIP_IMIP_DEFAULT = 'true';
+
+	// Strip X-SENDENT* properties from personal-calendar events when they are
+	// deleted into the calendar trash bin, so a restore yields a clean event.
+	public const TRASHBIN_SCRUB_KEY = 'trashbinScrubEnabled';
+	public const TRASHBIN_SCRUB_DEFAULT = 'false';
+	public const SENDENT_PROPERTY_PREFIX = 'X-SENDENT';
 }

@@ -28,6 +28,19 @@ class Application extends App implements IBootstrap {
 			\OCA\DAV\Events\SabrePluginAuthInitEvent::class,
 			\OCA\SendentSynchroniser\Listener\SabrePluginRegistrationListener::class,
 		);
+		// Trash-bin scrub of X-SENDENT* properties. The move-to-trash event moved
+		// namespaces across our NC support range: the OCA\DAV class exists on
+		// NC <= 31 (removed in 32), the OCP one since NC 31.0.2 — register both;
+		// a class-string for an event that never gets dispatched is harmless,
+		// and the listener guards against NC 31 dispatching both for one delete.
+		$context->registerEventListener(
+			\OCA\DAV\Events\CalendarObjectMovedToTrashEvent::class,
+			\OCA\SendentSynchroniser\Listener\CalendarObjectTrashScrubListener::class,
+		);
+		$context->registerEventListener(
+			\OCP\Calendar\Events\CalendarObjectMovedToTrashEvent::class,
+			\OCA\SendentSynchroniser\Listener\CalendarObjectTrashScrubListener::class,
+		);
 		$context->registerNotifierService(Notifier::class);
 	}
 

@@ -109,6 +109,7 @@ class Admin implements ISettings {
 		$params['defaultCalendar'] = $this->appConfig->getAppValue('defaultCalendar', '');
 		$params['defaultAddressbook'] = $this->appConfig->getAppValue('defaultAddressbook', '');
 		$params['graphApiMode'] = $this->appConfig->getAppValue(Constants::DISABLE_ITIP_IMIP_KEY, Constants::DISABLE_ITIP_IMIP_DEFAULT);
+		$params['trashbinScrubEnabled'] = $this->appConfig->getAppValue(Constants::TRASHBIN_SCRUB_KEY, Constants::TRASHBIN_SCRUB_DEFAULT);
 
 		return $params;
 	}
