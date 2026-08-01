@@ -65,6 +65,61 @@ class CalendarResetService {
 	}
 
 	/**
+	 * Deletes the sync target calendar (hard delete — objects, shares and
+	 * scheduling invitations are removed atomically and nothing lands in the
+	 * trashbin; a calendar already sitting in the trashbin from an earlier
+	 * web-UI delete is purged the same way, freeing the URI it still occupies)
+	 * and re-creates it with the same URI, display name, color, sort order and
+	 * timezone, preserving the user's locale-specific naming. Re-points the
+	 * user's Nextcloud default-calendar preference when it referenced the old
+	 * calendar. Guarded by the legacy token: once activate() has swapped the
+	 * token name, this is a no-op — that is the once-only guarantee.
+	 */
+	public function reset(string $userId): bool {
+		if (!$this->syncUserService->hasLegacyToken($userId)) {
+			return false;
+		}
+
+		$uri = $this->targetCalendarUri($userId);
+		$cal = $this->findCalendar($userId, $uri);
+		if ($cal === null) {
+			return false;
+		}
+		$calId = (int)$cal['id'];
+
+		$props = ['components' => 'VEVENT'];
+		foreach ([
+			'{DAV:}displayname',
+			'{http://apple.com/ns/ical/}calendar-color',
+			'{http://apple.com/ns/ical/}calendar-order',
+			'{urn:ietf:params:xml:ns:caldav}calendar-timezone',
+		] as $prop) {
+			if (isset($cal[$prop]) && $cal[$prop] !== null && $cal[$prop] !== '') {
+				$props[$prop] = $cal[$prop];
+			}
+		}
+
+		$wasNcDefault = $this->config->getUserValue($userId, 'dav', 'defaultCalendarId', '') === (string)$calId;
+
+		// Shares are bound to the internal resource id and are destroyed by the
+		// hard delete; log them so support can help users re-share afterwards.
+		$shares = $this->calDav->getShares($calId);
+		if (!empty($shares)) {
+			$this->logger->warning('Calendar reset for user "' . $userId . '" removes ' . count($shares) . ' share(s) on calendar "' . $uri . '": ' . json_encode(array_column($shares, 'href')));
+		}
+
+		$this->logger->info('Resetting legacy sync calendar "' . $uri . '" (id ' . $calId . ') for user "' . $userId . '"');
+		$this->calDav->deleteCalendar($calId, true);
+		$newId = $this->calDav->createCalendar($this->principal($userId), $uri, $props);
+
+		if ($wasNcDefault && $newId) {
+			$this->config->setUserValue($userId, 'dav', 'defaultCalendarId', (string)$newId);
+		}
+
+		return true;
+	}
+
+	/**
 	 * Finds the calendar at the given URI: the live one if it exists, else a
 	 * trashbinned one. A trashbinned calendar still occupies the URI —
 	 * oc_calendars has a unique index on (principaluri, uri) regardless of

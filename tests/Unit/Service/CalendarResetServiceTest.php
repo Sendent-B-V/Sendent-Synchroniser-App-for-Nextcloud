@@ -128,4 +128,83 @@ class CalendarResetServiceTest extends TestCase {
 		$this->collections->method('getDefaultCalendar')->willReturn('personal');
 		$this->assertSame('personal', $this->svc->targetCalendarUri('bob'));
 	}
+
+	public function testResetRecreatesCalendarWithSameProps(): void {
+		$this->givenLegacyToken(true);
+		$this->givenTargetCalendar();
+		$this->calDav->method('getCalendarsForUser')->willReturn([
+			[
+				'id' => 7,
+				'uri' => 'personal',
+				'{DAV:}displayname' => 'Persoonlijk',
+				'{http://apple.com/ns/ical/}calendar-color' => '#FF00FF',
+				'{urn:ietf:params:xml:ns:caldav}calendar-timezone' => 'BEGIN:VCALENDAR...Europe/Amsterdam...',
+			],
+		]);
+		$this->calDav->expects($this->once())->method('deleteCalendar')->with(7, true);
+		$this->calDav->expects($this->once())->method('createCalendar')
+			->with('principals/users/alice', 'personal', [
+				'components' => 'VEVENT',
+				'{DAV:}displayname' => 'Persoonlijk',
+				'{http://apple.com/ns/ical/}calendar-color' => '#FF00FF',
+				'{urn:ietf:params:xml:ns:caldav}calendar-timezone' => 'BEGIN:VCALENDAR...Europe/Amsterdam...',
+			])
+			->willReturn(99);
+		$this->config->expects($this->never())->method('setUserValue');
+		$this->assertTrue($this->svc->reset('alice'));
+	}
+
+	public function testResetRepointsNcDefaultCalendar(): void {
+		$this->givenLegacyToken(true);
+		$this->givenTargetCalendar();
+		// The NC default-calendar preference points at the old id 7
+		$this->config->method('getUserValue')
+			->with('alice', 'dav', 'defaultCalendarId', '')
+			->willReturn('7');
+		$this->calDav->method('getCalendarsForUser')->willReturn([
+			['id' => 7, 'uri' => 'personal', '{DAV:}displayname' => 'Personal'],
+		]);
+		$this->calDav->method('createCalendar')->willReturn(99);
+		$this->config->expects($this->once())->method('setUserValue')
+			->with('alice', 'dav', 'defaultCalendarId', '99');
+		$this->assertTrue($this->svc->reset('alice'));
+	}
+
+	public function testResetRefusesWithoutLegacyToken(): void {
+		// Once activate() has swapped the token, a replayed reset must no-op.
+		$this->givenLegacyToken(false);
+		$this->calDav->expects($this->never())->method('deleteCalendar');
+		$this->assertFalse($this->svc->reset('alice'));
+	}
+
+	public function testResetPurgesTrashbinnedCalendarBeforeRecreating(): void {
+		// deleteCalendar($id, true) hard-deletes the row whether live or
+		// trashbinned — freeing the URI held by the unique index.
+		$this->givenLegacyToken(true);
+		$this->givenTargetCalendar();
+		$this->calDav->method('getCalendarsForUser')->willReturn([
+			[
+				'id' => 7,
+				'uri' => 'personal',
+				'{DAV:}displayname' => 'Persoonlijk',
+				'{http://nextcloud.com/ns}deleted-at' => 1750000000,
+			],
+		]);
+		$this->calDav->expects($this->once())->method('deleteCalendar')->with(7, true);
+		$this->calDav->expects($this->once())->method('createCalendar')
+			->with('principals/users/alice', 'personal', [
+				'components' => 'VEVENT',
+				'{DAV:}displayname' => 'Persoonlijk',
+			])
+			->willReturn(99);
+		$this->assertTrue($this->svc->reset('alice'));
+	}
+
+	public function testResetReturnsFalseWhenCalendarMissing(): void {
+		$this->givenLegacyToken(true);
+		$this->givenTargetCalendar();
+		$this->calDav->method('getCalendarsForUser')->willReturn([]);
+		$this->calDav->expects($this->never())->method('deleteCalendar');
+		$this->assertFalse($this->svc->reset('alice'));
+	}
 }
