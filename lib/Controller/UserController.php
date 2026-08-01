@@ -135,7 +135,7 @@ class UserController extends Controller {
 			$credentials->getUID(),
 			$credentials->getLoginName(),
 			null,
-			$this->appName,
+			Constants::TOKEN_NAME,
 			IToken::PERMANENT_TOKEN,
 			IToken::DO_NOT_REMEMBER
 		);

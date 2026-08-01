@@ -70,10 +70,13 @@ class SyncUserService {
 				'message' => 'user does not exist'
 			];
 		} else {
-		    // Invalidates existing app tokens
+		    // Invalidates existing app tokens — both generations: tokens minted
+		    // before the rework are named TOKEN_NAME_LEGACY, newer ones TOKEN_NAME.
+		    // Matching both is security-critical: retracting consent must always
+		    // revoke legacy tokens too.
 		    $existingTokens = $this->tokenProvider->getTokenByUser($userId);
 			foreach($existingTokens as $token) {
-				if ( $token->getName() === $this->appName) {
+				if (in_array($token->getName(), [Constants::TOKEN_NAME, Constants::TOKEN_NAME_LEGACY], true)) {
 					$this->tokenProvider->invalidateTokenById($token->getUid(), $token->getId());
 				}
 			}
@@ -89,6 +92,22 @@ class SyncUserService {
 
 		return $response;
 
+	}
+
+	/**
+	 * Whether the user still holds an app token minted before the architecture
+	 * rework (legacy name). Such a user has not yet completed the new consent
+	 * flow: activate() replaces the token with one named Constants::TOKEN_NAME,
+	 * so this returning false is the durable "already handled" signal for both
+	 * the consent-modal push and the one-time calendar reset offer.
+	 */
+	public function hasLegacyToken(string $userId): bool {
+		foreach ($this->tokenProvider->getTokenByUser($userId) as $token) {
+			if ($token->getName() === Constants::TOKEN_NAME_LEGACY) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/**
