@@ -19,8 +19,9 @@ class Constants {
 	public const NOTIFICATIONMETHOD_MODAL_BOTH = 3;
 	public const NOTIFICATIONMETHOD_MODAL_DEFAULT = self::NOTIFICATIONMETHOD_MODAL_FILE;
 
-	public const GRAPH_API_MODE_KEY = 'graphApiMode';
-	public const GRAPH_API_MODE_DEFAULT = 'false';
+	// Storage key value stays 'graphApiMode' to preserve existing admin settings across the rename.
+	public const DISABLE_ITIP_IMIP_KEY = 'graphApiMode';
+	public const DISABLE_ITIP_IMIP_DEFAULT = 'true';
 
 	// App-token names. Tokens minted before the architecture rework carry the
 	// legacy name (the app id); new tokens carry TOKEN_NAME. A user still

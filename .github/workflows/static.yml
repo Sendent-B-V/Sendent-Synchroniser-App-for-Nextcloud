@@ -7,7 +7,7 @@ jobs:
     name: Code style
     steps:
         - name: Checkout
-          uses: actions/checkout@v6
+          uses: actions/checkout@v7
         - name: Set up php
           uses: shivammathur/setup-php@v2
           with:
@@ -22,8 +22,8 @@ jobs:
     name: Frontend build
     steps:
         - name: Checkout
-          uses: actions/checkout@v6
-        - uses: actions/setup-node@v6
+          uses: actions/checkout@v7
+        - uses: actions/setup-node@v7
           with:
             node-version: '22'
         - name: Install dependencies

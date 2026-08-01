@@ -127,16 +127,14 @@ class LicenseService {
 	public function create(string $license, string $licenseKeyToken, string $subscriptionStatus, DateTime $dategraceperiodend,
 	DateTime $datelicenseend, int $maxusers, int $maxgraceusers,
 	string $email, DateTime $datelastchecked, string $level, string $technicalLevel, string $product, int $isTrial) {
-		error_log(print_r("LICENSESERVICE-CREATE", true));
+		$this->logger->info('LICENSESERVICE-CREATE level=' . $level);
 
 		try {
-			error_log(print_r("LICENSESERVICE-LEVEL=		" . $level, true));
-
 			return $this->update(0, $license, $licenseKeyToken, $subscriptionStatus,
 			$dategraceperiodend, $datelicenseend,
 			$maxusers, $maxgraceusers, $email, $datelastchecked, $level, $technicalLevel, $product, $isTrial);
 		} catch (Exception $e) {
-			error_log(print_r("LICENSESERVICE-EXCEPTION=" . $e, true));
+			$this->logger->error('LICENSESERVICE-CREATE-EXCEPTION: ' . $e->getMessage(), ['exception' => $e]);
 
 			$licenseobj = new License();
 			
@@ -159,7 +157,7 @@ class LicenseService {
 			$licenseobj->setTechnicallevel($technicalLevel);
 			$licenseobj->setIstrial($isTrial);
 			
-			error_log(print_r("LICENSESERVICE-EXCEPTION-LEVEL=" . $licenseobj->getLevel(), true));
+			$this->logger->error('LICENSESERVICE-EXCEPTION-LEVEL=' . $licenseobj->getLevel());
 			$licenseresult = $this->mapper->insert($licenseobj);
 			if ($this->valueIsLicenseKeyFilePath($licenseresult->getLicensekey()) !== false) {
 				$licenseresult->setLicensekey($this->FileStorageManager->getLicenseContent());
@@ -210,7 +208,7 @@ class LicenseService {
 	public function update(int $id,string $license, string $licenseKeyToken, string $subscriptionStatus, DateTime $dategraceperiodend,
 	DateTime $datelicenseend, int $maxusers, int $maxgraceusers,
 	string $email, DateTime $datelastchecked, string $level, string $technicalLevel, string $product, int $isTrial): \OCP\AppFramework\Db\Entity {
-		error_log(print_r("LICENSESERVICE-UPDATE", true));
+		$this->logger->info('LICENSESERVICE-UPDATE level=' . $level);
 		$licenseobj = new License();
 
 		$value = $this->FileStorageManager->writeLicenseTxt($license);

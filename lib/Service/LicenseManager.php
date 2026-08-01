@@ -69,7 +69,6 @@ class LicenseManager
 			if (str_contains($license->getEmail(), 'OFFLINE_')) {
 				$this->logger->info('NOT pinging licensing server because of offline support with license ' . $license->getId());
 			} else {
-				error_log(print_r('Pinging licensing server with license ' . $license->getId(), true));
 				$this->logger->info('Pinging licensing server with license ' . $license->getId());
 				$pingResultLicense = $this->subscriptionvalidationhttpclient->validate($license);
 			}
@@ -81,7 +80,6 @@ class LicenseManager
 	public function renewLicense(License $license)
 	{
 		$this->logger->info('Renewing license ' . $license->getId());
-		error_log(print_r("Renewing license " . $license->getId(), true));
 		if (str_contains($license->getEmail(), 'OFFLINE_')) {
 			$this->logger->info('NOT pinging licensing server because of offline support with license ' . $license->getId());
 			return $this->licenseservice->update(
@@ -115,8 +113,6 @@ class LicenseManager
 				$level = $license->getLevel();
 
 				if ($level != License::ERROR_VALIDATING) {
-					error_log(print_r("RENEWLICENSE LICENSE LEVEL IS NOT ERROR_VALIDATING", true));
-
 					return $this->licenseservice->update(
 						$license->getId(),
 						$license->getLicensekey(),
@@ -162,7 +158,7 @@ class LicenseManager
 
 	public function activateLicense(License $license)
 	{
-		error_log(print_r("LICENSEMANAGER-ACTIVATELICENSE", true));
+		$this->logger->info('LICENSEMANAGER-ACTIVATELICENSE');
 		if (str_contains($license->getEmail(), 'OFFLINE_')) {
 			$this->logger->info('Overriding licensekeytoken for offline support ' . $license->getId());
 			return $license;
@@ -170,14 +166,11 @@ class LicenseManager
 			$activatedLicense = $this->subscriptionvalidationhttpclient->activate($license);
 			if (isset($activatedLicense)) {
 				$level = $activatedLicense->getLevel();
-				error_log(print_r("LICENSEMANAGER-LEVEL=		" . $level, true));
 
 				if (!isset($level) && ($activatedLicense->getEmail() == "" || $activatedLicense->getLicensekey() == "")) {
 					$level = "Error_incomplete";
-					error_log(print_r("LICENSEMANAGER-LEVEL=		Error_incomplete", true));
 				} elseif (!isset($level)) {
 					$level = License::ERROR_VALIDATING;
-					error_log(print_r("LICENSEMANAGER-LEVEL=		" . License::ERROR_VALIDATING, true));
 				}
 				$maxUsers = $activatedLicense->getMaxusers();
 				if (!isset($maxUsers)) {
@@ -187,7 +180,7 @@ class LicenseManager
 				if (!isset($maxGraceUsers)) {
 					$maxGraceUsers = 1;
 				}
-				error_log(print_r("LICENSEMANAGER-LEVEL=		" . $level, true));
+				$this->logger->info('LICENSEMANAGER-ACTIVATELICENSE level=' . $level);
 
 				return $this->licenseservice->create(
 					$activatedLicense->getLicensekey(),
@@ -235,45 +228,5 @@ class LicenseManager
 	public function getCurrentUserCount()
 	{
 		return $this->syncUserService->getValidUsers()->getCount();
-	}
-
-	private const KNOWN_ENTITLEMENTS = [
-		'rooms.sync',
-	];
-
-	/**
-	 * Returns the most recently activated license, or null if none.
-	 * Wraps LicenseService's lookup; safe to call without a license present.
-	 */
-	public function currentOrNull(): ?License
-	{
-		try {
-			$list = $this->licenseservice->findAll();
-			if (is_array($list) && !empty($list)) {
-				$first = reset($list);
-				return $first instanceof License ? $first : null;
-			}
-			return null;
-		} catch (\Throwable) {
-			return null;
-		}
-	}
-
-	/**
-	 * Returns true iff the named entitlement is known AND a locally-valid
-	 * license is present. Today the entitlement set is coarse — `rooms.sync`
-	 * is the only one — and is checked against KNOWN_ENTITLEMENTS rather than
-	 * encoded into the license itself.
-	 */
-	public function hasEntitlement(string $entitlement): bool
-	{
-		if (!in_array($entitlement, self::KNOWN_ENTITLEMENTS, true)) {
-			return false;
-		}
-		$license = $this->currentOrNull();
-		if ($license === null) {
-			return false;
-		}
-		return $this->isLocalValid($license);
 	}
 }

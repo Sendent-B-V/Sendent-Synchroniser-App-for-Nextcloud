@@ -4,11 +4,6 @@
  */
 
 /*!
- * SPDX-FileCopyrightText: 2025 Nextcloud GmbH and Nextcloud contributors
- * SPDX-License-Identifier: GPL-3.0-or-later
- */
-
-/*!
  * SPDX-License-Identifier: GPL-3.0-or-later
  * SPDX-FileCopyrightText: 2025 Nextcloud GmbH and Nextcloud contributors
  */
@@ -21,23 +16,9 @@
  * MIT Licensed
  */
 
-/*! #__NO_SIDE_EFFECTS__ */
-
 /*! @license DOMPurify 3.4.12 | (c) Cure53 and other contributors | Released under the Apache license 2.0 and Mozilla Public License 2.0 | github.com/cure53/DOMPurify/blob/3.4.12/LICENSE */
 
 /*! Axios v1.18.1 Copyright (c) 2026 Matt Zabriskie and contributors */
-
-/**
-* @vue/reactivity v3.5.39
-* (c) 2018-present Yuxi (Evan) You and Vue contributors
-* @license MIT
-**/
-
-/**
-* @vue/runtime-core v3.5.39
-* (c) 2018-present Yuxi (Evan) You and Vue contributors
-* @license MIT
-**/
 
 /**
 * @vue/runtime-dom v3.5.39
@@ -47,12 +28,6 @@
 
 /**
 * @vue/shared v3.5.39
-* (c) 2018-present Yuxi (Evan) You and Vue contributors
-* @license MIT
-**/
-
-/**
-* vue v3.5.39
 * (c) 2018-present Yuxi (Evan) You and Vue contributors
 * @license MIT
 **/

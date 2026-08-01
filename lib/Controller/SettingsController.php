@@ -157,7 +157,7 @@ class SettingsController extends ApiController {
 	 */
 	public function setGraphApiMode($graphApiMode) {
 		return $this->appConfig->setAppValue(
-			\OCA\SendentSynchroniser\Constants::GRAPH_API_MODE_KEY,
+			Constants::DISABLE_ITIP_IMIP_KEY,
 			$graphApiMode
 		);
 	}

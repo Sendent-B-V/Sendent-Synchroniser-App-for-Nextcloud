@@ -51,6 +51,10 @@ class Notifier implements INotifier {
     public function prepare(INotification $notification, string $languageCode): INotification {
         if ($notification->getApp() !== 'sendentsynchroniser') {
             // Not my app
+            // UnknownNotificationException is only available since Nextcloud 30
+            if (class_exists(\OCP\Notification\UnknownNotificationException::class)) {
+                throw new \OCP\Notification\UnknownNotificationException();
+            }
             throw new \InvalidArgumentException();
         }
         $l = $this->factory->get('sendentsynchroniser', $languageCode);
