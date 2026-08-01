@@ -255,7 +255,9 @@ class SettingsController extends ApiController {
 	 * 3- We haven't shown the dialog for a certain amount of time ('sendentsynchroniser_activationreminder_timeout' cookie)
 	 * 4- The license must be valid
 	 * 5- The user must be member of an active group
-	 * 6- The user must be inactive (Users that have retracted their consent count as active).
+	 * 6- The user must be inactive, OR active but still holding a legacy-named
+	 *    app token (pre-rework consent — they must re-consent once).
+	 *    Users that have retracted their consent are never shown the dialog.
 	 *
 	 * @NoAdminRequired
 	 *
@@ -290,11 +292,18 @@ class SettingsController extends ApiController {
 				// User is member of an active group, let's find if he's active
 				$syncUsers = $this->syncUserMapper->findByUid($this->userId);
 				if (!empty($syncUsers)) {
-					if ($syncUsers[0]->getActive() === Constants::USER_STATUS_ACTIVE || $syncUsers[0]->getActive() === Constants::USER_STATUS_NOCONSENT) {
+					if ($syncUsers[0]->getActive() === Constants::USER_STATUS_NOCONSENT) {
+						// User retracted consent — never nag them again
 						return new JSONResponse(FALSE);
-					} else {
-						return new JSONResponse(TRUE);
 					}
+					if ($syncUsers[0]->getActive() === Constants::USER_STATUS_ACTIVE) {
+						// Active users are done — unless they still hold an app
+						// token minted before the architecture rework (legacy
+						// name). Those users must go through the consent flow
+						// once more, where the one-time calendar reset is offered.
+						return new JSONResponse($this->syncUserService->hasLegacyToken($this->userId));
+					}
+					return new JSONResponse(TRUE);
 				} else {
 					// User has never setup sync
 					return new JSONResponse(TRUE);
