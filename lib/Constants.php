@@ -21,4 +21,11 @@ class Constants {
 
 	public const GRAPH_API_MODE_KEY = 'graphApiMode';
 	public const GRAPH_API_MODE_DEFAULT = 'false';
+
+	// App-token names. Tokens minted before the architecture rework carry the
+	// legacy name (the app id); new tokens carry TOKEN_NAME. A user still
+	// holding a legacy-named token has not yet re-consented — that difference
+	// drives the consent-modal push and the one-time calendar reset offer.
+	public const TOKEN_NAME = 'sendent-synchronization';
+	public const TOKEN_NAME_LEGACY = 'sendentsynchroniser';
 }
