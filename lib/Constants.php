@@ -29,4 +29,10 @@ class Constants {
 	// drives the consent-modal push and the one-time calendar reset offer.
 	public const TOKEN_NAME = 'sendent-synchronization';
 	public const TOKEN_NAME_LEGACY = 'sendentsynchroniser';
+
+	// Strip X-SENDENT* properties from personal-calendar events when they are
+	// deleted into the calendar trash bin, so a restore yields a clean event.
+	public const TRASHBIN_SCRUB_KEY = 'trashbinScrubEnabled';
+	public const TRASHBIN_SCRUB_DEFAULT = 'false';
+	public const SENDENT_PROPERTY_PREFIX = 'X-SENDENT';
 }

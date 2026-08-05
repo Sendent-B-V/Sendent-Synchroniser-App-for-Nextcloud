@@ -175,6 +175,33 @@
 			</p>
 		</div>
 
+		<h3>{{ t('sendentsynchroniser', 'Calendar trash bin') }}</h3>
+
+		<!-- Trash-bin scrub. Stored value trashbinScrubEnabled: 'true' = strip
+			 X-SENDENT* properties from personal-calendar events on deletion.
+			 Default OFF so behavior only changes when an admin opts in. -->
+		<div class="settings-section__field">
+			<label>{{ t('sendentsynchroniser', 'Remove Sendent properties on event deletion') }}</label>
+			<div class="settings-section__input-row">
+				<select v-model="trashbinScrubEnabled"
+					class="settings-section__input"
+					@change="saveTrashbinScrub">
+					<option value="true">
+						{{ t('sendentsynchroniser', 'Enabled') }}
+					</option>
+					<option value="false">
+						{{ t('sendentsynchroniser', 'Disabled') }}
+					</option>
+				</select>
+				<span v-if="saved.trashbinScrub" class="settings-section__saved">&#x2713;</span>
+			</div>
+			<p class="settings-section__hint">
+				{{ trashbinScrubEnabled === 'true'
+					? t('sendentsynchroniser', 'When an event is deleted from the personal calendar, its Sendent synchronization properties (X-SENDENT…) are removed. Restoring the event from the trash bin brings it back without them.')
+					: t('sendentsynchroniser', 'Deleted events keep their Sendent synchronization properties (X-SENDENT…) and restore from the trash bin with them intact.') }}
+			</p>
+		</div>
+
 		<!-- Consequences gate — only shown when disabling suppression -->
 		<div v-if="showSuppressionWarning"
 			class="suppression-modal__overlay"
@@ -215,6 +242,7 @@ const props = defineProps<{
 	initialDefaultCalendar: string
 	initialDefaultAddressbook: string
 	initialGraphApiMode: string
+	initialTrashbinScrubEnabled: string
 	mailAppInstalled: boolean
 	notificationsAppInstalled: boolean
 }>()
@@ -228,6 +256,7 @@ const notificationInterval = ref(String(props.initialNotificationInterval))
 const defaultCalendar = ref(props.initialDefaultCalendar)
 const defaultAddressbook = ref(props.initialDefaultAddressbook)
 const graphApiMode = ref(props.initialGraphApiMode === 'false' ? 'false' : 'true')
+const trashbinScrubEnabled = ref(props.initialTrashbinScrubEnabled === 'true' ? 'true' : 'false')
 const showSuppressionWarning = ref(false)
 const showSecret = ref(false)
 const viewIconUrl = imagePath('sendentsynchroniser', 'view.svg')
@@ -299,6 +328,12 @@ function saveNotificationMethod() { saveSetting('notificationMethod', { notifica
  *
  */
 function saveNotificationInterval() { saveSetting('notificationInterval', { notificationInterval: notificationInterval.value }, 'notificationInterval') }
+
+/**
+ * Save the trash-bin scrub toggle. Both directions are safe (it only affects
+ * events deleted after the change), so no confirmation gate.
+ */
+function saveTrashbinScrub() { saveSetting('trashbinScrub', { trashbinScrubEnabled: trashbinScrubEnabled.value }, 'trashbinScrub') }
 
 /**
  * Save the toggle. Re-enabling suppression ('true') is the safe direction and

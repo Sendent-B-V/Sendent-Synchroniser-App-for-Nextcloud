@@ -163,6 +163,22 @@ class SettingsController extends ApiController {
 	}
 
 	/**
+	 * Saves trash-bin scrub setting.
+	 *
+	 * When enabled, custom Sendent properties (X-SENDENT*) are stripped from
+	 * personal-calendar events at the moment they are deleted into the calendar
+	 * trash bin, so a restore from the trash bin yields a clean event.
+	 *
+	 * @param string $trashbinScrubEnabled 'true' or 'false'
+	 */
+	public function setTrashbinScrub($trashbinScrubEnabled) {
+		return $this->appConfig->setAppValue(
+			Constants::TRASHBIN_SCRUB_KEY,
+			$trashbinScrubEnabled
+		);
+	}
+
+	/**
 	 *
 	 * Saves emailDomain setting
 	 *
