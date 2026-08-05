@@ -6,17 +6,36 @@ declare(strict_types=1);
 namespace OCA\SendentSynchroniser\Service;
 
 use OCA\DAV\CalDAV\CalDavBackend;
-use OCA\SendentSynchroniser\Db\SyncUserMapper;
 use OCP\IConfig;
 use Psr\Log\LoggerInterface;
 
 /**
  * One-time "delete and re-create the synced calendar" offered to users of the
  * legacy sync client. A user qualifies while they still hold a legacy-named
- * app token (i.e. they have not completed the new consent flow yet) AND their
- * sync target calendar contains the X-SENDENT marker the old client wrote
- * into event iCal data. Completing the consent flow swaps the token name,
- * which is what makes the offer one-time — no other state is stored.
+ * app token (i.e. they have not completed the new consent flow yet) AND one of
+ * their calendars contains the X-SENDENT marker the old client wrote into event
+ * iCal data. Completing the consent flow swaps the token name, which is what
+ * makes the offer one-time — no other state is stored.
+ *
+ * TARGET SELECTION IS MARKER-DRIVEN, BY DELIBERATE DESIGN.
+ *
+ * The target is whichever calendar actually holds legacy Sendent events, found
+ * by scanning. It is NOT derived from any "default calendar" setting:
+ *
+ *  - the app's own `defaultCalendar` appconfig belongs to an unshipped feature
+ *    whose admin UI is still hidden, so it is not a legitimate source;
+ *  - `SyncUser.calendar` has no writer anywhere in the app — always empty;
+ *  - Nextcloud's own per-user defaults (`schedule-default-calendar-URL`,
+ *    `dav.defaultCalendarId`) are frequently unset, and even when set they say
+ *    where invitations land today — not where the legacy client wrote;
+ *  - falling back to the literal URI 'personal' is unsafe: it assumes a URI
+ *    string that varies across Nextcloud versions and cannot be recovered from
+ *    a localised display name ("Persoonlijk", "Persönlich", …).
+ *
+ * Scanning for the marker sidesteps all of that: no URI string is ever matched,
+ * so no locale or version assumption is baked in, and a calendar holding no
+ * legacy data can never be selected for a hard delete. The Nextcloud default is
+ * still resolved, but purely as a cross-check recorded in the diagnostics.
  */
 class CalendarResetService {
 
@@ -26,7 +45,6 @@ class CalendarResetService {
 	public function __construct(
 		private CalDavBackend $calDav,
 		private CollectionService $collectionService,
-		private SyncUserMapper $syncUserMapper,
 		private SyncUserService $syncUserService,
 		private IConfig $config,
 		private LoggerInterface $logger,
@@ -37,18 +55,6 @@ class CalendarResetService {
 	}
 
 	/**
-	 * The calendar the sync client targets for this user: the per-user choice
-	 * stored on the SyncUser row, else the admin-configured default.
-	 */
-	public function targetCalendarUri(string $userId): string {
-		$syncUsers = $this->syncUserMapper->findByUid($userId);
-		if (!empty($syncUsers) && ($syncUsers[0]->getCalendar() ?? '') !== '') {
-			return $syncUsers[0]->getCalendar();
-		}
-		return $this->collectionService->getDefaultCalendar();
-	}
-
-	/**
 	 * Whether the one-time reset should be offered: the user must still hold a
 	 * legacy-named token (the check runs before activate() invalidates it) and
 	 * the target calendar must actually contain legacy data — a prior user
@@ -56,12 +62,88 @@ class CalendarResetService {
 	 * destructive delete.
 	 */
 	public function shouldOffer(string $userId): bool {
-		if (!$this->syncUserService->hasLegacyToken($userId)) {
-			return false;
+		return $this->diagnose($userId)['offer'];
+	}
+
+	/**
+	 * The full reset decision: which calendar (if any) should be offered, and
+	 * where the decision was declined. shouldOffer() and reset() are both thin
+	 * wrappers over this, so the two can never disagree about the target.
+	 *
+	 * @return array{offer: bool, declinedAt: ?string, targetUri: ?string, ...}
+	 */
+	public function diagnose(string $userId): array {
+		$d = [
+			'userId' => $userId,
+			'hasLegacyToken' => false,
+			'userCalendars' => [],
+			'markedUris' => [],
+			'targetUri' => null,
+			'targetCalendarId' => null,
+			// Cross-check only — never used to choose the target.
+			'ncDefaultUri' => null,
+			'offer' => false,
+			'declinedAt' => null,
+		];
+
+		$d['hasLegacyToken'] = $this->syncUserService->hasLegacyToken($userId);
+		if (!$d['hasLegacyToken']) {
+			$d['declinedAt'] = 'hasLegacyToken';
+			return $d;
 		}
 
-		$cal = $this->findCalendar($userId, $this->targetCalendarUri($userId));
-		return $cal !== null && $this->containsSendentData((int)$cal['id']);
+		$d['ncDefaultUri'] = $this->collectionService->detectUserDefaultCalendar($userId);
+
+		// Trashed calendars are skipped: the user already deleted them, so
+		// re-creating one is not a clean-up they asked for.
+		foreach ($this->calDav->getCalendarsForUser($this->principal($userId)) as $c) {
+			if (isset($c['{http://nextcloud.com/ns}deleted-at'])
+				&& is_numeric($c['{http://nextcloud.com/ns}deleted-at'])) {
+				continue;
+			}
+
+			$id = (int)$c['id'];
+			$objectUris = array_column($this->calDav->getCalendarObjects($id), 'uri');
+			$markerUri = $this->scanForMarker($id, $objectUris);
+
+			$d['userCalendars'][] = [
+				'uri' => $c['uri'] ?? null,
+				'id' => $id,
+				'displayname' => $c['{DAV:}displayname'] ?? null,
+				'objectCount' => count($objectUris),
+				'marked' => $markerUri !== null,
+			];
+
+			if ($markerUri !== null) {
+				$d['markedUris'][] = $c['uri'] ?? null;
+				$d['targetUri'] = $c['uri'] ?? null;
+				$d['targetCalendarId'] = $id;
+			}
+		}
+
+		if ($d['markedUris'] === []) {
+			$d['targetUri'] = null;
+			$d['targetCalendarId'] = null;
+			$d['declinedAt'] = 'noSendentMarker';
+			return $d;
+		}
+
+		// More than one marked calendar is an unexpected state: we cannot know
+		// which one the user means, and guessing risks an unrecoverable delete
+		// of the wrong calendar. Decline and leave a trail for support.
+		if (count($d['markedUris']) > 1) {
+			$d['targetUri'] = null;
+			$d['targetCalendarId'] = null;
+			$d['declinedAt'] = 'multipleMarkedCalendars';
+			$this->logger->warning('Calendar reset not offered to user "' . $userId
+				. '": legacy X-SENDENT data found in ' . count($d['markedUris'])
+				. ' calendars (' . implode(', ', $d['markedUris'])
+				. '). Manual clean-up required.');
+			return $d;
+		}
+
+		$d['offer'] = true;
+		return $d;
 	}
 
 	/**
@@ -74,13 +156,22 @@ class CalendarResetService {
 	 * user's Nextcloud default-calendar preference when it referenced the old
 	 * calendar. Guarded by the legacy token: once activate() has swapped the
 	 * token name, this is a no-op — that is the once-only guarantee.
+	 *
+	 * Re-runs the full shouldOffer() decision rather than trusting the caller:
+	 * this is an unrecoverable hard delete, so the endpoint must not be able to
+	 * destroy a calendar the offer would never have proposed.
 	 */
 	public function reset(string $userId): bool {
-		if (!$this->syncUserService->hasLegacyToken($userId)) {
+		$d = $this->diagnose($userId);
+		if (!$d['offer']) {
 			return false;
 		}
 
-		$uri = $this->targetCalendarUri($userId);
+		$uri = $d['targetUri'];
+		if ($uri === null) {
+			return false;
+		}
+
 		$cal = $this->findCalendar($userId, $uri);
 		if ($cal === null) {
 			return false;
@@ -128,12 +219,16 @@ class CalendarResetService {
 	 * the user previously deleted the calendar via the web UI (web/DAV deletes
 	 * always soft-delete into the trashbin).
 	 *
+	 * @param array|null $calendars Pre-fetched calendar rows, to avoid a second
+	 *                              getCalendarsForUser() query when the caller
+	 *                              already has them
 	 * @return array|null Full calendar row (all props, possibly with
 	 *                    {http://nextcloud.com/ns}deleted-at set) or null
 	 */
-	private function findCalendar(string $userId, string $uri): ?array {
+	private function findCalendar(string $userId, string $uri, ?array $calendars = null): ?array {
+		$calendars ??= $this->calDav->getCalendarsForUser($this->principal($userId));
 		$trashed = null;
-		foreach ($this->calDav->getCalendarsForUser($this->principal($userId)) as $cal) {
+		foreach ($calendars as $cal) {
 			if ($cal['uri'] !== $uri) {
 				continue;
 			}
@@ -148,19 +243,22 @@ class CalendarResetService {
 	}
 
 	/**
-	 * Scans the calendar for the legacy client's X-SENDENT marker.
-	 * getCalendarObjects() returns metadata only, so iCal data is fetched in
-	 * chunks via getMultipleCalendarObjects(); exits on first match.
+	 * URI of the first object carrying the legacy client's X-SENDENT marker, or
+	 * null if the calendar holds none. getCalendarObjects() returns metadata
+	 * only, so iCal data is fetched in chunks via getMultipleCalendarObjects();
+	 * exits on the first match, since one marked event is enough to classify
+	 * the calendar.
+	 *
+	 * @param string[] $uris Object URIs already fetched for this calendar
 	 */
-	public function containsSendentData(int $calendarId): bool {
-		$uris = array_column($this->calDav->getCalendarObjects($calendarId), 'uri');
+	private function scanForMarker(int $calendarId, array $uris): ?string {
 		foreach (array_chunk($uris, self::SCAN_CHUNK_SIZE) as $chunk) {
 			foreach ($this->calDav->getMultipleCalendarObjects($calendarId, $chunk) as $obj) {
 				if (str_contains($obj['calendardata'] ?? '', self::SENDENT_MARKER)) {
-					return true;
+					return $obj['uri'] ?? '(unknown uri)';
 				}
 			}
 		}
-		return false;
+		return null;
 	}
 }

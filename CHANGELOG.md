@@ -45,3 +45,5 @@ Synchronise your Office 365 calendar and contacts with Nextcloud Caldav and Card
 
 ### Changed
 - New app tokens are named `sendent-synchronization`. Users still holding a token with the old name are asked to go through the consent flow once more — this is what surfaces the calendar clean-up offer to existing users; completing the flow replaces the token. Retracting consent revokes tokens of both names. Deploy together with the new connector: until a user re-consents, the connector still syncs with their legacy token.
+
+- The clean-up targets the calendar that actually contains legacy `X-SENDENT` data, found by scanning the user's calendars, rather than a configured "default" calendar. No calendar URI or display name is matched, so localised calendars ("Persoonlijk", "Persönlich") are handled correctly. When legacy data is found in more than one calendar the clean-up is not offered and a warning is logged naming them, rather than guessing which to delete. Calendars in the trash bin are ignored.

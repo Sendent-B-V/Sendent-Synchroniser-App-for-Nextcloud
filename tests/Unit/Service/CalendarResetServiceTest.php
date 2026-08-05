@@ -4,8 +4,6 @@ declare(strict_types=1);
 namespace OCA\SendentSynchroniser\Tests\Unit\Service;
 
 use OCA\DAV\CalDAV\CalDavBackend;
-use OCA\SendentSynchroniser\Db\SyncUser;
-use OCA\SendentSynchroniser\Db\SyncUserMapper;
 use OCA\SendentSynchroniser\Service\CalendarResetService;
 use OCA\SendentSynchroniser\Service\CollectionService;
 use OCA\SendentSynchroniser\Service\SyncUserService;
@@ -16,9 +14,11 @@ use Psr\Log\NullLogger;
 
 class CalendarResetServiceTest extends TestCase {
 
+	private const MARKED = "BEGIN:VEVENT\r\nUID:a\r\nX-SENDENT-ID:123\r\nEND:VEVENT";
+	private const CLEAN = "BEGIN:VEVENT\r\nUID:b\r\nEND:VEVENT";
+
 	private CalDavBackend&MockObject $calDav;
 	private CollectionService&MockObject $collections;
-	private SyncUserMapper&MockObject $syncUsers;
 	private SyncUserService&MockObject $syncUserService;
 	private IConfig&MockObject $config;
 	private CalendarResetService $svc;
@@ -26,13 +26,11 @@ class CalendarResetServiceTest extends TestCase {
 	protected function setUp(): void {
 		$this->calDav = $this->createMock(CalDavBackend::class);
 		$this->collections = $this->createMock(CollectionService::class);
-		$this->syncUsers = $this->createMock(SyncUserMapper::class);
 		$this->syncUserService = $this->createMock(SyncUserService::class);
 		$this->config = $this->createMock(IConfig::class);
 		$this->svc = new CalendarResetService(
 			$this->calDav,
 			$this->collections,
-			$this->syncUsers,
 			$this->syncUserService,
 			$this->config,
 			new NullLogger()
@@ -43,11 +41,27 @@ class CalendarResetServiceTest extends TestCase {
 		$this->syncUserService->method('hasLegacyToken')->with('alice')->willReturn($has);
 	}
 
-	private function givenTargetCalendar(string $uri = 'personal'): void {
-		$syncUser = new SyncUser();
-		$syncUser->setUid('alice');
-		$syncUser->setCalendar($uri);
-		$this->syncUsers->method('findByUid')->with('alice')->willReturn([$syncUser]);
+	/**
+	 * @param array $calendars Rows as returned by getCalendarsForUser()
+	 * @param array<int, array<string, string>> $contents calendarId => [objectUri => calendardata]
+	 */
+	private function givenCalendars(array $calendars, array $contents = []): void {
+		$this->calDav->method('getCalendarsForUser')->willReturn($calendars);
+		$this->calDav->method('getCalendarObjects')->willReturnCallback(
+			fn (int $id): array => array_map(
+				static fn (string $uri): array => ['uri' => $uri],
+				array_keys($contents[$id] ?? [])
+			)
+		);
+		$this->calDav->method('getMultipleCalendarObjects')->willReturnCallback(
+			function (int $id, array $uris) use ($contents): array {
+				$out = [];
+				foreach ($uris as $uri) {
+					$out[] = ['uri' => $uri, 'calendardata' => $contents[$id][$uri] ?? ''];
+				}
+				return $out;
+			}
+		);
 	}
 
 	public function testShouldOfferFalseWithoutLegacyToken(): void {
@@ -56,91 +70,108 @@ class CalendarResetServiceTest extends TestCase {
 		$this->assertFalse($this->svc->shouldOffer('alice'));
 	}
 
-	public function testShouldOfferFalseWhenCalendarMissing(): void {
+	public function testShouldOfferFalseWhenNoCalendarHoldsTheMarker(): void {
 		$this->givenLegacyToken(true);
-		$this->givenTargetCalendar();
-		$this->calDav->method('getCalendarsForUser')->willReturn([]);
-		$this->assertFalse($this->svc->shouldOffer('alice'));
+		$this->givenCalendars(
+			[['id' => 1, 'uri' => 'personal'], ['id' => 11, 'uri' => 'exchange']],
+			[1 => ['a.ics' => self::CLEAN], 11 => ['b.ics' => self::CLEAN]]
+		);
+		$d = $this->svc->diagnose('alice');
+		$this->assertFalse($d['offer']);
+		$this->assertSame('noSendentMarker', $d['declinedAt']);
+		$this->assertNull($d['targetUri']);
 	}
 
-	public function testShouldOfferFalseWhenNoSendentMarker(): void {
+	public function testTargetIsTheCalendarHoldingTheMarkerNotTheDefault(): void {
+		// The whole point: selection follows the legacy data, not any setting.
+		// Here the marker sits in 'personal' while NC's default is 'exchange'.
 		$this->givenLegacyToken(true);
-		$this->givenTargetCalendar();
-		$this->calDav->method('getCalendarsForUser')->willReturn([
-			['id' => 7, 'uri' => 'personal', '{DAV:}displayname' => 'Persoonlijk'],
-		]);
-		$this->calDav->method('getCalendarObjects')->with(7)->willReturn([
-			['uri' => 'a.ics'],
-		]);
-		$this->calDav->method('getMultipleCalendarObjects')->with(7, ['a.ics'])->willReturn([
-			['uri' => 'a.ics', 'calendardata' => "BEGIN:VEVENT\r\nUID:a\r\nEND:VEVENT"],
-		]);
-		$this->assertFalse($this->svc->shouldOffer('alice'));
+		$this->collections->method('detectUserDefaultCalendar')->willReturn('exchange');
+		$this->givenCalendars(
+			[['id' => 11, 'uri' => 'exchange'], ['id' => 1, 'uri' => 'personal']],
+			[11 => ['b.ics' => self::CLEAN], 1 => ['a.ics' => self::MARKED]]
+		);
+
+		$d = $this->svc->diagnose('alice');
+		$this->assertTrue($d['offer']);
+		$this->assertSame('personal', $d['targetUri']);
+		$this->assertSame(1, $d['targetCalendarId']);
+		// The NC default is recorded, but did not drive the choice.
+		$this->assertSame('exchange', $d['ncDefaultUri']);
 	}
 
-	public function testShouldOfferTrueWhenMarkerFound(): void {
+	public function testSelectionIgnoresUriAndDisplayNameSoLocalesAreSafe(): void {
+		// A Dutch user's calendar: neither the URI nor the localised display
+		// name is ever matched against a hardcoded string like 'personal'.
 		$this->givenLegacyToken(true);
-		$this->givenTargetCalendar();
-		$this->calDav->method('getCalendarsForUser')->willReturn([
-			['id' => 7, 'uri' => 'personal', '{DAV:}displayname' => 'Persoonlijk'],
-		]);
-		$this->calDav->method('getCalendarObjects')->with(7)->willReturn([
-			['uri' => 'a.ics'],
-		]);
-		$this->calDav->method('getMultipleCalendarObjects')->with(7, ['a.ics'])->willReturn([
-			['uri' => 'a.ics', 'calendardata' => "BEGIN:VEVENT\r\nUID:a\r\nX-SENDENT-ID:123\r\nEND:VEVENT"],
-		]);
-		$this->assertTrue($this->svc->shouldOffer('alice'));
+		$this->givenCalendars(
+			[['id' => 42, 'uri' => 'agenda-2019', '{DAV:}displayname' => 'Persoonlijk']],
+			[42 => ['a.ics' => self::MARKED]]
+		);
+
+		$d = $this->svc->diagnose('alice');
+		$this->assertTrue($d['offer']);
+		$this->assertSame('agenda-2019', $d['targetUri']);
 	}
 
-	public function testShouldOfferScansTrashbinnedCalendar(): void {
-		// A calendar deleted via the web UI sits in the trashbin and still
-		// occupies the URI — it must be scanned (and later purged) too.
+	public function testShouldOfferDeclinesWhenMultipleCalendarsAreMarked(): void {
 		$this->givenLegacyToken(true);
-		$this->givenTargetCalendar();
-		$this->calDav->method('getCalendarsForUser')->willReturn([
-			['id' => 7, 'uri' => 'personal', '{http://nextcloud.com/ns}deleted-at' => 1750000000],
-		]);
-		$this->calDav->method('getCalendarObjects')->with(7)->willReturn([
-			['uri' => 'a.ics'],
-		]);
-		$this->calDav->method('getMultipleCalendarObjects')->with(7, ['a.ics'])->willReturn([
-			['uri' => 'a.ics', 'calendardata' => "BEGIN:VEVENT\r\nUID:a\r\nX-SENDENT-ID:123\r\nEND:VEVENT"],
-		]);
-		$this->assertTrue($this->svc->shouldOffer('alice'));
+		$this->givenCalendars(
+			[['id' => 1, 'uri' => 'personal'], ['id' => 11, 'uri' => 'exchange']],
+			[1 => ['a.ics' => self::MARKED], 11 => ['b.ics' => self::MARKED]]
+		);
+
+		$d = $this->svc->diagnose('alice');
+		$this->assertFalse($d['offer']);
+		$this->assertSame('multipleMarkedCalendars', $d['declinedAt']);
+		$this->assertSame(['personal', 'exchange'], $d['markedUris']);
+		$this->assertNull($d['targetUri']);
 	}
 
-	public function testShouldOfferPrefersLiveCalendarOverTrashbinnedTwin(): void {
-		// Unique index on (principaluri, uri) means live+trashed twins cannot
-		// coexist at the same URI, but different URIs can — the live target wins.
+	public function testTrashbinnedCalendarsAreSkipped(): void {
+		// Already deleted by the user — re-creating one is not a clean-up
+		// they asked for, so it must not be selected.
 		$this->givenLegacyToken(true);
-		$this->givenTargetCalendar();
-		$this->calDav->method('getCalendarsForUser')->willReturn([
-			['id' => 5, 'uri' => 'other', '{http://nextcloud.com/ns}deleted-at' => 1750000000],
-			['id' => 7, 'uri' => 'personal', '{DAV:}displayname' => 'Persoonlijk'],
-		]);
-		$this->calDav->method('getCalendarObjects')->with(7)->willReturn([]);
-		$this->assertFalse($this->svc->shouldOffer('alice'));
+		$this->givenCalendars(
+			[['id' => 7, 'uri' => 'personal', '{http://nextcloud.com/ns}deleted-at' => 1750000000]],
+			[7 => ['a.ics' => self::MARKED]]
+		);
+
+		$d = $this->svc->diagnose('alice');
+		$this->assertFalse($d['offer']);
+		$this->assertSame('noSendentMarker', $d['declinedAt']);
 	}
 
-	public function testTargetCalendarFallsBackToAdminDefault(): void {
-		$this->syncUsers->method('findByUid')->with('bob')->willReturn([]);
-		$this->collections->method('getDefaultCalendar')->willReturn('personal');
-		$this->assertSame('personal', $this->svc->targetCalendarUri('bob'));
+	public function testDiagnosticsReportEveryCalendarScanned(): void {
+		$this->givenLegacyToken(true);
+		$this->givenCalendars(
+			[['id' => 1, 'uri' => 'personal', '{DAV:}displayname' => 'Personal']],
+			[1 => ['a.ics' => self::MARKED, 'b.ics' => self::CLEAN]]
+		);
+
+		$d = $this->svc->diagnose('alice');
+		$this->assertSame([[
+			'uri' => 'personal',
+			'id' => 1,
+			'displayname' => 'Personal',
+			'objectCount' => 2,
+			'marked' => true,
+		]], $d['userCalendars']);
 	}
 
 	public function testResetRecreatesCalendarWithSameProps(): void {
 		$this->givenLegacyToken(true);
-		$this->givenTargetCalendar();
-		$this->calDav->method('getCalendarsForUser')->willReturn([
-			[
+		$this->givenCalendars(
+			[[
 				'id' => 7,
 				'uri' => 'personal',
 				'{DAV:}displayname' => 'Persoonlijk',
 				'{http://apple.com/ns/ical/}calendar-color' => '#FF00FF',
 				'{urn:ietf:params:xml:ns:caldav}calendar-timezone' => 'BEGIN:VCALENDAR...Europe/Amsterdam...',
-			],
-		]);
+			]],
+			[7 => ['a.ics' => self::MARKED]]
+		);
+
 		$this->calDav->expects($this->once())->method('deleteCalendar')->with(7, true);
 		$this->calDav->expects($this->once())->method('createCalendar')
 			->with('principals/users/alice', 'personal', [
@@ -151,20 +182,21 @@ class CalendarResetServiceTest extends TestCase {
 			])
 			->willReturn(99);
 		$this->config->expects($this->never())->method('setUserValue');
+
 		$this->assertTrue($this->svc->reset('alice'));
 	}
 
 	public function testResetRepointsNcDefaultCalendar(): void {
 		$this->givenLegacyToken(true);
-		$this->givenTargetCalendar();
-		// The NC default-calendar preference points at the old id 7
 		$this->config->method('getUserValue')
 			->with('alice', 'dav', 'defaultCalendarId', '')
 			->willReturn('7');
-		$this->calDav->method('getCalendarsForUser')->willReturn([
-			['id' => 7, 'uri' => 'personal', '{DAV:}displayname' => 'Personal'],
-		]);
+		$this->givenCalendars(
+			[['id' => 7, 'uri' => 'personal', '{DAV:}displayname' => 'Personal']],
+			[7 => ['a.ics' => self::MARKED]]
+		);
 		$this->calDav->method('createCalendar')->willReturn(99);
+
 		$this->config->expects($this->once())->method('setUserValue')
 			->with('alice', 'dav', 'defaultCalendarId', '99');
 		$this->assertTrue($this->svc->reset('alice'));
@@ -177,33 +209,24 @@ class CalendarResetServiceTest extends TestCase {
 		$this->assertFalse($this->svc->reset('alice'));
 	}
 
-	public function testResetPurgesTrashbinnedCalendarBeforeRecreating(): void {
-		// deleteCalendar($id, true) hard-deletes the row whether live or
-		// trashbinned — freeing the URI held by the unique index.
+	public function testResetRefusesWhenNoCalendarIsMarked(): void {
+		// The endpoint is a hard delete, so it re-runs the decision itself
+		// instead of trusting that the client asked the status endpoint first.
 		$this->givenLegacyToken(true);
-		$this->givenTargetCalendar();
-		$this->calDav->method('getCalendarsForUser')->willReturn([
-			[
-				'id' => 7,
-				'uri' => 'personal',
-				'{DAV:}displayname' => 'Persoonlijk',
-				'{http://nextcloud.com/ns}deleted-at' => 1750000000,
-			],
-		]);
-		$this->calDav->expects($this->once())->method('deleteCalendar')->with(7, true);
-		$this->calDav->expects($this->once())->method('createCalendar')
-			->with('principals/users/alice', 'personal', [
-				'components' => 'VEVENT',
-				'{DAV:}displayname' => 'Persoonlijk',
-			])
-			->willReturn(99);
-		$this->assertTrue($this->svc->reset('alice'));
+		$this->givenCalendars(
+			[['id' => 1, 'uri' => 'personal']],
+			[1 => ['a.ics' => self::CLEAN]]
+		);
+		$this->calDav->expects($this->never())->method('deleteCalendar');
+		$this->assertFalse($this->svc->reset('alice'));
 	}
 
-	public function testResetReturnsFalseWhenCalendarMissing(): void {
+	public function testResetRefusesWhenMultipleCalendarsAreMarked(): void {
 		$this->givenLegacyToken(true);
-		$this->givenTargetCalendar();
-		$this->calDav->method('getCalendarsForUser')->willReturn([]);
+		$this->givenCalendars(
+			[['id' => 1, 'uri' => 'personal'], ['id' => 11, 'uri' => 'exchange']],
+			[1 => ['a.ics' => self::MARKED], 11 => ['b.ics' => self::MARKED]]
+		);
 		$this->calDav->expects($this->never())->method('deleteCalendar');
 		$this->assertFalse($this->svc->reset('alice'));
 	}

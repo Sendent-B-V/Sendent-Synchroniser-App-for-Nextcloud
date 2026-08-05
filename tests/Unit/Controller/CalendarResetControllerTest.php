@@ -42,6 +42,13 @@ class CalendarResetControllerTest extends TestCase {
 		$this->assertSame(['applicable' => true], $resp->getData());
 	}
 
+	public function testStatusReportsNotApplicable(): void {
+		$this->loginAs('alice');
+		$this->svc->method('shouldOffer')->with('alice')->willReturn(false);
+		$resp = $this->controller->status();
+		$this->assertSame(['applicable' => false], $resp->getData());
+	}
+
 	public function testStatusUnauthorizedWithoutUser(): void {
 		$this->userSession->method('getUser')->willReturn(null);
 		$resp = $this->controller->status();
