@@ -37,6 +37,12 @@ return [
 		['name' => 'change_feed_api#ack', 'url' => '/api/1.0/notify/ack', 'verb' => 'POST'],
 		['name' => 'change_feed_api#health', 'url' => '/api/1.0/notify/health', 'verb' => 'GET'],
 
+		['name' => 'change_notification_settings#setTransportMode', 'url' => '/api/1.0/settings/cnTransportMode', 'verb' => 'POST'],
+		['name' => 'change_notification_settings#setBotUser', 'url' => '/api/1.0/settings/cnBotUser', 'verb' => 'POST'],
+		['name' => 'change_notification_settings#setBatching', 'url' => '/api/1.0/settings/cnBatching', 'verb' => 'POST'],
+		['name' => 'change_notification_settings#runTest', 'url' => '/api/1.0/settings/cnRunTest', 'verb' => 'POST'],
+		['name' => 'change_notification_settings#flushNow', 'url' => '/api/1.0/settings/cnFlushNow', 'verb' => 'POST'],
+
 		[
 			'name' => 'license_api#preflighted_cors',
 			'url' => '/api/1.0/{path}',
