@@ -27,6 +27,8 @@ class ChangeNotificationSettingsController extends ApiController {
 		private IUserManager $userManager,
 		private NotifyPushAvailability $availability,
 		private SignalPublisher $publisher,
+		private \OCA\SendentSynchroniser\Service\ChangeNotification\NotifyPushTransport $transport,
+		private \OCP\AppFramework\Utility\ITimeFactory $time,
 		private LoggerInterface $logger,
 	) {
 		parent::__construct($appName, $request);
@@ -91,5 +93,26 @@ class ChangeNotificationSettingsController extends ApiController {
 			'refs' => is_array($signal['refs'] ?? null) ? count($signal['refs']) : 0,
 			'truncated' => $signal['truncated'] ?? false,
 		]);
+	}
+
+	/**
+	 * Settings page presses "Run test": we publish a ping frame addressed to
+	 * the bot. Publish-side only — see plan deviation 7.
+	 */
+	public function sendPing(): DataResponse {
+		$nonce = bin2hex(random_bytes(8));
+		$published = $this->transport->publishPing([
+			'nonce' => $nonce,
+			'sent_at' => $this->time->getTime(),
+		]);
+
+		return new DataResponse(['published' => $published, 'nonce' => $nonce]);
+	}
+
+	/** The page reports whether (and how fast) the publish round-tripped. */
+	public function reportPing(bool $ok, int $ms): DataResponse {
+		$this->config->setRoundTrip($ok, $this->time->getTime(), max(0, $ms));
+
+		return new DataResponse(['stored' => true]);
 	}
 }

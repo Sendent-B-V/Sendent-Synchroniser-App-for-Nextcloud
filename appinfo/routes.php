@@ -42,6 +42,8 @@ return [
 		['name' => 'change_notification_settings#setBatching', 'url' => '/api/1.0/settings/cnBatching', 'verb' => 'POST'],
 		['name' => 'change_notification_settings#runTest', 'url' => '/api/1.0/settings/cnRunTest', 'verb' => 'POST'],
 		['name' => 'change_notification_settings#flushNow', 'url' => '/api/1.0/settings/cnFlushNow', 'verb' => 'POST'],
+		['name' => 'change_notification_settings#sendPing', 'url' => '/api/1.0/settings/cnSendPing', 'verb' => 'POST'],
+		['name' => 'change_notification_settings#reportPing', 'url' => '/api/1.0/settings/cnReportPing', 'verb' => 'POST'],
 
 		[
 			'name' => 'license_api#preflighted_cors',
