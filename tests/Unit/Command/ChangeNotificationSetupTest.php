@@ -88,6 +88,17 @@ class ChangeNotificationSetupTest extends TestCase {
 
 	public function testReseedLiftsTheSequenceAboveTheLedger(): void {
 		$this->ledger->method('highWaterMark')->willReturn(5000);
+		$this->config->method('flushedSeq')->willReturn(0);
+		$this->sequence->expects($this->once())->method('reseedAbove')->with(5000);
+
+		$exit = $this->tester->execute(['--reseed' => true]);
+
+		$this->assertSame(0, $exit);
+	}
+
+	public function testReseedFloorsAtTheFlushedWatermark(): void {
+		$this->ledger->method('highWaterMark')->willReturn(100);
+		$this->config->method('flushedSeq')->willReturn(5000);
 		$this->sequence->expects($this->once())->method('reseedAbove')->with(5000);
 
 		$exit = $this->tester->execute(['--reseed' => true]);

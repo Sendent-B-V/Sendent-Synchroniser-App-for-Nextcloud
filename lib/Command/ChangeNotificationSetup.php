@@ -50,7 +50,12 @@ class ChangeNotificationSetup extends Command {
 				}
 				// Random throwaway login password: the account is only ever
 				// used via an app password the admin generates as this user.
-				$created = $this->userManager->createUser($botUser, base64_encode(random_bytes(36)));
+				try {
+					$created = $this->userManager->createUser($botUser, base64_encode(random_bytes(36)));
+				} catch (\Throwable $e) {
+					$output->writeln('<error>Could not create user "' . $botUser . '": ' . $e->getMessage() . '</error>');
+					return 1;
+				}
 				if ($created === false) {
 					$output->writeln('<error>Could not create user "' . $botUser . '"</error>');
 					return 1;
@@ -73,9 +78,16 @@ class ChangeNotificationSetup extends Command {
 		}
 
 		if ($input->getOption('reseed')) {
-			$mark = $this->ledger->highWaterMark();
+			// Floor at the flushed watermark too: deleting high-seq rows (e.g.
+			// loadtest cleanup) can leave the ledger's max below cursors that
+			// were already published to readers.
+			$mark = max($this->ledger->highWaterMark(), $this->config->flushedSeq());
 			$this->sequence->reseedAbove($mark);
 			$output->writeln('Sequence reseeded above ' . $mark);
+		}
+
+		if ((!is_string($botUser) || $botUser === '') && (!is_string($transport) || $transport === '') && !$input->getOption('reseed')) {
+			$output->writeln('Nothing to do. Options: --bot-user=<uid> [--create], --transport=auto|notify_push|polling, --reseed');
 		}
 
 		return 0;
