@@ -76,6 +76,13 @@
 				:initial-trashbin-scrub-enabled="trashbinScrubEnabled"
 				:mail-app-installed="mailAppInstalled"
 				:notifications-app-installed="notificationsAppInstalled" />
+
+			<ChangeNotificationsSection :initial-transport-mode="cnTransportMode"
+				:initial-bot-user="cnBotUser"
+				:initial-batch-window="cnBatchWindow"
+				:initial-max-refs-per-signal="cnMaxRefsPerSignal"
+				:initial-poll-interval="cnPollInterval"
+				:notify-push-installed="cnNotifyPushInstalled" />
 		</section>
 	</div>
 </template>
@@ -86,6 +93,7 @@ import { translate as t } from '@nextcloud/l10n'
 import GroupsManagement from './GroupsManagement.vue'
 import LicenseSection from './LicenseSection.vue'
 import SettingsSection from './SettingsSection.vue'
+import ChangeNotificationsSection from './ChangeNotificationsSection.vue'
 import { useLicenseStore } from '../stores/license'
 
 defineProps<{
@@ -103,6 +111,12 @@ defineProps<{
 	trashbinScrubEnabled: string
 	mailAppInstalled: boolean
 	notificationsAppInstalled: boolean
+	cnTransportMode: string
+	cnBotUser: string
+	cnBatchWindow: string
+	cnMaxRefsPerSignal: string
+	cnPollInterval: string
+	cnNotifyPushInstalled: boolean
 }>()
 
 const tab = ref<'general' | 'sync'>('general')
