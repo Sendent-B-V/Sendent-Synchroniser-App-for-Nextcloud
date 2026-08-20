@@ -23,6 +23,9 @@
     </background-jobs>
     <commands>
         <command>OCA\SendentSynchroniser\Command\EmailTemplate</command>
+        <command>OCA\SendentSynchroniser\Command\ChangeNotificationStatus</command>
+        <command>OCA\SendentSynchroniser\Command\ChangeNotificationFlush</command>
+        <command>OCA\SendentSynchroniser\Command\ChangeNotificationSetup</command>
     </commands>
     <settings>
         <admin>OCA\SendentSynchroniser\Settings\Admin</admin>
