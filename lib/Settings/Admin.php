@@ -111,6 +111,14 @@ class Admin implements ISettings {
 		$params['graphApiMode'] = $this->appConfig->getAppValue(Constants::DISABLE_ITIP_IMIP_KEY, Constants::DISABLE_ITIP_IMIP_DEFAULT);
 		$params['trashbinScrubEnabled'] = $this->appConfig->getAppValue(Constants::TRASHBIN_SCRUB_KEY, Constants::TRASHBIN_SCRUB_DEFAULT);
 
+		// Change notifications (Connector signal transport)
+		$params['cnTransportMode'] = $this->appConfig->getAppValue(Constants::CN_TRANSPORT_MODE_KEY, Constants::CN_TRANSPORT_MODE_DEFAULT);
+		$params['cnBotUser'] = $this->appConfig->getAppValue(Constants::CN_BOT_USER_KEY, '');
+		$params['cnBatchWindow'] = $this->appConfig->getAppValue(Constants::CN_BATCH_WINDOW_KEY, (string)Constants::CN_BATCH_WINDOW_DEFAULT);
+		$params['cnMaxRefsPerSignal'] = $this->appConfig->getAppValue(Constants::CN_MAX_REFS_KEY, (string)Constants::CN_MAX_REFS_DEFAULT);
+		$params['cnPollInterval'] = $this->appConfig->getAppValue(Constants::CN_POLL_INTERVAL_KEY, (string)Constants::CN_POLL_INTERVAL_DEFAULT);
+		$params['cnNotifyPushInstalled'] = $this->appManager->isInstalled(Constants::CN_NOTIFY_PUSH_APPID);
+
 		return $params;
 	}
 
