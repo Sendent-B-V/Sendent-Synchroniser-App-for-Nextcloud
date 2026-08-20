@@ -3,6 +3,7 @@
 namespace OCA\SendentSynchroniser\AppInfo;
 
 use OCA\Files\Event\LoadAdditionalScriptsEvent;
+use OCA\SendentSynchroniser\Listener\DavChangeListener;
 use OCA\SendentSynchroniser\Listener\TokenInvalidInjector;
 use OCA\SendentSynchroniser\Notification\Notifier;
 use OCA\SendentSynchroniser\Service\InitialLoadManager;
@@ -41,6 +42,42 @@ class Application extends App implements IBootstrap {
 			\OCP\Calendar\Events\CalendarObjectMovedToTrashEvent::class,
 			\OCA\SendentSynchroniser\Listener\CalendarObjectTrashScrubListener::class,
 		);
+		// Change notifications for the Exchange Connector. Every CalDAV/CardDAV
+		// write is reduced to a collection reference and recorded in the ledger.
+		// Class-strings for events that do not exist on the running Nextcloud
+		// version are harmless: they are simply never dispatched. That is what
+		// covers the NC 28-34 range, where move-to-trash and restore moved from
+		// OCA\DAV\Events to OCP\Calendar\Events in NC 31.0.2.
+		$changeEvents = [
+			\OCA\DAV\Events\CalendarObjectCreatedEvent::class,
+			\OCA\DAV\Events\CalendarObjectUpdatedEvent::class,
+			\OCA\DAV\Events\CalendarObjectDeletedEvent::class,
+			\OCA\DAV\Events\CalendarObjectMovedEvent::class,
+			\OCA\DAV\Events\CalendarObjectMovedToTrashEvent::class,
+			\OCA\DAV\Events\CalendarObjectRestoredEvent::class,
+			\OCP\Calendar\Events\CalendarObjectMovedToTrashEvent::class,
+			\OCP\Calendar\Events\CalendarObjectRestoredEvent::class,
+			\OCA\DAV\Events\CalendarCreatedEvent::class,
+			\OCA\DAV\Events\CalendarUpdatedEvent::class,
+			\OCA\DAV\Events\CalendarDeletedEvent::class,
+			\OCA\DAV\Events\CalendarMovedToTrashEvent::class,
+			\OCA\DAV\Events\CalendarRestoredEvent::class,
+			\OCP\Calendar\Events\CalendarMovedToTrashEvent::class,
+			\OCP\Calendar\Events\CalendarRestoredEvent::class,
+			\OCA\DAV\Events\CalendarShareUpdatedEvent::class,
+			\OCA\DAV\Events\CalendarPublishedEvent::class,
+			\OCA\DAV\Events\CalendarUnpublishedEvent::class,
+			\OCA\DAV\Events\CardCreatedEvent::class,
+			\OCA\DAV\Events\CardUpdatedEvent::class,
+			\OCA\DAV\Events\CardDeletedEvent::class,
+			\OCA\DAV\Events\AddressBookCreatedEvent::class,
+			\OCA\DAV\Events\AddressBookUpdatedEvent::class,
+			\OCA\DAV\Events\AddressBookDeletedEvent::class,
+			\OCA\DAV\Events\AddressBookShareUpdatedEvent::class,
+		];
+		foreach ($changeEvents as $changeEvent) {
+			$context->registerEventListener($changeEvent, DavChangeListener::class);
+		}
 		$context->registerNotifierService(Notifier::class);
 	}
 
