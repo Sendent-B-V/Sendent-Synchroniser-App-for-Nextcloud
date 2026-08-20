@@ -54,6 +54,8 @@ class ChangeNotificationStatus extends Command {
 		$output->writeln('ack_cursor: ' . $ack);
 		$output->writeln('connector_lag: ' . max(0, $current - $ack));
 		$output->writeln('last_signal_at: ' . $this->config->lastSignalAt());
+		$roundTrip = $this->config->roundTrip();
+		$output->writeln('publish_test: ' . ($roundTrip['at'] === 0 ? '(never run)' : (($roundTrip['ok'] ? 'ok' : 'failed') . ' (' . $roundTrip['ms'] . ' ms at ' . $roundTrip['at'] . ')')));
 		$output->writeln('flushes_last_hour: ' . $hour['flushes']);
 		$output->writeln('refs_last_hour: ' . $hour['refs']);
 		$output->writeln('truncated_last_hour: ' . $hour['truncated']);

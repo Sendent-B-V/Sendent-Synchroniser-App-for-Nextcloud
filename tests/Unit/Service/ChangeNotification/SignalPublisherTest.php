@@ -213,4 +213,50 @@ class SignalPublisherTest extends TestCase {
 
 		$this->assertNotNull($publisher->flushIfDue());
 	}
+
+	public function testAnOversizedWebhookSignalIsQueuedTruncated(): void {
+		// NC's job list rejects arguments over ~32k JSON chars; an oversized
+		// signal must degrade to the truncated frame for the webhook channel.
+		$this->window->method('tryOpenWindow')->willReturn(true);
+		$this->transport->method('publish')->willReturn(true);
+
+		$rows = [];
+		for ($i = 1; $i <= 200; $i++) {
+			$rows[] = $this->row(str_repeat('x', 200) . $i, 500 + $i);
+		}
+		$this->ledger->method('rows')->willReturn($rows);
+
+		$captured = null;
+		$jobList = $this->createMock(\OCP\BackgroundJob\IJobList::class);
+		$jobList->method('add')->willReturnCallback(
+			function (string $class, array $argument) use (&$captured): void {
+				$captured = $argument;
+			}
+		);
+
+		$config = $this->createMock(ChangeNotificationConfig::class);
+		$config->method('maxRefsPerSignal')->willReturn(500);
+		$config->method('flushedSeq')->willReturn(500);
+		$config->method('webhookEnabled')->willReturn(true);
+
+		$publisher = new SignalPublisher(
+			$this->window,
+			$this->ledger,
+			new SignalBuilder($this->serverConfig),
+			$this->transport,
+			$config,
+			$this->timeFactory(),
+			$this->createMock(\OCA\SendentSynchroniser\Service\ChangeNotification\SignalMetrics::class),
+			$jobList,
+			new NullLogger(),
+		);
+
+		$signal = $publisher->flushIfDue();
+
+		$this->assertNotNull($signal);
+		$this->assertFalse($signal['truncated']); // the live/notify_push frame keeps its refs
+		$this->assertNotNull($captured);
+		$this->assertTrue($captured['signal']['truncated']);
+		$this->assertSame([], $captured['signal']['refs']);
+	}
 }

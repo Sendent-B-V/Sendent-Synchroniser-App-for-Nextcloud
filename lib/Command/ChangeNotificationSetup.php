@@ -37,7 +37,8 @@ class ChangeNotificationSetup extends Command {
 			->addOption('bot-user', null, InputOption::VALUE_REQUIRED, 'User the Connector authenticates as')
 			->addOption('create', null, InputOption::VALUE_NONE, 'Create the bot user if it does not exist (random password — generate an app password for the Connector afterwards)')
 			->addOption('transport', null, InputOption::VALUE_REQUIRED, 'auto | notify_push | polling')
-			->addOption('reseed', null, InputOption::VALUE_NONE, 'Lift the DB sequence above the ledger high-water mark');
+			->addOption('reseed', null, InputOption::VALUE_NONE, 'Lift the DB sequence above the ledger high-water mark')
+			->addOption('allowlist', null, InputOption::VALUE_REQUIRED, 'on | off — filter /changes to principals the Connector uploaded via PUT /notify/allowlist (fail-closed while the uploaded list is empty)');
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output): int {
@@ -77,6 +78,16 @@ class ChangeNotificationSetup extends Command {
 			$output->writeln('Transport mode set to "' . $transport . '"');
 		}
 
+		$allowlist = $input->getOption('allowlist');
+		if (is_string($allowlist) && $allowlist !== '') {
+			if (!in_array($allowlist, ['on', 'off'], true)) {
+				$output->writeln('<error>--allowlist takes "on" or "off"</error>');
+				return 1;
+			}
+			$this->config->setAllowListEnabled($allowlist === 'on');
+			$output->writeln('Principal allow-list ' . ($allowlist === 'on' ? 'enabled (fail-closed until the Connector uploads principals)' : 'disabled'));
+		}
+
 		if ($input->getOption('reseed')) {
 			// Floor at the flushed watermark too: deleting high-seq rows (e.g.
 			// loadtest cleanup) can leave the ledger's max below cursors that
@@ -86,8 +97,8 @@ class ChangeNotificationSetup extends Command {
 			$output->writeln('Sequence reseeded above ' . $mark);
 		}
 
-		if ((!is_string($botUser) || $botUser === '') && (!is_string($transport) || $transport === '') && !$input->getOption('reseed')) {
-			$output->writeln('Nothing to do. Options: --bot-user=<uid> [--create], --transport=auto|notify_push|polling, --reseed');
+		if ((!is_string($botUser) || $botUser === '') && (!is_string($transport) || $transport === '') && !$input->getOption('reseed') && (!is_string($allowlist) || $allowlist === '')) {
+			$output->writeln('Nothing to do. Options: --bot-user=<uid> [--create], --transport=auto|notify_push|polling, --reseed, --allowlist=on|off');
 		}
 
 		return 0;
