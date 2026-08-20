@@ -64,4 +64,14 @@ class FlushSignalBatchTest extends TestCase {
 
 		$this->job->start($this->createMock(\OCP\BackgroundJob\IJobList::class));
 	}
+
+	public function testPollingPinnedWithoutWebhookSkipsTheFlushButStillPrunes(): void {
+		$this->config->method('transportMode')->willReturn('polling');
+		$this->config->method('botUser')->willReturn('sendent-sync');
+		$this->config->method('webhookEnabled')->willReturn(false);
+		$this->publisher->expects($this->never())->method('flush');
+		$this->sequence->expects($this->once())->method('prune');
+
+		$this->job->start($this->createMock(\OCP\BackgroundJob\IJobList::class));
+	}
 }

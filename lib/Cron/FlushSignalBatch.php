@@ -38,7 +38,12 @@ class FlushSignalBatch extends TimedJob {
 		// With no bot user and no webhook there is no signal channel: flush()
 		// would read rows, fail to publish, never advance the watermark, and
 		// repeat forever. Polling readers use the ledger directly, so skip.
-		if ($this->config->botUser() !== '' || $this->config->webhookEnabled()) {
+		// Pinning transport mode to polling has the same effect even with a
+		// bot user configured: NotifyPushTransport::publish() refuses to send
+		// while pinned, so that channel is equally absent.
+		$pushChannel = $this->config->transportMode() !== \OCA\SendentSynchroniser\Constants::TRANSPORT_POLLING
+			&& $this->config->botUser() !== '';
+		if ($pushChannel || $this->config->webhookEnabled()) {
 			try {
 				$this->publisher->flush();
 			} catch (\Throwable $e) {

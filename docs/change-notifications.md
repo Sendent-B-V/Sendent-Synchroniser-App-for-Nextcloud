@@ -145,7 +145,10 @@ Nextcloud instance; consult `notify_push`'s own documentation for the
 daemon deployment itself (a small Rust binary that needs to be reachable
 both from Nextcloud's PHP process and from the outside, over the same
 domain or a routed sub-path). Once that is done, the same
-`cn-setup --transport=auto` flow described above applies.
+`cn-setup --transport=auto` flow described above applies. Use a current
+`notify_push` release — the custom-message body is required for inline
+refs; on very old versions frames arrive body-less and every signal
+degrades to a catch-up hint.
 
 Nothing about this app requires `notify_push`, though. If you run without
 Redis — or without any distributed cache at all, which is common on
@@ -180,7 +183,8 @@ it is not, re-checking periodically so it can recover on its own once
 `notify_push` comes back. Forcing `notify_push` when it is not actually
 healthy does not break anything — the Connector still catches up over the
 change feed — but the settings page shows a persistent warning in that
-state so you notice.
+state so you notice. Choosing *Force polling* fully disables notify_push
+frame publishing — the ledger alone serves the Connector in that mode.
 
 **notify_push status** is not a setting but a live diagnostic panel next
 to the transport dropdown, populated by the "Run test" button. It shows

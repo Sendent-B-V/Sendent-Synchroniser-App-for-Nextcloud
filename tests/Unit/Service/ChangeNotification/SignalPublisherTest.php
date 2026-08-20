@@ -259,4 +259,12 @@ class SignalPublisherTest extends TestCase {
 		$this->assertTrue($captured['signal']['truncated']);
 		$this->assertSame([], $captured['signal']['refs']);
 	}
+
+	public function testPinnedPollingWithoutWebhookSkipsTheWindowEntirely(): void {
+		$this->config->method('transportMode')->willReturn('polling');
+		$this->window->expects($this->never())->method('tryOpenWindow');
+		$this->ledger->expects($this->never())->method('rows');
+
+		$this->assertNull($this->publisher->flushIfDue());
+	}
 }
