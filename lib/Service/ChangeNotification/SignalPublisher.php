@@ -26,6 +26,7 @@ class SignalPublisher {
 		private NotifyPushTransport $transport,
 		private ChangeNotificationConfig $config,
 		private ITimeFactory $time,
+		private SignalMetrics $metrics,
 		private LoggerInterface $logger,
 	) {}
 
@@ -76,6 +77,7 @@ class SignalPublisher {
 
 		$this->config->setFlushedSeq($cursor);
 		$this->config->setLastSignalAt($this->time->getTime());
+		$this->metrics->recordFlush(count($refs), $truncated);
 
 		return $signal;
 	}

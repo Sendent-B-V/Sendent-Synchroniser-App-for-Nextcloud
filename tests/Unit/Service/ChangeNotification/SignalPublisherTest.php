@@ -56,6 +56,7 @@ class SignalPublisherTest extends TestCase {
 		$serverConfig->method('getSystemValueString')->willReturn('inst');
 		$time = $this->createMock(ITimeFactory::class);
 		$time->method('getTime')->willReturn(1755676800);
+		$metrics = $this->createMock(\OCA\SendentSynchroniser\Service\ChangeNotification\SignalMetrics::class);
 
 		$this->publisher = new SignalPublisher(
 			$this->window,
@@ -64,6 +65,7 @@ class SignalPublisherTest extends TestCase {
 			$this->transport,
 			$this->config,
 			$time,
+			$metrics,
 			new NullLogger(),
 		);
 	}
