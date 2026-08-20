@@ -105,6 +105,36 @@
 			</div>
 		</div>
 
+		<!-- Optional webhook -->
+		<div class="settings-section__field">
+			<label>{{ t('sendentsynchroniser', 'Outbound webhook (optional)') }}</label>
+			<div class="settings-section__input-row">
+				<input v-model="webhookUrl"
+					type="url"
+					class="settings-section__input"
+					:placeholder="t('sendentsynchroniser', 'https://connector.example.com/signals')"
+					@change="saveWebhook">
+				<input v-model="webhookSecret"
+					type="password"
+					class="settings-section__input"
+					:placeholder="t('sendentsynchroniser', 'Shared secret (leave empty to keep current)')"
+					@change="saveWebhook">
+				<select v-model="webhookEnabled" @change="saveWebhook">
+					<option value="true">{{ t('sendentsynchroniser', 'Enabled') }}</option>
+					<option value="false">{{ t('sendentsynchroniser', 'Disabled') }}</option>
+				</select>
+				<button type="button"
+					:disabled="webhookEnabled !== 'true'"
+					@click="sendTestWebhook">
+					{{ t('sendentsynchroniser', 'Send test') }}
+				</button>
+				<span v-if="saved.webhook" class="settings-section__saved">&#x2713;</span>
+			</div>
+			<p class="settings-section__hint">
+				{{ t('sendentsynchroniser', 'Additionally POST each signal to this URL, signed with HMAC-SHA256. A hint only — the Connector still reads the change feed. Requires Nextcloud to reach the Connector.') }}
+			</p>
+		</div>
+
 		<!-- Diagnostics -->
 		<div class="settings-section__field">
 			<label>{{ t('sendentsynchroniser', 'Diagnostics') }}</label>
@@ -176,6 +206,8 @@ const props = defineProps<{
 	initialMaxRefsPerSignal: string
 	initialPollInterval: string
 	notifyPushInstalled: boolean
+	initialWebhookUrl: string
+	initialWebhookEnabled: string
 }>()
 
 const transportMode = ref(props.initialTransportMode)
@@ -183,6 +215,9 @@ const botUser = ref(props.initialBotUser)
 const batchWindow = ref(props.initialBatchWindow)
 const maxRefsPerSignal = ref(props.initialMaxRefsPerSignal)
 const pollInterval = ref(props.initialPollInterval)
+const webhookUrl = ref(props.initialWebhookUrl)
+const webhookSecret = ref('')
+const webhookEnabled = ref(props.initialWebhookEnabled === 'true' ? 'true' : 'false')
 
 const testing = ref(false)
 const flushing = ref(false)
@@ -228,6 +263,26 @@ function saveBatching() {
 		maxRefsPerSignal: Number(maxRefsPerSignal.value),
 		pollInterval: Number(pollInterval.value),
 	}, 'batching')
+}
+
+/** */
+function saveWebhook() {
+	saveSetting('cnWebhook', {
+		url: webhookUrl.value,
+		secret: webhookSecret.value,
+		enabled: webhookEnabled.value === 'true' ? 1 : 0,
+	}, 'webhook')
+}
+
+/** */
+async function sendTestWebhook() {
+	try {
+		const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/cnWebhookTest')
+		await axios.post(url)
+		showSaved('webhook')
+	} catch {
+		console.error('Webhook test failed')
+	}
 }
 
 /** */

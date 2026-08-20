@@ -118,6 +118,8 @@ class Admin implements ISettings {
 		$params['cnMaxRefsPerSignal'] = $this->appConfig->getAppValue(Constants::CN_MAX_REFS_KEY, (string)Constants::CN_MAX_REFS_DEFAULT);
 		$params['cnPollInterval'] = $this->appConfig->getAppValue(Constants::CN_POLL_INTERVAL_KEY, (string)Constants::CN_POLL_INTERVAL_DEFAULT);
 		$params['cnNotifyPushInstalled'] = $this->appManager->isInstalled(Constants::CN_NOTIFY_PUSH_APPID);
+		$params['cnWebhookUrl'] = $this->appConfig->getAppValue(Constants::CN_WEBHOOK_URL_KEY, '');
+		$params['cnWebhookEnabled'] = $this->appConfig->getAppValue(Constants::CN_WEBHOOK_ENABLED_KEY, 'false');
 
 		return $params;
 	}

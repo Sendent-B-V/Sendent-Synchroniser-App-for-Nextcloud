@@ -82,7 +82,9 @@
 				:initial-batch-window="cnBatchWindow"
 				:initial-max-refs-per-signal="cnMaxRefsPerSignal"
 				:initial-poll-interval="cnPollInterval"
-				:notify-push-installed="cnNotifyPushInstalled" />
+				:notify-push-installed="cnNotifyPushInstalled"
+				:initial-webhook-url="cnWebhookUrl"
+				:initial-webhook-enabled="cnWebhookEnabled" />
 		</section>
 	</div>
 </template>
@@ -117,6 +119,8 @@ defineProps<{
 	cnMaxRefsPerSignal: string
 	cnPollInterval: string
 	cnNotifyPushInstalled: boolean
+	cnWebhookUrl: string
+	cnWebhookEnabled: string
 }>()
 
 const tab = ref<'general' | 'sync'>('general')

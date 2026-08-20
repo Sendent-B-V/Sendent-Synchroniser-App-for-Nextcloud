@@ -30,6 +30,12 @@ class SignalPublisherTest extends TestCase {
 	/** @var ChangeNotificationConfig&MockObject */
 	private $config;
 
+	/** @var IConfig&MockObject */
+	private $serverConfig;
+
+	/** @var \OCP\BackgroundJob\IJobList&MockObject */
+	private $jobList;
+
 	private SignalPublisher $publisher;
 
 	protected function setUp(): void {
@@ -51,23 +57,45 @@ class SignalPublisherTest extends TestCase {
 		$this->transport = $this->createMock(NotifyPushTransport::class);
 		$this->config = $this->createMock(ChangeNotificationConfig::class);
 		$this->config->method('maxRefsPerSignal')->willReturn(3);
+		$this->config->method('webhookEnabled')->willReturn(false);
 
-		$serverConfig = $this->createMock(IConfig::class);
-		$serverConfig->method('getSystemValueString')->willReturn('inst');
-		$time = $this->createMock(ITimeFactory::class);
-		$time->method('getTime')->willReturn(1755676800);
+		$this->serverConfig = $this->createMock(IConfig::class);
+		$this->serverConfig->method('getSystemValueString')->willReturn('inst');
+		$this->jobList = $this->createMock(\OCP\BackgroundJob\IJobList::class);
 		$metrics = $this->createMock(\OCA\SendentSynchroniser\Service\ChangeNotification\SignalMetrics::class);
 
 		$this->publisher = new SignalPublisher(
 			$this->window,
 			$this->ledger,
-			new SignalBuilder($serverConfig),
+			new SignalBuilder($this->serverConfig),
 			$this->transport,
 			$this->config,
-			$time,
+			$this->timeFactory(),
 			$metrics,
+			$this->jobList,
 			new NullLogger(),
 		);
+	}
+
+	private function timeFactory(): ITimeFactory {
+		$time = $this->createMock(ITimeFactory::class);
+		$time->method('getTime')->willReturn(1755676800);
+		return $time;
+	}
+
+	private function configWithWebhook(): ChangeNotificationConfig {
+		$config = $this->createMock(ChangeNotificationConfig::class);
+		$config->method('maxRefsPerSignal')->willReturn(3);
+		$config->method('flushedSeq')->willReturn(500);
+		$config->method('webhookEnabled')->willReturn(true);
+		$config->expects($this->once())->method('setFlushedSeq')->with(501);
+		return $config;
+	}
+
+	private function webhookJobList(): \OCP\BackgroundJob\IJobList {
+		$jobList = $this->createMock(\OCP\BackgroundJob\IJobList::class);
+		$jobList->expects($this->once())->method('add');
+		return $jobList;
 	}
 
 	private function row(string $uri, int $seq): DirtyCollection {
@@ -160,5 +188,29 @@ class SignalPublisherTest extends TestCase {
 		$this->transport->method('publish')->willReturn(true);
 
 		$this->assertNotNull($this->publisher->flush());
+	}
+
+	public function testAWebhookOnlySetupStillAdvancesTheWatermark(): void {
+		// notify_push publish fails (no bot/queue) but the webhook channel is
+		// enabled: the signal is queued for webhook delivery and the watermark
+		// advances — otherwise the sweeper would re-deliver forever.
+		$this->window->method('tryOpenWindow')->willReturn(true);
+		$this->config->method('flushedSeq')->willReturn(500);
+		$this->ledger->method('rows')->willReturn([$this->row('personal', 501)]);
+		$this->transport->method('publish')->willReturn(false);
+
+		$publisher = new SignalPublisher(
+			$this->window,
+			$this->ledger,
+			new SignalBuilder($this->serverConfig),
+			$this->transport,
+			$this->configWithWebhook(),
+			$this->timeFactory(),
+			$this->createMock(\OCA\SendentSynchroniser\Service\ChangeNotification\SignalMetrics::class),
+			$this->webhookJobList(),
+			new NullLogger(),
+		);
+
+		$this->assertNotNull($publisher->flushIfDue());
 	}
 }

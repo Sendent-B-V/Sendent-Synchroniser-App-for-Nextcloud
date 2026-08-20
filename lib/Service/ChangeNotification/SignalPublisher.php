@@ -27,6 +27,7 @@ class SignalPublisher {
 		private ChangeNotificationConfig $config,
 		private ITimeFactory $time,
 		private SignalMetrics $metrics,
+		private \OCP\BackgroundJob\IJobList $jobList,
 		private LoggerInterface $logger,
 	) {}
 
@@ -71,7 +72,21 @@ class SignalPublisher {
 
 		$signal = $this->builder->build($since, $cursor, $refs, $truncated);
 
-		if (!$this->transport->publish($signal)) {
+		// Two independent hint channels; a signal counts as delivered when
+		// EITHER accepted it. In particular, a webhook-only setup (no bot
+		// user / no notify_push) must still advance the watermark, or the
+		// sweeper would re-deliver the same batch every cron run forever.
+		$delivered = $this->transport->publish($signal);
+
+		if ($this->config->webhookEnabled()) {
+			$this->jobList->add(
+				\OCA\SendentSynchroniser\BackgroundJob\SendWebhookSignal::class,
+				['signal' => $signal, 'attempt' => 1]
+			);
+			$delivered = true;
+		}
+
+		if (!$delivered) {
 			return null;
 		}
 
