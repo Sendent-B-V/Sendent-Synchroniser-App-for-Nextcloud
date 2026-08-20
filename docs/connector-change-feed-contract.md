@@ -32,6 +32,11 @@ Base: <nextcloud>/index.php/apps/sendentsynchroniser/api/1.0
 The /changes response has the same shape minus "prev", plus "has_more": bool.
 Websocket frames are the text `sendent_sync {json}` — split on the first space.
 
+Custom messages are exempt from notify_push's debounce (sent immediately),
+and each websocket connection buffers only 4 outbound messages (oldest
+dropped when a reader lags) — a dropped frame surfaces as a prev-gap on the
+next one.
+
 Field meanings: prev = the feed position BEFORE this signal (the watermark the
 flush started from — your gap detector), cursor = the feed position after it,
 p = principal URI (owner of the collection), t = caldav|carddav,
@@ -52,6 +57,8 @@ cursor - prev routinely exceeds len(refs). That is normal, not loss.
 2. Websocket gap detection is exact via prev: if a frame's prev > last_cursor,
    frames were missed — page /changes per rule 1 before processing further
    frames. Also page /changes on truncated=true (such frames carry no refs).
+   A frame carrying no JSON body at all (very old notify_push versions) is a
+   bare hint: page /changes as in rule 1.
 3. While on the websocket, additionally run one overlap catch-up page on a
    slow timer (recommended every 5 min): a row that committed late lands
    BELOW the server's watermark and never appears in any later frame — only

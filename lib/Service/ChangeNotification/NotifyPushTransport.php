@@ -35,6 +35,13 @@ class NotifyPushTransport {
 
 	/** @param array<string, mixed> $body */
 	private function push(string $message, array $body): bool {
+		if ($this->config->transportMode() === Constants::TRANSPORT_POLLING) {
+			// The admin pinned polling: publishing frames nobody listens for
+			// would only spend a Redis publish per window. The ledger alone
+			// serves polling readers.
+			return false;
+		}
+
 		$botUser = $this->config->botUser();
 		if ($botUser === '') {
 			return false;

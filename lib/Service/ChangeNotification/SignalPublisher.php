@@ -44,6 +44,13 @@ class SignalPublisher {
 	 * @return array<string, mixed>|null the published signal
 	 */
 	public function flushIfDue(): ?array {
+		// Pinned to polling with no webhook: no signal channel exists, so
+		// winning the window would only read rows and drop them.
+		if ($this->config->transportMode() === \OCA\SendentSynchroniser\Constants::TRANSPORT_POLLING
+			&& !$this->config->webhookEnabled()) {
+			return null;
+		}
+
 		if (!$this->window->tryOpenWindow()) {
 			return null;
 		}
