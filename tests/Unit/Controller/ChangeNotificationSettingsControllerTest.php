@@ -6,8 +6,10 @@ namespace OCA\SendentSynchroniser\Tests\Unit\Controller;
 use OCA\SendentSynchroniser\Controller\ChangeNotificationSettingsController;
 use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeNotificationConfig;
 use OCA\SendentSynchroniser\Service\ChangeNotification\NotifyPushAvailability;
+use OCA\SendentSynchroniser\Service\ChangeNotification\NotifyPushTransport;
 use OCA\SendentSynchroniser\Service\ChangeNotification\SignalPublisher;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IRequest;
 use OCP\IUserManager;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -28,6 +30,9 @@ class ChangeNotificationSettingsControllerTest extends TestCase {
 	/** @var SignalPublisher&MockObject */
 	private $publisher;
 
+	/** @var NotifyPushTransport&MockObject */
+	private $transport;
+
 	private ChangeNotificationSettingsController $controller;
 
 	protected function setUp(): void {
@@ -36,6 +41,10 @@ class ChangeNotificationSettingsControllerTest extends TestCase {
 		$this->userManager = $this->createMock(IUserManager::class);
 		$this->availability = $this->createMock(NotifyPushAvailability::class);
 		$this->publisher = $this->createMock(SignalPublisher::class);
+		$this->transport = $this->createMock(NotifyPushTransport::class);
+
+		$time = $this->createMock(ITimeFactory::class);
+		$time->method('getTime')->willReturn(1755676800);
 
 		$this->controller = new ChangeNotificationSettingsController(
 			'sendentsynchroniser',
@@ -44,6 +53,8 @@ class ChangeNotificationSettingsControllerTest extends TestCase {
 			$this->userManager,
 			$this->availability,
 			$this->publisher,
+			$this->transport,
+			$time,
 			new NullLogger(),
 		);
 	}
@@ -123,5 +134,25 @@ class ChangeNotificationSettingsControllerTest extends TestCase {
 		$data = $this->controller->flushNow()->getData();
 
 		$this->assertFalse($data['flushed']);
+	}
+
+	public function testSendPingPublishesThroughTheTransport(): void {
+		$this->transport->expects($this->once())
+			->method('publishPing')
+			->with($this->callback(fn (array $b) => isset($b['nonce']) && $b['nonce'] !== ''))
+			->willReturn(true);
+
+		$data = $this->controller->sendPing()->getData();
+
+		$this->assertTrue($data['published']);
+		$this->assertNotEmpty($data['nonce']);
+	}
+
+	public function testReportPingStoresTheRoundTripResult(): void {
+		$this->config->expects($this->once())->method('setRoundTrip')->with(true, $this->anything(), 38);
+
+		$response = $this->controller->reportPing(true, 38);
+
+		$this->assertSame(Http::STATUS_OK, $response->getStatus());
 	}
 }

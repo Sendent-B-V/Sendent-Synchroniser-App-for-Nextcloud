@@ -54,6 +54,11 @@
 				<div class="cn-status__line">
 					{{ t('sendentsynchroniser', 'Active transport: {transport}', { transport: testResult.effective_transport }) }}
 				</div>
+				<div v-if="roundTrip" :class="['cn-status__line', roundTrip.ok ? 'cn-status__line--ok' : 'cn-status__line--fail']">
+					{{ roundTrip.ok
+						? t('sendentsynchroniser', 'Publish test: {ms} ms ✓', { ms: String(roundTrip.ms) })
+						: t('sendentsynchroniser', 'Publish test failed ✗') }}
+				</div>
 			</div>
 			<div v-else-if="!notifyPushInstalled" class="cn-status">
 				<div class="cn-status__line cn-status__line--fail">
@@ -183,6 +188,7 @@ const testing = ref(false)
 const flushing = ref(false)
 const testResult = ref<TestResult | null>(null)
 const health = ref<Health | null>(null)
+const roundTrip = ref<{ ok: boolean, ms: number } | null>(null)
 
 const notifyPushInstalled = props.notifyPushInstalled
 
@@ -230,10 +236,33 @@ async function runTest() {
 	try {
 		const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/cnRunTest')
 		testResult.value = (await axios.post(url)).data as TestResult
+		if (testResult.value?.daemon.ok) {
+			await runRoundTrip()
+		}
 	} catch {
 		console.error('notify_push test failed')
 	} finally {
 		testing.value = false
+	}
+}
+
+/**
+ * Publish test (plan deviation 7): asks the server to publish a ping addressed
+ * to the BOT user and measures the request round-trip. The admin session
+ * cannot see bot-addressed frames, so this verifies and times the PUBLISH side
+ * only; end-to-end delivery confirmation is the Connector's own startup check.
+ */
+async function runRoundTrip() {
+	const started = Date.now()
+	try {
+		const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/cnSendPing')
+		const { data } = await axios.post(url)
+		const ms = Date.now() - started
+		roundTrip.value = { ok: Boolean(data.published), ms }
+		const report = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/cnReportPing')
+		await axios.post(report, { ok: Boolean(data.published), ms })
+	} catch {
+		roundTrip.value = { ok: false, ms: 0 }
 	}
 }
 
