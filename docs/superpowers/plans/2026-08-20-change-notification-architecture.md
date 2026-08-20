@@ -6723,3 +6723,9 @@ The final adversarial review of the merged branch surfaced three fixes now in th
 Also applied from review: visible save errors + honest enabled-state revert in the webhook UI, `publish_test` line in `cn-status`, a 100k cap in `PrincipalAllowList::replace()`, and the reseed floor `max(highWaterMark, flushedSeq)` in `cn-setup`.
 
 Deferred (tracked, deliberate): cn-flush exit-code conflation of "nothing to flush" vs "publish failed"; a11y label associations + aria-live in the settings section; batching inputs not writing back server-clamped values; truncated flushes recording 0 refs in SignalMetrics (charter: approximate gauge).
+
+### Amendments from the notify_push validation pass (systematic-debugging, post-merge)
+
+Task 1's open items were closed by **source verification** of nextcloud/notify_push instead of the live spike (findings in `docs/superpowers/research/2026-08-20-notify-push-spike.md`): Custom messages are **exempt from the daemon's debounce**, and the per-connection channel is a **bounded broadcast(4), drop-oldest** — the exact loss mode the `prev` field detects. The queue contract (`notify_custom`, `{user, message, body}`), wire frame (`"sendent_sync {json}"`), and `NullQueue` FQCN were all confirmed exact.
+
+Fixes applied from the same pass: pinned **Force polling** now truly disables the push path (transport gate + `flushIfDue()` early-out + sweeper gate — previously every window still read the ledger and published to nobody); `NotifyPushTransportTest` (new, 5 tests) pins the verified queue-message shape; the contract covers body-less frames from ancient notify_push versions as bare hints; docs note the current-notify_push requirement. The live round-trip check remains in Task 18's E2E list.
