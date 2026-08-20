@@ -32,6 +32,8 @@ if (adminEl) {
 		cnMaxRefsPerSignal: (state.cnMaxRefsPerSignal as string) || '500',
 		cnPollInterval: (state.cnPollInterval as string) || '30',
 		cnNotifyPushInstalled: Boolean(state.cnNotifyPushInstalled),
+		cnWebhookUrl: (state.cnWebhookUrl as string) || '',
+		cnWebhookEnabled: (state.cnWebhookEnabled as string) || 'false',
 	})
 
 	const pinia = createPinia()

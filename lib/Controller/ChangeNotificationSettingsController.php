@@ -29,6 +29,8 @@ class ChangeNotificationSettingsController extends ApiController {
 		private SignalPublisher $publisher,
 		private \OCA\SendentSynchroniser\Service\ChangeNotification\NotifyPushTransport $transport,
 		private \OCP\AppFramework\Utility\ITimeFactory $time,
+		private \OCP\IAppConfig $globalAppConfig,
+		private \OCP\BackgroundJob\IJobList $jobList,
 		private LoggerInterface $logger,
 	) {
 		parent::__construct($appName, $request);
@@ -114,5 +116,44 @@ class ChangeNotificationSettingsController extends ApiController {
 		$this->config->setRoundTrip($ok, $this->time->getTime(), max(0, $ms));
 
 		return new DataResponse(['stored' => true]);
+	}
+
+	public function setWebhook(string $url, string $secret, bool $enabled): DataResponse {
+		if ($enabled && !str_starts_with($url, 'https://')) {
+			return new DataResponse(['message' => 'Webhook URL must be https'], Http::STATUS_BAD_REQUEST);
+		}
+
+		$this->config->setWebhookUrl($url);
+		if ($secret !== '') {
+			// Empty secret in the payload means "keep the stored one".
+			$this->config->setWebhookSecret($secret);
+			// Secrets are sensitive IAppConfig values (redacted from
+			// occ config:list and reports). updateSensitive() exists since
+			// NC 29; on NC 28 the guard skips it — accepted, documented.
+			if (method_exists($this->globalAppConfig, 'updateSensitive')) {
+				$this->globalAppConfig->updateSensitive(
+					'sendentsynchroniser',
+					\OCA\SendentSynchroniser\Constants::CN_WEBHOOK_SECRET_KEY,
+					true
+				);
+			}
+		}
+		$this->config->setWebhookEnabled($enabled);
+
+		return new DataResponse(['enabled' => $this->config->webhookEnabled()]);
+	}
+
+	/** "Send test" button: queues one synthetic signal through the webhook path. */
+	public function sendTestWebhook(): DataResponse {
+		if (!$this->config->webhookEnabled()) {
+			return new DataResponse(['message' => 'Webhook is not enabled'], Http::STATUS_BAD_REQUEST);
+		}
+
+		$this->jobList->add(
+			\OCA\SendentSynchroniser\BackgroundJob\SendWebhookSignal::class,
+			['signal' => ['v' => 1, 'test' => true, 'prev' => 0, 'cursor' => 0, 'truncated' => false, 'refs' => []], 'attempt' => 1]
+		);
+
+		return new DataResponse(['queued' => true]);
 	}
 }

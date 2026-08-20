@@ -33,6 +33,12 @@ class ChangeNotificationSettingsControllerTest extends TestCase {
 	/** @var NotifyPushTransport&MockObject */
 	private $transport;
 
+	/** @var \OCP\IAppConfig&MockObject */
+	private $globalAppConfig;
+
+	/** @var \OCP\BackgroundJob\IJobList&MockObject */
+	private $jobList;
+
 	private ChangeNotificationSettingsController $controller;
 
 	protected function setUp(): void {
@@ -42,6 +48,8 @@ class ChangeNotificationSettingsControllerTest extends TestCase {
 		$this->availability = $this->createMock(NotifyPushAvailability::class);
 		$this->publisher = $this->createMock(SignalPublisher::class);
 		$this->transport = $this->createMock(NotifyPushTransport::class);
+		$this->globalAppConfig = $this->createMock(\OCP\IAppConfig::class);
+		$this->jobList = $this->createMock(\OCP\BackgroundJob\IJobList::class);
 
 		$time = $this->createMock(ITimeFactory::class);
 		$time->method('getTime')->willReturn(1755676800);
@@ -55,6 +63,8 @@ class ChangeNotificationSettingsControllerTest extends TestCase {
 			$this->publisher,
 			$this->transport,
 			$time,
+			$this->globalAppConfig,
+			$this->jobList,
 			new NullLogger(),
 		);
 	}
@@ -154,5 +164,22 @@ class ChangeNotificationSettingsControllerTest extends TestCase {
 		$response = $this->controller->reportPing(true, 38);
 
 		$this->assertSame(Http::STATUS_OK, $response->getStatus());
+	}
+
+	public function testSetWebhookRejectsNonHttpsWhenEnabling(): void {
+		$this->config->expects($this->never())->method('setWebhookUrl');
+
+		$response = $this->controller->setWebhook('http://plain.example.com/hook', 's', true);
+
+		$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
+	}
+
+	public function testSendTestWebhookQueuesAJobWhenEnabled(): void {
+		$this->config->method('webhookEnabled')->willReturn(true);
+		$this->jobList->expects($this->once())->method('add');
+
+		$data = $this->controller->sendTestWebhook()->getData();
+
+		$this->assertTrue($data['queued']);
 	}
 }
