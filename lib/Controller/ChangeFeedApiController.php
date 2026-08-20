@@ -32,6 +32,7 @@ class ChangeFeedApiController extends ApiController {
 		private ChangeNotificationConfig $config,
 		private CursorService $cursor,
 		private NotifyPushAvailability $availability,
+		private \OCA\SendentSynchroniser\Service\ChangeNotification\SignalMetrics $metrics,
 		private IConfig $serverConfig,
 		private ITimeFactory $time,
 		private \OCP\App\IAppManager $appManager,
@@ -140,6 +141,7 @@ class ChangeFeedApiController extends ApiController {
 			'ack_cursor' => $this->config->ackCursor(),
 			'ack_at' => $this->config->ackAt(),
 			'connector_lag' => max(0, $current - $this->config->ackCursor()),
+			'signals_last_hour' => $this->metrics->lastHour(),
 		]);
 	}
 }

@@ -115,6 +115,16 @@
 						? t('sendentsynchroniser', 'Connector acknowledged cursor {ack} (lag {lag})', { ack: String(health.ack_cursor), lag: String(health.connector_lag) })
 						: t('sendentsynchroniser', 'Connector has not acknowledged yet') }}
 				</div>
+				<div v-if="health.signals_last_hour" class="cn-status__line">
+					{{ t('sendentsynchroniser', 'Signals last hour: {n} flushes · avg {avg} refs/signal · max {max} (truncated ×{tr})', {
+						n: String(health.signals_last_hour.flushes),
+						avg: health.signals_last_hour.flushes > 0
+							? (health.signals_last_hour.refs / health.signals_last_hour.flushes).toFixed(1)
+							: '0',
+						max: String(health.signals_last_hour.max_refs),
+						tr: String(health.signals_last_hour.truncated),
+					}) }}
+				</div>
 			</div>
 			<div class="settings-section__input-row">
 				<button type="button" @click="refreshHealth">
@@ -151,6 +161,7 @@ interface Health {
 	ack_cursor: number
 	ack_at: number
 	connector_lag: number
+	signals_last_hour?: { flushes: number, refs: number, truncated: number, max_refs: number }
 }
 
 const props = defineProps<{
