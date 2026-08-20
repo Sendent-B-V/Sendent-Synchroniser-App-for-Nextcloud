@@ -33,6 +33,7 @@ class ChangeFeedApiController extends ApiController {
 		private CursorService $cursor,
 		private NotifyPushAvailability $availability,
 		private \OCA\SendentSynchroniser\Service\ChangeNotification\SignalMetrics $metrics,
+		private \OCA\SendentSynchroniser\Service\ChangeNotification\PrincipalAllowList $allowList,
 		private IConfig $serverConfig,
 		private ITimeFactory $time,
 		private \OCP\App\IAppManager $appManager,
@@ -91,8 +92,12 @@ class ChangeFeedApiController extends ApiController {
 		$cursor = $since;
 		$refs = [];
 		foreach ($rows as $row) {
-			$refs[] = $row->toReference($since)->jsonSerialize();
 			$cursor = max($cursor, (int)$row->getChangeSeq());
+			$ref = $row->toReference($since);
+			if (!$this->allowList->isAllowed($ref->principalUri)) {
+				continue; // cursor still advances: filtered rows must not wedge paging
+			}
+			$refs[] = $ref->jsonSerialize();
 		}
 
 		return new DataResponse([
@@ -143,5 +148,23 @@ class ChangeFeedApiController extends ApiController {
 			'connector_lag' => max(0, $current - $this->config->ackCursor()),
 			'signals_last_hour' => $this->metrics->lastHour(),
 		]);
+	}
+
+	/**
+	 * The Connector uploads the principals it maps; only those appear in
+	 * /changes afterwards (when the allow-list is enabled in settings).
+	 *
+	 * @NoAdminRequired
+	 * @NoCSRFRequired
+	 * @param string[] $principals
+	 */
+	public function setAllowList(array $principals = []): DataResponse {
+		if (!$this->guard->isAllowed()) {
+			return new DataResponse(['message' => 'Forbidden'], Http::STATUS_FORBIDDEN);
+		}
+
+		$this->allowList->replace($principals);
+
+		return new DataResponse(['count' => $this->allowList->count()]);
 	}
 }

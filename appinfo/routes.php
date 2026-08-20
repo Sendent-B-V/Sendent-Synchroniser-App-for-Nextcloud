@@ -44,6 +44,7 @@ return [
 		['name' => 'change_notification_settings#flushNow', 'url' => '/api/1.0/settings/cnFlushNow', 'verb' => 'POST'],
 		['name' => 'change_notification_settings#sendPing', 'url' => '/api/1.0/settings/cnSendPing', 'verb' => 'POST'],
 		['name' => 'change_notification_settings#reportPing', 'url' => '/api/1.0/settings/cnReportPing', 'verb' => 'POST'],
+		['name' => 'change_feed_api#setAllowList', 'url' => '/api/1.0/notify/allowlist', 'verb' => 'PUT'],
 
 		[
 			'name' => 'license_api#preflighted_cors',
