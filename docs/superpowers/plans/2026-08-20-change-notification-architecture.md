@@ -6707,3 +6707,19 @@ git commit -m "docs(cn): admin guide and Connector wire contract v1"
 - Event classes referenced but absent on a given NC version are never dispatched; `instanceof` on them is safe. Do not add `class_exists` guards around `registerEventListener` calls.
 - The `@NoAdminRequired` + `@NoCSRFRequired` annotation style matches this codebase (annotations, not attributes) — keep it consistent even though attributes exist on newer NC.
 </content>
+
+---
+
+## Post-review amendments (applied during execution)
+
+The final adversarial review of the merged branch surfaced three fixes now in the code but not in the task bodies above:
+
+1. **Webhook job-argument size guard (amends Task 23).** Nextcloud's `JobList::add()` rejects arguments whose JSON exceeds 32,000 chars. `SignalPublisher::flush()` therefore measures the signal and queues the truncated wire frame (`refs: [], truncated: true`) for the webhook channel when the full signal would exceed `MAX_WEBHOOK_ARGUMENT_BYTES` (30,000); the enqueue is additionally wrapped in try/catch so a failed enqueue can never wedge the watermark. Covered by `testAnOversizedWebhookSignalIsQueuedTruncated`.
+
+2. **Reachable allow-list toggle (amends Tasks 20/25).** `cnAllowListEnabled` previously had no writer. `occ sendentsynchroniser:cn-setup --allowlist=on|off` now toggles it; both docs name that path instead of a nonexistent settings control.
+
+3. **`SendWebhookSignal` unit tests (amends Task 23).** The retry chain (attempt-increment defeating NC's job-argument dedup, 2xx no-retry, give-up at 3 attempts, disabled guard, signature header) is pinned by `tests/Unit/BackgroundJob/SendWebhookSignalTest.php`.
+
+Also applied from review: visible save errors + honest enabled-state revert in the webhook UI, `publish_test` line in `cn-status`, a 100k cap in `PrincipalAllowList::replace()`, and the reseed floor `max(highWaterMark, flushedSeq)` in `cn-setup`.
+
+Deferred (tracked, deliberate): cn-flush exit-code conflation of "nothing to flush" vs "publish failed"; a11y label associations + aria-live in the settings section; batching inputs not writing back server-clamped values; truncated flushes recording 0 refs in SignalMetrics (charter: approximate gauge).
