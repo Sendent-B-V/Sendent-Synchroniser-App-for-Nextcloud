@@ -21,6 +21,7 @@
     <background-jobs>
         <job>OCA\SendentSynchroniser\Cron\NotifyInactiveUsers</job>
         <job>OCA\SendentSynchroniser\Cron\FlushSignalBatch</job>
+        <job>OCA\SendentSynchroniser\Cron\NotifyPushSelfTest</job>
     </background-jobs>
     <commands>
         <command>OCA\SendentSynchroniser\Command\EmailTemplate</command>
