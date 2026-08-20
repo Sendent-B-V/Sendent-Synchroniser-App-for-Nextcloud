@@ -9,6 +9,7 @@ use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeLedgerService;
 use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeNotificationConfig;
 use OCA\SendentSynchroniser\Service\ChangeNotification\CursorService;
 use OCA\SendentSynchroniser\Service\ChangeNotification\NotifyPushAvailability;
+use OCA\SendentSynchroniser\Service\ChangeNotification\SignalMetrics;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IConfig;
@@ -33,6 +34,9 @@ class ChangeFeedApiControllerTest extends TestCase {
 	/** @var NotifyPushAvailability&MockObject */
 	private $availability;
 
+	/** @var \OCA\SendentSynchroniser\Service\ChangeNotification\SignalMetrics&MockObject */
+	private $metrics;
+
 	private ChangeFeedApiController $controller;
 
 	protected function setUp(): void {
@@ -42,6 +46,7 @@ class ChangeFeedApiControllerTest extends TestCase {
 		$this->config = $this->createMock(ChangeNotificationConfig::class);
 		$this->cursor = $this->createMock(CursorService::class);
 		$this->availability = $this->createMock(NotifyPushAvailability::class);
+		$this->metrics = $this->createMock(SignalMetrics::class);
 
 		$serverConfig = $this->createMock(IConfig::class);
 		$serverConfig->method('getSystemValueString')->with('instanceid')->willReturn('inst');
@@ -60,6 +65,7 @@ class ChangeFeedApiControllerTest extends TestCase {
 			$this->config,
 			$this->cursor,
 			$this->availability,
+			$this->metrics,
 			$serverConfig,
 			$time,
 			$appManager,
@@ -172,6 +178,8 @@ class ChangeFeedApiControllerTest extends TestCase {
 		$this->config->method('ackAt')->willReturn(1755676798);
 		$this->cursor->method('current')->willReturn(1849233);
 		$this->ledger->method('countCollections')->willReturn(1240118);
+		$this->metrics->method('lastHour')
+			->willReturn(['flushes' => 3412, 'refs' => 63463, 'truncated' => 2, 'max_refs' => 500]);
 
 		$data = $this->controller->health()->getData();
 
@@ -180,5 +188,6 @@ class ChangeFeedApiControllerTest extends TestCase {
 		$this->assertSame(1755676700, $data['last_signal_at']);
 		$this->assertSame(1240118, $data['ledger_rows']);
 		$this->assertSame(43, $data['connector_lag']);
+		$this->assertSame(3412, $data['signals_last_hour']['flushes']);
 	}
 }
