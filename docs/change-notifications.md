@@ -365,9 +365,12 @@ app publishes, independent of anything this app reports about itself.
 does not find this out synchronously — the self-test background job
 re-checks daemon reachability on its own schedule (every five minutes) and
 caches the result, so the DAV write path never blocks on an HTTP probe.
-Within that same window, roughly five minutes worst case, `auto` mode
-notices the daemon is unreachable and the effective transport flips to
-polling automatically. No signals are lost in the meantime — they simply
+That 300-second self-test interval beats against Nextcloud's own 5-minute
+system-cron cadence, so the self-test does not necessarily fire the moment
+it becomes due — worst case it waits for the next cron pass. In practice
+`auto` mode notices the daemon is unreachable and the effective transport
+flips to polling within roughly five to ten minutes, i.e. about two cron
+passes worst case. No signals are lost in the meantime — they simply
 were not published over the (dead) websocket, and the Connector's own
 regular catch-up reads against `/notify/changes` pick them up regardless
 of what transport was nominally in use. When the daemon comes back, the

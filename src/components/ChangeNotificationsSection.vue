@@ -4,6 +4,9 @@
 		<p class="settings-section__hint">
 			{{ t('sendentsynchroniser', 'How the Exchange Connector learns that a calendar or address book changed. Signals carry only collection references, never event or contact data.') }}
 		</p>
+		<p v-if="saveError" class="settings-section__hint settings-section__hint--warning">
+			{{ saveError }}
+		</p>
 
 		<!-- Transport -->
 		<div class="settings-section__field">
@@ -224,6 +227,7 @@ const flushing = ref(false)
 const testResult = ref<TestResult | null>(null)
 const health = ref<Health | null>(null)
 const roundTrip = ref<{ ok: boolean, ms: number } | null>(null)
+const saveError = ref<string | null>(null)
 
 const notifyPushInstalled = props.notifyPushInstalled
 
@@ -246,8 +250,11 @@ async function saveSetting(endpoint: string, data: Record<string, string | numbe
 	const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/' + endpoint)
 	try {
 		await axios.post(url, data)
+		saveError.value = null
 		showSaved(feedbackKey)
-	} catch {
+	} catch (e) {
+		const message = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
+		saveError.value = message || t('sendentsynchroniser', 'Saving failed')
 		console.error('Failed to save setting:', endpoint)
 	}
 }
@@ -355,6 +362,48 @@ onMounted(() => {
 </script>
 
 <style scoped lang="scss">
+.settings-section {
+	margin-bottom: 24px;
+}
+
+.settings-section__field {
+	margin-bottom: 12px;
+}
+
+.settings-section__hint {
+	font-size: 13px;
+	color: var(--color-text-maxcontrast);
+	margin: 4px 0 0 0;
+	max-width: 400px;
+}
+
+.settings-section__hint--warning {
+	color: var(--color-error, #d91f2d);
+	font-weight: bold;
+}
+
+.settings-section__input-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+.settings-section__input {
+	width: 100%;
+	max-width: 400px;
+}
+
+.settings-section__saved {
+	color: var(--color-success-text);
+	font-weight: 600;
+	animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+	from { opacity: 0; }
+	to { opacity: 1; }
+}
+
 .cn-status {
 	margin: 8px 0;
 
