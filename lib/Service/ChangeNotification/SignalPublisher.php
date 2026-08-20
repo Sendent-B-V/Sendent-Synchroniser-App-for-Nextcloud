@@ -19,6 +19,13 @@ use Psr\Log\LoggerInterface;
  */
 class SignalPublisher {
 
+	/**
+	 * Nextcloud's job list rejects arguments whose JSON exceeds 32,000 chars.
+	 * Past this threshold the webhook gets the truncated wire frame instead —
+	 * a legal signal the Connector answers by paging /changes.
+	 */
+	private const MAX_WEBHOOK_ARGUMENT_BYTES = 30000;
+
 	public function __construct(
 		private BatchWindowService $window,
 		private ChangeLedgerService $ledger,
@@ -79,11 +86,24 @@ class SignalPublisher {
 		$delivered = $this->transport->publish($signal);
 
 		if ($this->config->webhookEnabled()) {
-			$this->jobList->add(
-				\OCA\SendentSynchroniser\BackgroundJob\SendWebhookSignal::class,
-				['signal' => $signal, 'attempt' => 1]
-			);
-			$delivered = true;
+			$webhookSignal = $signal;
+			if (strlen(json_encode($signal, JSON_THROW_ON_ERROR)) > self::MAX_WEBHOOK_ARGUMENT_BYTES) {
+				$webhookSignal = $this->builder->build($since, $cursor, [], true);
+			}
+			try {
+				$this->jobList->add(
+					\OCA\SendentSynchroniser\BackgroundJob\SendWebhookSignal::class,
+					['signal' => $webhookSignal, 'attempt' => 1]
+				);
+				$delivered = true;
+			} catch (\Throwable $e) {
+				// Belt and braces: a failed enqueue must not wedge the flush.
+				// If notify_push also failed, the watermark stays put and the
+				// sweeper retries the whole batch.
+				$this->logger->warning('Could not queue webhook signal: ' . $e->getMessage(), [
+					'app' => 'sendentsynchroniser',
+				]);
+			}
 		}
 
 		if (!$delivered) {

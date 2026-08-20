@@ -105,4 +105,12 @@ class ChangeNotificationSetupTest extends TestCase {
 
 		$this->assertSame(0, $exit);
 	}
+
+	public function testAllowlistOptionTogglesTheFilter(): void {
+		$this->config->expects($this->once())->method('setAllowListEnabled')->with(true);
+
+		$exit = $this->tester->execute(['--allowlist' => 'on']);
+
+		$this->assertSame(0, $exit);
+	}
 }

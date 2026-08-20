@@ -71,5 +71,5 @@ item; do not assume they exist.
 
 ## Allow-list semantics
 PUT /notify/allowlist replaces the stored list. It filters /changes only
-after the admin enables it in settings. Enabled + empty list = empty feed
-(fail closed). Upload before enabling.
+after the admin enables it (`occ sendentsynchroniser:cn-setup --allowlist=on`).
+Enabled + empty list = empty feed (fail closed). Upload before enabling.

@@ -34,6 +34,8 @@ class PrincipalAllowList {
 	/** @param string[] $principals */
 	public function replace(array $principals): void {
 		$clean = array_values(array_unique(array_filter($principals, static fn ($p) => is_string($p) && $p !== '')));
+		// Cheap insurance against a runaway upload; guard-authenticated callers only.
+		$clean = array_slice($clean, 0, 100000);
 		$this->appConfig->setAppValue(Constants::CN_ALLOWLIST_KEY, json_encode($clean, JSON_THROW_ON_ERROR));
 	}
 

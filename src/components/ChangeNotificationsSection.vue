@@ -273,12 +273,21 @@ function saveBatching() {
 }
 
 /** */
-function saveWebhook() {
-	saveSetting('cnWebhook', {
-		url: webhookUrl.value,
-		secret: webhookSecret.value,
-		enabled: webhookEnabled.value === 'true' ? 1 : 0,
-	}, 'webhook')
+async function saveWebhook() {
+	const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/cnWebhook')
+	try {
+		await axios.post(url, {
+			url: webhookUrl.value,
+			secret: webhookSecret.value,
+			enabled: webhookEnabled.value === 'true' ? 1 : 0,
+		})
+		saveError.value = null
+		showSaved('webhook')
+	} catch (e) {
+		const message = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
+		saveError.value = message || t('sendentsynchroniser', 'Saving failed')
+		webhookEnabled.value = 'false' // server rejected the enable; keep the UI honest
+	}
 }
 
 /** */
@@ -288,6 +297,7 @@ async function sendTestWebhook() {
 		await axios.post(url)
 		showSaved('webhook')
 	} catch {
+		saveError.value = t('sendentsynchroniser', 'Webhook test failed — is the webhook enabled and saved?')
 		console.error('Webhook test failed')
 	}
 }

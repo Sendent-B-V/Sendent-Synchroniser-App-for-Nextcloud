@@ -218,6 +218,14 @@ polling rather than using a websocket — it is the interval, in seconds,
 between polls that the app advertises to the Connector through
 `/notify/config`; it ranges from 5 to 300 seconds and defaults to 30.
 
+**Outbound webhook (optional)** lets the app push each signal to a
+Connector-owned HTTP endpoint as a second delivery channel alongside (or
+instead of) `notify_push`, signed with an HMAC secret sent in a header the
+Connector verifies. The secret field is always shown blank: leaving it
+empty on save keeps the currently stored secret, and disabling then
+re-enabling the webhook does not clear it — the only way to replace it is
+to type a new one and save.
+
 **Diagnostics** shows live numbers: collections currently tracked in the
 ledger, the current cursor position, and — once the Connector has called
 `/notify/ack` at least once — the cursor it last acknowledged and the lag
@@ -298,8 +306,12 @@ waiting for the batch window or the sweeper cron to catch it.
 
 **`occ sendentsynchroniser:cn-setup`** is the unattended-install command
 already covered in sections 2 and 3: `--bot-user`, `--create`, and
-`--transport` configure the service account and transport mode. A fourth
-flag, `--reseed`, lifts the app's sequence counter above the ledger's
+`--transport` configure the service account and transport mode.
+`--allowlist=on|off` toggles the principal allow-list — the uploaded list
+(via `PUT /notify/allowlist`) only filters `/changes` once this is turned
+on, and turning it on with an empty uploaded list fails closed (empty
+feed) rather than open. A fifth flag, `--reseed`, lifts the app's sequence
+counter above the ledger's
 current high-water mark. You need this only in one specific situation:
 the app's sequence counter — whether backed by Redis or by the database —
 was reset or lost (for example, a Redis instance was flushed or replaced
