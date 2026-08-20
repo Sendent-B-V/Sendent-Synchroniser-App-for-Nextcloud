@@ -42,6 +42,7 @@ return [
 		['name' => 'change_notification_settings#setBatching', 'url' => '/api/1.0/settings/cnBatching', 'verb' => 'POST'],
 		['name' => 'change_notification_settings#runTest', 'url' => '/api/1.0/settings/cnRunTest', 'verb' => 'POST'],
 		['name' => 'change_notification_settings#flushNow', 'url' => '/api/1.0/settings/cnFlushNow', 'verb' => 'POST'],
+		['name' => 'change_feed_api#setAllowList', 'url' => '/api/1.0/notify/allowlist', 'verb' => 'PUT'],
 
 		[
 			'name' => 'license_api#preflighted_cors',

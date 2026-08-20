@@ -9,6 +9,7 @@ use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeLedgerService;
 use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeNotificationConfig;
 use OCA\SendentSynchroniser\Service\ChangeNotification\CursorService;
 use OCA\SendentSynchroniser\Service\ChangeNotification\NotifyPushAvailability;
+use OCA\SendentSynchroniser\Service\ChangeNotification\PrincipalAllowList;
 use OCA\SendentSynchroniser\Service\ChangeNotification\SignalMetrics;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Utility\ITimeFactory;
@@ -37,6 +38,9 @@ class ChangeFeedApiControllerTest extends TestCase {
 	/** @var \OCA\SendentSynchroniser\Service\ChangeNotification\SignalMetrics&MockObject */
 	private $metrics;
 
+	/** @var PrincipalAllowList&MockObject */
+	private $allowList;
+
 	private ChangeFeedApiController $controller;
 
 	protected function setUp(): void {
@@ -47,6 +51,8 @@ class ChangeFeedApiControllerTest extends TestCase {
 		$this->cursor = $this->createMock(CursorService::class);
 		$this->availability = $this->createMock(NotifyPushAvailability::class);
 		$this->metrics = $this->createMock(SignalMetrics::class);
+		$this->allowList = $this->createMock(PrincipalAllowList::class);
+		$this->allowList->method('isAllowed')->willReturn(true);
 
 		$serverConfig = $this->createMock(IConfig::class);
 		$serverConfig->method('getSystemValueString')->with('instanceid')->willReturn('inst');
@@ -66,6 +72,7 @@ class ChangeFeedApiControllerTest extends TestCase {
 			$this->cursor,
 			$this->availability,
 			$this->metrics,
+			$this->allowList,
 			$serverConfig,
 			$time,
 			$appManager,
@@ -189,5 +196,47 @@ class ChangeFeedApiControllerTest extends TestCase {
 		$this->assertSame(1240118, $data['ledger_rows']);
 		$this->assertSame(43, $data['connector_lag']);
 		$this->assertSame(3412, $data['signals_last_hour']['flushes']);
+	}
+
+	public function testChangesFiltersDisallowedPrincipalsButStillAdvancesTheCursor(): void {
+		$this->allow();
+		$blocked = $this->createMock(\OCA\SendentSynchroniser\Service\ChangeNotification\PrincipalAllowList::class);
+		$blocked->method('isAllowed')->willReturn(false);
+		// rebuild the controller with the blocking allow-list
+		$serverConfig = $this->createMock(IConfig::class);
+		$serverConfig->method('getSystemValueString')->with('instanceid')->willReturn('inst');
+		$time = $this->createMock(ITimeFactory::class);
+		$time->method('getTime')->willReturn(1755676800);
+		$appManager = $this->createMock(\OCP\App\IAppManager::class);
+		$appManager->method('getAppVersion')->willReturn('2.1.0');
+		$controller = new ChangeFeedApiController(
+			'sendentsynchroniser',
+			$this->createMock(IRequest::class),
+			$this->guard,
+			$this->ledger,
+			$this->config,
+			$this->cursor,
+			$this->availability,
+			$this->metrics,
+			$blocked,
+			$serverConfig,
+			$time,
+			$appManager,
+		);
+
+		$row = new \OCA\SendentSynchroniser\Db\DirtyCollection();
+		$row->setPrincipalUri('principals/users/alice');
+		$row->setCollectionType('caldav');
+		$row->setCollectionUri('personal');
+		$row->setSyncToken(1);
+		$row->setChangeSeq(600);
+		$row->setStructuralSeq(0);
+		$row->setUpdatedAt(1);
+		$this->ledger->method('rows')->willReturn([$row]);
+
+		$data = $controller->changes(500, 10)->getData();
+
+		$this->assertSame([], $data['refs']);
+		$this->assertSame(600, $data['cursor']);
 	}
 }
