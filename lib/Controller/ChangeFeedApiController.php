@@ -17,10 +17,10 @@ use OCP\IConfig;
 use OCP\IRequest;
 
 /**
- * Transport B, and every transport's catch-up path: the Connector reads the
- * ledger through these endpoints with the bot account's app password (Basic
- * auth). Same payload schema as the websocket signal, so one Connector code
- * path consumes both.
+ * The polling transport, and every transport's catch-up path: the Connector
+ * reads the ledger through these endpoints with the bot account's app
+ * password (Basic auth). Same payload schema as the websocket signal, so
+ * one Connector code path consumes both.
  */
 class ChangeFeedApiController extends ApiController {
 

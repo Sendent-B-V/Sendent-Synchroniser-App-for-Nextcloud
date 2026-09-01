@@ -15,7 +15,7 @@ use Psr\Log\LoggerInterface;
  * accumulated after the last in-request flush would sit unpublished forever.
  * This job publishes it within one cron interval - about a minute with
  * webcron/AJAX cron, and commonly five minutes with the recommended system
- * cron, which is the real trailing-latency bound (see plan deviation 2).
+ * cron, which is the real trailing-latency bound.
  *
  * Also the housekeeping hook for the DB sequence table.
  */

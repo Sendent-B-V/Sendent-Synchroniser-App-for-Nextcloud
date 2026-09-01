@@ -48,8 +48,8 @@ class DirtyCollection extends Entity {
 	 *
 	 * `collectionChanged` is computed, not stored: it is true exactly when the
 	 * last structural change happened after the sequence number the reader has
-	 * already seen. That keeps the flag correct on a re-read, which matters
-	 * because readers deliberately overlap (see the plan's deviation 5).
+	 * already seen. That keeps the flag correct even when readers intentionally
+	 * re-read overlapping ranges.
 	 */
 	public function toReference(int $since): CollectionReference {
 		return new CollectionReference(

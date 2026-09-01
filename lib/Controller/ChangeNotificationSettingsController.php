@@ -103,7 +103,6 @@ class ChangeNotificationSettingsController extends ApiController {
 		]);
 	}
 
-	/** The settings page's "Flush now" button; also useful while debugging. */
 	public function flushNow(): DataResponse {
 		$signal = $this->publisher->flush();
 
@@ -116,8 +115,9 @@ class ChangeNotificationSettingsController extends ApiController {
 	}
 
 	/**
-	 * Settings page presses "Run test": we publish a ping frame addressed to
-	 * the bot. Publish-side only — see plan deviation 7.
+	 * Publishes a ping frame addressed to the bot. The admin session cannot
+	 * see bot-addressed frames, so this confirms only that publishing
+	 * succeeded — not delivery.
 	 */
 	public function sendPing(): DataResponse {
 		$nonce = bin2hex(random_bytes(8));
@@ -147,7 +147,8 @@ class ChangeNotificationSettingsController extends ApiController {
 			$this->config->setWebhookSecret($secret);
 			// Secrets are sensitive IAppConfig values (redacted from
 			// occ config:list and reports). updateSensitive() exists since
-			// NC 29; on NC 28 the guard skips it — accepted, documented.
+			// NC 29; on NC 28 this call is skipped, so the secret stays
+			// unredacted there.
 			if (method_exists($this->globalAppConfig, 'updateSensitive')) {
 				$this->globalAppConfig->updateSensitive(
 					'sendentsynchroniser',

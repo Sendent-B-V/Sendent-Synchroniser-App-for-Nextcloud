@@ -29,7 +29,6 @@ class Constants {
 	public const TRASHBIN_SCRUB_DEFAULT = 'false';
 	public const SENDENT_PROPERTY_PREFIX = 'X-SENDENT';
 
-	// ─── Change notifications ────────────────────────────────────────────
 	// Wire-format version of the signal payload. Bump only on a breaking change.
 	public const CN_SIGNAL_VERSION = 1;
 

@@ -42,11 +42,9 @@ class Application extends App implements IBootstrap {
 			\OCP\Calendar\Events\CalendarObjectMovedToTrashEvent::class,
 			\OCA\SendentSynchroniser\Listener\CalendarObjectTrashScrubListener::class,
 		);
-		// Change notifications for the Exchange Connector. Every CalDAV/CardDAV
-		// write is reduced to a collection reference and recorded in the ledger.
-		// Class-strings for events that do not exist on the running Nextcloud
-		// version are harmless: they are simply never dispatched. That is what
-		// covers the NC 28-34 range, where move-to-trash and restore moved from
+		// A class-string for an event that doesn't exist on the running Nextcloud
+		// version is harmless — it's simply never dispatched. That covers the
+		// NC 28-34 range, where move-to-trash and restore moved from
 		// OCA\DAV\Events to OCP\Calendar\Events in NC 31.0.2.
 		$changeEvents = [
 			\OCA\DAV\Events\CalendarObjectCreatedEvent::class,

@@ -14,7 +14,7 @@ use OCP\IMemcache;
  * boundary creates the key (add returns true) and gets to flush immediately —
  * that is the sub-second latency for a quiet instance. Every other event in
  * the window fails the add and does nothing; their changes ride along in the
- * next event's flush after the window expires, or in the sweeper's (Task 12).
+ * next event's flush after the window expires, or in the sweeper's next run.
  *
  * No separate flush lock is needed: winning the add IS the lock for this
  * window. The trailing edge is deliberately loose — a burst followed by
@@ -52,9 +52,8 @@ class BatchWindowService {
 	}
 
 	private function memcache(): ?IMemcache {
-		// Same guard as CursorService: createDistributed() falls back to the
-		// LOCAL cache when memcache.distributed is not configured, and a
-		// per-process window key would elect one flusher per php-fpm worker.
+		// Same guard as CursorService: a local-cache fallback would elect one
+		// flusher per php-fpm worker.
 		if ($this->serverConfig->getSystemValue('memcache.distributed', null) === null) {
 			return null;
 		}

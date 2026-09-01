@@ -287,9 +287,6 @@ const notifyPushInstalled = props.notifyPushInstalled
 
 const saved = reactive<Record<string, boolean>>({})
 
-/**
- * @param key feedback key to flash
- */
 function showSaved(key: string) {
 	saved[key] = true
 	setTimeout(() => { saved[key] = false }, 1500)
@@ -392,10 +389,10 @@ async function runTest() {
 }
 
 /**
- * Publish test (plan deviation 7): asks the server to publish a ping addressed
- * to the BOT user and measures the request round-trip. The admin session
- * cannot see bot-addressed frames, so this verifies and times the PUBLISH side
- * only; end-to-end delivery confirmation is the Connector's own startup check.
+ * Asks the server to publish a ping addressed to the bot user and measures
+ * the request round-trip. The admin session cannot see bot-addressed frames,
+ * so this verifies and times the publish side only; end-to-end delivery
+ * confirmation is the Connector's own startup check.
  */
 async function runRoundTrip() {
 	const started = Date.now()

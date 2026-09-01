@@ -78,8 +78,6 @@ class ConnectorSetupCheck {
 		}
 
 		return [
-			// A polling-pinned instance passes by choice; otherwise the full
-			// push stack must be healthy.
 			'ok' => $pushHealthy || $pinnedPolling,
 			'app_enabled' => $appEnabled,
 			'queue_available' => $queueAvailable,

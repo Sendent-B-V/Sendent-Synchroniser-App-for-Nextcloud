@@ -20,8 +20,8 @@ use Psr\Container\ContainerInterface;
  *  3. The daemon answers its /test/cookie endpoint (cached for
  *     CN_DAEMON_CHECK_TTL so the DAV write path never blocks on HTTP).
  *
- * The browser publish test from the admin settings is informational only
- * and does not gate isActive() — see the plan's deviation 7.
+ * The browser publish test from the admin settings page is informational
+ * only and does not gate isActive().
  *
  * notify_push is an optional dependency: every reference to its classes is by
  * string through the container, inside try/catch.

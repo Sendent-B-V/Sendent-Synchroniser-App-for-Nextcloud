@@ -92,7 +92,7 @@ class DavChangeListener implements IEventListener {
 		// defensively: instanceof on a class absent from the running NC
 		// version is false, and if NC 32+ moved these events to OCP (as it
 		// did the object-level ones) omitting them would silence calendar
-		// trash/restore entirely there. Verified empirically in Task 18.
+		// trash/restore entirely there.
 		if ($event instanceof \OCA\DAV\Events\CalendarCreatedEvent
 			|| $event instanceof \OCA\DAV\Events\CalendarUpdatedEvent
 			|| $event instanceof \OCA\DAV\Events\CalendarDeletedEvent

@@ -56,9 +56,8 @@ class DirtyCollectionMapper extends QBMapper {
 	 *
 	 * change_seq/structural_seq are clamped with GREATEST so a slow writer
 	 * whose UPDATE commits after a concurrent higher-seq writer can never
-	 * regress the row below an already-published watermark (the plan's
-	 * deviation 5 race, removed here at the source instead of merely being
-	 * absorbed by the Connector's reread overlap).
+	 * regress the row below an already-published watermark — so the
+	 * Connector's reread overlap no longer has to absorb this race.
 	 *
 	 * MySQL affected-rows note: updated_at gets a fresh timestamp and
 	 * change_seq normally rises on every call (CursorService never reuses a
