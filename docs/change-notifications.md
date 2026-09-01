@@ -214,20 +214,27 @@ sendentsynchroniser:cn-status` so support can find the peer. Nextcloud
 never calls it — the Connector always connects inbound to Nextcloud
 (websocket or polling); this is separate from the outbound webhook URL
 below, which Nextcloud does call. A "Check setup" button next to the field
-runs a two-layer diagnostic — automatically right after you save the
-address, or on demand — the same one available from the command line as
-`occ sendentsynchroniser:cn-check`. Layer 1 re-probes `notify_push` on this
+runs the setup diagnostic — automatically right after you save the address,
+or on demand — the same one available from the command line as `occ
+sendentsynchroniser:cn-check`. It has one pass/fail layer and one
+informational line. The pass/fail layer re-probes `notify_push` on this
 server live (app enabled, a real queue, the daemon reachable) and flags a
 websocket endpoint that is not `wss://`; a transport pinned to polling
-passes this layer by design, since `notify_push` is not required in that
-mode. Layer 2 checks the connector address itself: it must be `https://`,
-and a TLS handshake with full certificate verification must succeed, after
-which the issuer and days-until-expiry are shown, with a warning once the
-certificate is under 30 days from expiring; an `http://` address fails this
-layer outright but is still probed for plain TCP reachability so you know
-whether anything is listening at all. `cn-check` exits 0 only when both
-layers pass, and 1 otherwise, so it is suitable for a monitoring script or a
-post-deploy gate.
+passes by design, since `notify_push` is not required in that mode. The
+informational line reports when the Connector last acknowledged the change
+feed via `/notify/ack` — "alive" when that happened within the last day,
+otherwise how long it has been silent. There is deliberately no TLS or
+reachability probe of the connector address itself: every runtime
+connection runs Connector → Nextcloud, never the other way, so an address
+Nextcloud cannot reach proves nothing — plenty of Connectors run on an
+internal network the Nextcloud host was never meant to see into. The
+`wss://`/`https://` TLS that actually matters at runtime is Nextcloud's own,
+already covered by the notify_push layer above; the optional outbound
+webhook below validates its own URL when you enable it, since that one
+direction (Nextcloud → Connector) does exist. `cn-check` exits 0 when
+`notify_push` is healthy (or the transport is pinned to polling) and 1
+otherwise — the connector line never affects the exit code — so it is
+suitable for a monitoring script or a post-deploy gate.
 
 **Batching** has three numeric fields. *Batch window* controls how long the
 app waits, after the first event of a burst, before it is willing to

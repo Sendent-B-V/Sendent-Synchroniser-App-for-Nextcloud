@@ -109,16 +109,10 @@
 			</div>
 			<div v-if="setupCheck" class="cn-status">
 				<div :class="['cn-status__line', setupCheck.notify_push.ok ? 'cn-status__line--ok' : 'cn-status__line--fail']">
-					{{ t('sendentsynchroniser', 'Layer 1 — notify_push: {message}', { message: setupCheck.notify_push.message }) }}
+					{{ t('sendentsynchroniser', 'notify_push: {message}', { message: setupCheck.notify_push.message }) }}
 				</div>
-				<div :class="['cn-status__line', setupCheck.connector.ok ? 'cn-status__line--ok' : 'cn-status__line--fail']">
-					{{ t('sendentsynchroniser', 'Layer 2 — connector TLS: {message}', { message: setupCheck.connector.message }) }}
-				</div>
-				<div v-if="setupCheck.connector.tls_issuer" class="cn-status__line">
-					{{ t('sendentsynchroniser', 'Certificate by {issuer}, expires in {days} days', {
-						issuer: setupCheck.connector.tls_issuer,
-						days: String(setupCheck.connector.tls_expires_in_days ?? '?'),
-					}) }}
+				<div :class="['cn-status__line', setupCheck.connector.seen_recently ? 'cn-status__line--ok' : '']">
+					{{ t('sendentsynchroniser', 'Connector: {message}', { message: setupCheck.connector.message }) }}
 				</div>
 			</div>
 			<p class="settings-section__hint">
@@ -238,15 +232,10 @@ interface SetupCheck {
 		message: string
 	}
 	connector: {
-		ok: boolean
-		configured: boolean
 		url: string
-		https: boolean
-		reachable: boolean
-		tls_valid: boolean
-		tls_issuer: string | null
-		tls_expires_in_days: number | null
-		tls_expiring_soon: boolean
+		last_ack_cursor: number
+		last_ack_at: number
+		seen_recently: boolean
 		message: string
 	}
 }

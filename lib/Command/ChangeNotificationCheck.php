@@ -9,10 +9,12 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * occ sendentsynchroniser:cn-check — the settings page's layered setup check
- * for terminals and scripts. Exit 0 when both layers pass, 1 otherwise.
- * Network-touching (daemon probe + connector TLS handshake), so it is its own
- * command instead of a cn-status line.
+ * occ sendentsynchroniser:cn-check — the settings page's setup check for
+ * terminals and scripts. Exit 0 when notify_push is healthy (or the
+ * transport is pinned to polling), 1 otherwise; the connector line is
+ * informational, derived from the Connector's own /notify/ack calls.
+ * Network-touching (daemon probe), so it is its own command instead of a
+ * cn-status line.
  */
 class ChangeNotificationCheck extends Command {
 
@@ -24,7 +26,7 @@ class ChangeNotificationCheck extends Command {
 
 	protected function configure(): void {
 		$this->setName('sendentsynchroniser:cn-check')
-			->setDescription('Check notify_push availability and the Exchange Connector TLS setup');
+			->setDescription('Check notify_push availability and whether the Exchange Connector is reading the feed');
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output): int {
@@ -41,11 +43,9 @@ class ChangeNotificationCheck extends Command {
 		$output->writeln('  websocket: ' . ($np['ws_url'] ?? '(none)') . ($np['websocket_secure'] ? ' (wss OK)' : ' (not wss)'));
 		$output->writeln('  effective_transport: ' . $np['effective_transport']);
 
-		$output->writeln('Layer 2 - connector TLS: ' . $mark($conn['ok']) . ' ' . $conn['message']);
-		$output->writeln('  url: ' . ($conn['url'] !== '' ? $conn['url'] : '(unset)'));
-		$output->writeln('  https: ' . $mark($conn['https']) . '  reachable: ' . $mark($conn['reachable']) . '  tls_valid: ' . $mark($conn['tls_valid']));
-		if ($conn['tls_issuer'] !== null) {
-			$output->writeln('  issuer: ' . $conn['tls_issuer'] . '  expires_in_days: ' . ($conn['tls_expires_in_days'] ?? '?'));
+		$output->writeln('Connector (informational): ' . $conn['message']);
+		if ($conn['url'] !== '') {
+			$output->writeln('  configured address: ' . $conn['url']);
 		}
 
 		return $result['ok'] ? 0 : 1;
