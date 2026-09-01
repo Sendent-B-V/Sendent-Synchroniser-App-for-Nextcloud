@@ -42,3 +42,23 @@ reader stall — rare, detected, and self-healing.
 GO. All four §4.1/§4.3 assumptions verified against source; the two
 unknowns resolved in the design's favor (no debounce) or exactly as
 budgeted (bounded drop-oldest channel + prev-gap catch-up).
+
+## Live E2E verification (2026-09-01, Docker: nextcloud:31.0.14 + MariaDB 11.4 + Redis 7 + notify_push 1.4.0)
+
+Full loop confirmed against a real stack:
+
+- `occ app:enable` clean; migration created `oc_sndntsync_dirty`/`oc_sndntsync_seq` with exact schema and both indexes.
+- CalDAV PUT as alice → ledger row `principals/users/alice / caldav / personal` (plus the auto-created default collections captured as structural events); Redis-INCR sequence numbers live.
+- `/changes`, `/config`, `/health`, `/ack` all per contract; non-bot user gets 403.
+- Websocket as the bot received, ~3 s after a PUT:
+  `sendent_sync {"cursor":7,"prev":5,"refs":[{"p":"principals/users/alice",...}],...}`
+- Event DELETE on NC 31 signalled (spec §12 open item 3 ✓) — with the predicted dual OCA+OCP dispatch consuming two seqs, collapsed by the upsert.
+- `cn-setup`, `cn-status`, `cn-flush`, the sweeper and self-test cron jobs all exercised.
+- **PHPUnit: 183 tests, 378 assertions, OK** — first real execution of the suite.
+
+One real defect found and fixed by this pass: notify_push ≥ 1.x guards `/test/cookie`
+with a per-run token (its self-test shares it over Redis), so our probe's bare GET got
+HTTP 400 — and Nextcloud's HTTP client additionally throws on 4xx by default. The probe
+now passes `http_errors => false` and treats any `< 500` response as liveness
+(4xx from the token guard proves a daemon is answering; 5xx is a proxy fronting a dead
+backend). `NotifyPushAvailabilityTest` pins all four cases.

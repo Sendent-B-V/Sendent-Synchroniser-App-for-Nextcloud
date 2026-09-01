@@ -118,9 +118,24 @@ class NotifyPushAvailability {
 
 		try {
 			$client = $this->clientService->newClient();
-			$response = $client->get($base . '/test/cookie', ['timeout' => 5, 'nextcloud' => ['allow_local_address' => true]]);
-			$ok = $response->getStatusCode() === 200;
-			$message = $ok ? 'daemon reachable' : ('unexpected status ' . $response->getStatusCode());
+			// http_errors=false: the client must hand 4xx back as a response
+			// (Guzzle throws on it by default), because a 4xx is a POSITIVE
+			// liveness signal here — see below.
+			$response = $client->get($base . '/test/cookie', [
+				'timeout' => 5,
+				'http_errors' => false,
+				'nextcloud' => ['allow_local_address' => true],
+			]);
+			// Liveness only: current notify_push guards /test/* with a per-run
+			// token its own self-test shares over Redis, so an unauthenticated
+			// probe legitimately gets a 4xx — which still proves a daemon is
+			// answering at base_endpoint. 5xx is a proxy fronting a dead
+			// backend. Deep health stays `occ notify_push:self-test`'s job.
+			$status = $response->getStatusCode();
+			$ok = $status < 500;
+			$message = $ok
+				? ('daemon reachable (HTTP ' . $status . ')')
+				: ('gateway reports backend down (HTTP ' . $status . ')');
 		} catch (\Throwable $e) {
 			$ok = false;
 			$message = 'daemon unreachable: ' . substr($e->getMessage(), 0, 500);
