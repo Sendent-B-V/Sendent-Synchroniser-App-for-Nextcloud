@@ -91,6 +91,22 @@
 			</p>
 		</div>
 
+		<!-- Exchange Connector address -->
+		<div class="settings-section__field">
+			<label>{{ t('sendentsynchroniser', 'Exchange Connector address') }}</label>
+			<div class="settings-section__input-row">
+				<input v-model="connectorUrl"
+					type="url"
+					class="settings-section__input"
+					:placeholder="t('sendentsynchroniser', 'https://connector.example.com')"
+					@change="saveConnectorUrl">
+				<span v-if="saved.connectorUrl" class="settings-section__saved">&#x2713;</span>
+			</div>
+			<p class="settings-section__hint">
+				{{ t('sendentsynchroniser', 'Where your Exchange Connector runs. Informational — the Connector connects to Nextcloud, not the other way around; shown here and in diagnostics so support can find the peer. The optional outbound webhook below has its own URL.') }}
+			</p>
+		</div>
+
 		<!-- Batching -->
 		<div class="settings-section__field">
 			<label>{{ t('sendentsynchroniser', 'Batching') }}</label>
@@ -205,6 +221,7 @@ interface Health {
 const props = defineProps<{
 	initialTransportMode: string
 	initialBotUser: string
+	initialConnectorUrl: string
 	initialBatchWindow: string
 	initialMaxRefsPerSignal: string
 	initialPollInterval: string
@@ -215,6 +232,7 @@ const props = defineProps<{
 
 const transportMode = ref(props.initialTransportMode)
 const botUser = ref(props.initialBotUser)
+const connectorUrl = ref(props.initialConnectorUrl)
 const batchWindow = ref(props.initialBatchWindow)
 const maxRefsPerSignal = ref(props.initialMaxRefsPerSignal)
 const pollInterval = ref(props.initialPollInterval)
@@ -263,6 +281,8 @@ async function saveSetting(endpoint: string, data: Record<string, string | numbe
 function saveTransportMode() { saveSetting('cnTransportMode', { mode: transportMode.value }, 'transportMode') }
 /** */
 function saveBotUser() { saveSetting('cnBotUser', { uid: botUser.value }, 'botUser') }
+/** */
+function saveConnectorUrl() { saveSetting('cnConnectorUrl', { url: connectorUrl.value }, 'connectorUrl') }
 /** */
 function saveBatching() {
 	saveSetting('cnBatching', {

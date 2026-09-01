@@ -46,6 +46,7 @@ class ChangeNotificationStatus extends Command {
 		$output->writeln('notify_push_queue: ' . ($this->availability->queue() !== null ? 'available' : 'unavailable'));
 		$output->writeln('notify_push_daemon: ' . ($daemon['ok'] ? 'ok' : ('failed (' . $daemon['message'] . ')')));
 		$output->writeln('bot_user: ' . ($this->config->botUser() ?: '(unset)'));
+		$output->writeln('connector_url: ' . ($this->config->connectorUrl() ?: '(unset)'));
 		$output->writeln('batch_window_s: ' . $this->config->batchWindow());
 		$output->writeln('max_refs_per_signal: ' . $this->config->maxRefsPerSignal());
 		$output->writeln('ledger_collections: ' . $this->ledger->countCollections());

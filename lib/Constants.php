@@ -51,6 +51,11 @@ class Constants {
 
 	public const CN_BOT_USER_KEY = 'cnBotUser';
 
+	// Informational: where the Exchange Connector runs. Nextcloud never calls
+	// this URL (the Connector connects inbound; the optional webhook has its
+	// own URL) — it is shown in diagnostics so support can find the peer.
+	public const CN_CONNECTOR_URL_KEY = 'cnConnectorUrl';
+
 	public const CN_BATCH_WINDOW_KEY = 'cnBatchWindow';
 	public const CN_BATCH_WINDOW_DEFAULT = 2;
 	public const CN_BATCH_WINDOW_MIN = 0;

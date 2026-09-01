@@ -208,6 +208,13 @@ as — the same one you set up in section 2 or 3 above. Changing it here
 takes effect immediately for future publishes and for the change-feed
 endpoints' authorization check.
 
+**Exchange Connector address** is purely informational: an optional URL
+recording where your Connector runs, shown here and in `occ
+sendentsynchroniser:cn-status` so support can find the peer. Nextcloud
+never calls it — the Connector always connects inbound to Nextcloud
+(websocket or polling); this is separate from the outbound webhook URL
+below, which Nextcloud does call.
+
 **Batching** has three numeric fields. *Batch window* controls how long the
 app waits, after the first event of a burst, before it is willing to
 publish a signal again for the next burst; it ranges from 0 to 10 seconds
