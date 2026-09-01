@@ -31,6 +31,7 @@ class ChangeNotificationSettingsController extends ApiController {
 		private \OCP\AppFramework\Utility\ITimeFactory $time,
 		private \OCP\IAppConfig $globalAppConfig,
 		private \OCP\BackgroundJob\IJobList $jobList,
+		private \OCA\SendentSynchroniser\Service\ChangeNotification\ConnectorSetupCheck $setupCheck,
 		private LoggerInterface $logger,
 	) {
 		parent::__construct($appName, $request);
@@ -66,6 +67,11 @@ class ChangeNotificationSettingsController extends ApiController {
 		$this->config->setConnectorUrl($url);
 
 		return new DataResponse(['connectorUrl' => $url]);
+	}
+
+	/** Layered setup check: notify_push availability + connector TLS. */
+	public function checkConnectorSetup(): DataResponse {
+		return new DataResponse($this->setupCheck->run());
 	}
 
 	public function setBatching(int $batchWindow, int $maxRefsPerSignal, int $pollInterval): DataResponse {

@@ -213,7 +213,21 @@ recording where your Connector runs, shown here and in `occ
 sendentsynchroniser:cn-status` so support can find the peer. Nextcloud
 never calls it — the Connector always connects inbound to Nextcloud
 (websocket or polling); this is separate from the outbound webhook URL
-below, which Nextcloud does call.
+below, which Nextcloud does call. A "Check setup" button next to the field
+runs a two-layer diagnostic — automatically right after you save the
+address, or on demand — the same one available from the command line as
+`occ sendentsynchroniser:cn-check`. Layer 1 re-probes `notify_push` on this
+server live (app enabled, a real queue, the daemon reachable) and flags a
+websocket endpoint that is not `wss://`; a transport pinned to polling
+passes this layer by design, since `notify_push` is not required in that
+mode. Layer 2 checks the connector address itself: it must be `https://`,
+and a TLS handshake with full certificate verification must succeed, after
+which the issuer and days-until-expiry are shown, with a warning once the
+certificate is under 30 days from expiring; an `http://` address fails this
+layer outright but is still probed for plain TCP reachability so you know
+whether anything is listening at all. `cn-check` exits 0 only when both
+layers pass, and 1 otherwise, so it is suitable for a monitoring script or a
+post-deploy gate.
 
 **Batching** has three numeric fields. *Batch window* controls how long the
 app waits, after the first event of a burst, before it is willing to

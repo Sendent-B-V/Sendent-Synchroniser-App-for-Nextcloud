@@ -40,6 +40,7 @@ return [
 		['name' => 'change_notification_settings#setTransportMode', 'url' => '/api/1.0/settings/cnTransportMode', 'verb' => 'POST'],
 		['name' => 'change_notification_settings#setBotUser', 'url' => '/api/1.0/settings/cnBotUser', 'verb' => 'POST'],
 		['name' => 'change_notification_settings#setConnectorUrl', 'url' => '/api/1.0/settings/cnConnectorUrl', 'verb' => 'POST'],
+		['name' => 'change_notification_settings#checkConnectorSetup', 'url' => '/api/1.0/settings/cnConnectorCheck', 'verb' => 'POST'],
 		['name' => 'change_notification_settings#setBatching', 'url' => '/api/1.0/settings/cnBatching', 'verb' => 'POST'],
 		['name' => 'change_notification_settings#runTest', 'url' => '/api/1.0/settings/cnRunTest', 'verb' => 'POST'],
 		['name' => 'change_notification_settings#flushNow', 'url' => '/api/1.0/settings/cnFlushNow', 'verb' => 'POST'],

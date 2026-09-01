@@ -5,6 +5,7 @@ namespace OCA\SendentSynchroniser\Tests\Unit\Controller;
 
 use OCA\SendentSynchroniser\Controller\ChangeNotificationSettingsController;
 use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeNotificationConfig;
+use OCA\SendentSynchroniser\Service\ChangeNotification\ConnectorSetupCheck;
 use OCA\SendentSynchroniser\Service\ChangeNotification\NotifyPushAvailability;
 use OCA\SendentSynchroniser\Service\ChangeNotification\NotifyPushTransport;
 use OCA\SendentSynchroniser\Service\ChangeNotification\SignalPublisher;
@@ -39,6 +40,9 @@ class ChangeNotificationSettingsControllerTest extends TestCase {
 	/** @var \OCP\BackgroundJob\IJobList&MockObject */
 	private $jobList;
 
+	/** @var ConnectorSetupCheck&MockObject */
+	private $setupCheck;
+
 	private ChangeNotificationSettingsController $controller;
 
 	protected function setUp(): void {
@@ -50,6 +54,7 @@ class ChangeNotificationSettingsControllerTest extends TestCase {
 		$this->transport = $this->createMock(NotifyPushTransport::class);
 		$this->globalAppConfig = $this->createMock(\OCP\IAppConfig::class);
 		$this->jobList = $this->createMock(\OCP\BackgroundJob\IJobList::class);
+		$this->setupCheck = $this->createMock(ConnectorSetupCheck::class);
 
 		$time = $this->createMock(ITimeFactory::class);
 		$time->method('getTime')->willReturn(1755676800);
@@ -65,6 +70,7 @@ class ChangeNotificationSettingsControllerTest extends TestCase {
 			$time,
 			$this->globalAppConfig,
 			$this->jobList,
+			$this->setupCheck,
 			new NullLogger(),
 		);
 	}
@@ -205,5 +211,13 @@ class ChangeNotificationSettingsControllerTest extends TestCase {
 		$response = $this->controller->setConnectorUrl('ftp://nope');
 
 		$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
+	}
+
+	public function testCheckConnectorSetupReturnsTheLayeredResult(): void {
+		$this->setupCheck->method('run')->willReturn(['ok' => true, 'checked_at' => 1, 'notify_push' => [], 'connector' => []]);
+
+		$data = $this->controller->checkConnectorSetup()->getData();
+
+		$this->assertTrue($data['ok']);
 	}
 }

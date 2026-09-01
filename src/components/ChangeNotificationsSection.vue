@@ -99,8 +99,27 @@
 					type="url"
 					class="settings-section__input"
 					:placeholder="t('sendentsynchroniser', 'https://connector.example.com')"
-					@change="saveConnectorUrl">
+					@change="saveConnectorUrlAndCheck">
 				<span v-if="saved.connectorUrl" class="settings-section__saved">&#x2713;</span>
+			</div>
+			<div class="settings-section__input-row">
+				<button type="button" :disabled="checkingSetup" @click="runConnectorCheck">
+					{{ checkingSetup ? t('sendentsynchroniser', 'Checking…') : t('sendentsynchroniser', 'Check setup') }}
+				</button>
+			</div>
+			<div v-if="setupCheck" class="cn-status">
+				<div :class="['cn-status__line', setupCheck.notify_push.ok ? 'cn-status__line--ok' : 'cn-status__line--fail']">
+					{{ t('sendentsynchroniser', 'Layer 1 — notify_push: {message}', { message: setupCheck.notify_push.message }) }}
+				</div>
+				<div :class="['cn-status__line', setupCheck.connector.ok ? 'cn-status__line--ok' : 'cn-status__line--fail']">
+					{{ t('sendentsynchroniser', 'Layer 2 — connector TLS: {message}', { message: setupCheck.connector.message }) }}
+				</div>
+				<div v-if="setupCheck.connector.tls_issuer" class="cn-status__line">
+					{{ t('sendentsynchroniser', 'Certificate by {issuer}, expires in {days} days', {
+						issuer: setupCheck.connector.tls_issuer,
+						days: String(setupCheck.connector.tls_expires_in_days ?? '?'),
+					}) }}
+				</div>
 			</div>
 			<p class="settings-section__hint">
 				{{ t('sendentsynchroniser', 'Where your Exchange Connector runs. Informational — the Connector connects to Nextcloud, not the other way around; shown here and in diagnostics so support can find the peer. The optional outbound webhook below has its own URL.') }}
@@ -206,6 +225,32 @@ interface TestResult {
 	effective_transport: string
 }
 
+interface SetupCheck {
+	ok: boolean
+	notify_push: {
+		ok: boolean
+		app_enabled: boolean
+		queue_available: boolean
+		daemon: { ok: boolean, at: number, message: string }
+		ws_url: string | null
+		websocket_secure: boolean
+		effective_transport: string
+		message: string
+	}
+	connector: {
+		ok: boolean
+		configured: boolean
+		url: string
+		https: boolean
+		reachable: boolean
+		tls_valid: boolean
+		tls_issuer: string | null
+		tls_expires_in_days: number | null
+		tls_expiring_soon: boolean
+		message: string
+	}
+}
+
 interface Health {
 	transport: string
 	notify_push_ok: boolean
@@ -246,6 +291,8 @@ const testResult = ref<TestResult | null>(null)
 const health = ref<Health | null>(null)
 const roundTrip = ref<{ ok: boolean, ms: number } | null>(null)
 const saveError = ref<string | null>(null)
+const setupCheck = ref<SetupCheck | null>(null)
+const checkingSetup = ref(false)
 
 const notifyPushInstalled = props.notifyPushInstalled
 
@@ -282,7 +329,24 @@ function saveTransportMode() { saveSetting('cnTransportMode', { mode: transportM
 /** */
 function saveBotUser() { saveSetting('cnBotUser', { uid: botUser.value }, 'botUser') }
 /** */
-function saveConnectorUrl() { saveSetting('cnConnectorUrl', { url: connectorUrl.value }, 'connectorUrl') }
+async function runConnectorCheck() {
+	checkingSetup.value = true
+	try {
+		const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/cnConnectorCheck')
+		setupCheck.value = (await axios.post(url)).data as SetupCheck
+	} catch {
+		console.error('Connector setup check failed')
+	} finally {
+		checkingSetup.value = false
+	}
+}
+
+/** Save, then re-check: the check is the extra layer around the setting. */
+async function saveConnectorUrlAndCheck() {
+	await saveSetting('cnConnectorUrl', { url: connectorUrl.value }, 'connectorUrl')
+	await runConnectorCheck()
+}
+
 /** */
 function saveBatching() {
 	saveSetting('cnBatching', {

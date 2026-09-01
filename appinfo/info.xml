@@ -29,6 +29,7 @@
         <command>OCA\SendentSynchroniser\Command\ChangeNotificationFlush</command>
         <command>OCA\SendentSynchroniser\Command\ChangeNotificationSetup</command>
         <command>OCA\SendentSynchroniser\Command\ChangeNotificationLoadTest</command>
+        <command>OCA\SendentSynchroniser\Command\ChangeNotificationCheck</command>
     </commands>
     <settings>
         <admin>OCA\SendentSynchroniser\Settings\Admin</admin>
