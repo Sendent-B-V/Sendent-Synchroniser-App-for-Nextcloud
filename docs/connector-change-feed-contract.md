@@ -80,3 +80,11 @@ item; do not assume they exist.
 PUT /notify/allowlist replaces the stored list. It filters /changes only
 after the admin enables it (`occ sendentsynchroniser:cn-setup --allowlist=on`).
 Enabled + empty list = empty feed (fail closed). Upload before enabling.
+
+## Reference implementation
+
+A single-file, dependency-free C# reference client implementing every rule above
+(config negotiation, overlapped catch-up, websocket auth + prev-gap detection,
+polling fallback, ack) lives at `docs/connector-reference/SendentChangeFeedClient.cs`.
+It is a starting point, not a library: the per-mailbox scheduler, secret store,
+cursor persistence and the 6-hourly reconcile stay the Connector's own.
