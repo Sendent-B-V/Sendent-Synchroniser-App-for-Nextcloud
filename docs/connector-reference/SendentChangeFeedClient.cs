@@ -1,40 +1,26 @@
 // SendentChangeFeedClient.cs
 //
-// Single-file reference implementation of the Exchange Connector's receiving
-// end for the sendent-sync change feed (wire contract v1 — see
-// docs/connector-change-feed-contract.md, which is authoritative).
+// Minimal receiving skeleton for the sendent-sync change feed (wire contract
+// v1 — docs/connector-change-feed-contract.md is authoritative). BCL only
+// (net8.0), no csproj, no packages.
 //
-// Bare bones by design: BCL only (net8.0), no NuGet packages, no csproj.
-// Copy into the Connector and adapt — the TODO markers show where the real
-// Connector plugs in its own scheduler, secret store and persistence.
+// This file implements ONLY the websocket receiving end:
+//   - notify_push auth handshake (username frame, password frame, "authenticated")
+//   - frame filtering + parsing ("sendent_sync {json}", split on the FIRST space)
+//   - exact gap detection via the frame's "prev" field
 //
-// What this class does, per the contract's six client rules:
-//   1. EVERY /changes request uses since = max(0, lastCursor - rereadOverlap):
-//      startup catch-up, steady-state polling and gap recovery alike. The
-//      overlap re-delivers a few refs; fetches are idempotent by design.
-//   2. Websocket gap detection is exact via the frame's "prev": if
-//      prev > lastCursor, frames were dropped (the daemon buffers only 4 per
-//      connection) — page /changes before trusting further frames. A frame
-//      with truncated=true carries no refs and is the same instruction.
-//   3. While on the websocket, an overlap catch-up page also runs on a slow
-//      timer (default 5 min): a ledger row whose DB transaction committed
-//      late never appears in any later frame — only an overlap read finds it.
-//   4. lastCursor is persisted (ICursorStore) after each processed page/frame.
-//   5. Signals are hints. The consumer must still reconcile every mapped
-//      collection via sync-collection on a slow cadence (recommended 6 h).
-//      That loop is the Connector's own and is NOT implemented here.
-//   6. Sequence numbers are monotonic but not gapless — only ever compare
-//      with '>'; "prev" is the only gap signal.
-//
-// The signal tells you WHICH USER changed (ref.Uid). What you do with it:
-// call the regular CalDAV/CardDAV sync-collection REPORT for that user's
-// collection with the sync token YOUR side last stored — the token in the
-// signal ("s") is informational only.
+// Everything else is deliberately an empty hook for the Connector to fill in:
+//   - CatchUpFromLedgerAsync(): page GET /notify/changes with
+//     since = max(0, lastCursor - reread_overlap) until has_more=false.
+//     Required on startup, after every (re)connect, when a frame's
+//     prev > lastCursor, when truncated=true, and on a slow timer (~5 min).
+//   - HandleChangedCollectionAsync(): ref.Uid is the user who changed —
+//     schedule a CalDAV/CardDAV sync-collection for that collection using the
+//     sync token YOUR side last stored (the "s" in the ref is informational).
+//   - Cursor persistence, polling fallback, ack, and the 6-hourly reconcile.
 
 using System;
 using System.Collections.Generic;
-using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -44,9 +30,9 @@ using System.Threading.Tasks;
 
 namespace Sendent.Connector.ChangeFeed
 {
-    public sealed class SendentChangeFeedClient : IAsyncDisposable
+    public class SendentChangeFeedClient
     {
-        // ── Wire types (field names per contract v1) ────────────────────────
+        // ── Wire types (contract v1 field names) ────────────────────────────
 
         /// <summary>One changed collection. p = owner principal — the user.</summary>
         public sealed record ChangeRef
@@ -57,100 +43,41 @@ namespace Sendent.Connector.ChangeFeed
             [JsonPropertyName("s")] public long SyncToken { get; init; }              // informational only
             [JsonPropertyName("c")] public bool CollectionChanged { get; init; }      // priority hint
 
-            /// <summary>
-            /// The Nextcloud user id. The feed only ever emits user principals
-            /// ("principals/users/&lt;uid&gt;" — enforced server-side), so this
-            /// strip is lossless.
-            /// </summary>
+            /// <summary>The Nextcloud user id — the feed only emits "principals/users/&lt;uid&gt;".</summary>
             public string Uid => PrincipalUri.StartsWith("principals/users/", StringComparison.Ordinal)
                 ? PrincipalUri["principals/users/".Length..]
                 : PrincipalUri;
-
-            /// <summary>Dedup key for work queues: one fetch per collection.</summary>
-            public string WorkKey(string instance) => $"{instance}\0{PrincipalUri}\0{CollectionType}\0{CollectionUri}";
         }
 
-        private sealed record ConnectorConfig
+        public sealed record Signal
         {
-            [JsonPropertyName("transport")] public string Transport { get; init; } = "polling";
-            [JsonPropertyName("ws_url")] public string? WsUrl { get; init; }
-            [JsonPropertyName("message_name")] public string MessageName { get; init; } = "sendent_sync";
-            [JsonPropertyName("poll_interval")] public int PollIntervalSeconds { get; init; } = 30;
-            [JsonPropertyName("reread_overlap")] public long RereadOverlap { get; init; } = 100;
-            [JsonPropertyName("cursor")] public long Cursor { get; init; }
-            [JsonPropertyName("instance")] public string Instance { get; init; } = "";
-        }
-
-        private sealed record ChangesPage
-        {
-            [JsonPropertyName("cursor")] public long Cursor { get; init; }
-            [JsonPropertyName("refs")] public List<ChangeRef> Refs { get; init; } = new();
-            [JsonPropertyName("has_more")] public bool HasMore { get; init; }
-        }
-
-        private sealed record Signal
-        {
-            [JsonPropertyName("prev")] public long Prev { get; init; }
-            [JsonPropertyName("cursor")] public long Cursor { get; init; }
+            [JsonPropertyName("prev")] public long Prev { get; init; }       // feed position BEFORE this frame
+            [JsonPropertyName("cursor")] public long Cursor { get; init; }   // feed position after it
             [JsonPropertyName("truncated")] public bool Truncated { get; init; }
             [JsonPropertyName("refs")] public List<ChangeRef> Refs { get; init; } = new();
         }
 
-        /// <summary>
-        /// Durable cursor storage, keyed by Nextcloud instance id. TODO: back
-        /// this with the Connector's state store; losing it only costs one
-        /// overlapped re-read from wherever you restart.
-        /// </summary>
-        public interface ICursorStore
-        {
-            Task<long?> LoadAsync(string instance, CancellationToken ct);
-            Task SaveAsync(string instance, long cursor, CancellationToken ct);
-        }
+        // ── State ───────────────────────────────────────────────────────────
 
-        // ── Construction ────────────────────────────────────────────────────
+        private const string MessageName = "sendent_sync"; // also served by GET /notify/config
 
-        private readonly Uri _baseUrl;              // e.g. https://cloud.example.com
-        private readonly string _botUser;           // the service account
-        private readonly string _appPassword;       // TODO: from the secret store
-        private readonly ICursorStore _cursorStore;
-        private readonly Func<ChangeRef, CancellationToken, Task> _onCollectionChanged;
-        private readonly Action<string> _log;
-        private readonly HttpClient _http;
+        private readonly Uri _wsUrl;        // ws_url from GET /notify/config, e.g. wss://cloud.example.com/push/ws
+        private readonly string _botUser;   // the service account
+        private readonly string _appPassword;
 
-        private static readonly TimeSpan WsOverlapSweep = TimeSpan.FromMinutes(5); // contract rule 3
-        private const int PageLimit = 1000;                                        // server caps here anyway
-
+        /// <summary>Highest fully processed cursor. TODO: persist per instance.</summary>
         private long _lastCursor;
-        private string _instance = "";
 
-        public SendentChangeFeedClient(
-            Uri nextcloudBaseUrl,
-            string botUser,
-            string appPassword,
-            ICursorStore cursorStore,
-            Func<ChangeRef, CancellationToken, Task> onCollectionChanged,
-            Action<string>? log = null)
+        public SendentChangeFeedClient(Uri wsUrl, string botUser, string appPassword)
         {
-            _baseUrl = nextcloudBaseUrl;
+            _wsUrl = wsUrl;
             _botUser = botUser;
             _appPassword = appPassword;
-            _cursorStore = cursorStore;
-            _onCollectionChanged = onCollectionChanged;
-            _log = log ?? (_ => { });
-
-            _http = new HttpClient { BaseAddress = nextcloudBaseUrl, Timeout = TimeSpan.FromSeconds(30) };
-            _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-                "Basic", Convert.ToBase64String(Encoding.UTF8.GetBytes($"{botUser}:{appPassword}")));
         }
 
-        // ── Main loop ───────────────────────────────────────────────────────
+        // ── Receiving loop ──────────────────────────────────────────────────
 
-        /// <summary>
-        /// Runs until cancelled: negotiate transport via /config, catch up from
-        /// the ledger, then either hold the websocket (with reconnect+backoff)
-        /// or poll. Re-negotiates transport after every websocket failure, so
-        /// an instance that flips to polling (daemon died) is followed.
-        /// </summary>
+        /// <summary>Connect, authenticate, and receive frames until cancelled; reconnects with backoff.</summary>
         public async Task RunAsync(CancellationToken ct)
         {
             var backoff = TimeSpan.FromSeconds(1);
@@ -159,228 +86,118 @@ namespace Sendent.Connector.ChangeFeed
             {
                 try
                 {
-                    var cfg = await GetJsonAsync<ConnectorConfig>("index.php/apps/sendentsynchroniser/api/1.0/notify/config", ct);
-                    _instance = cfg.Instance;
-                    _lastCursor = await _cursorStore.LoadAsync(_instance, ct)
-                                  ?? cfg.Cursor; // fresh install: start at "now"; the initial full
-                                                 // sync of all mapped collections covers history.
+                    using var ws = new ClientWebSocket();
+                    await ws.ConnectAsync(_wsUrl, ct);
 
-                    await CatchUpAsync(cfg.RereadOverlap, ct); // rule 1: always before trusting live frames
-
-                    if (cfg.Transport == "notify_push" && !string.IsNullOrEmpty(cfg.WsUrl))
+                    // notify_push handshake: two text frames, then "authenticated".
+                    await SendTextAsync(ws, _botUser, ct);
+                    await SendTextAsync(ws, _appPassword, ct);
+                    if (await ReceiveTextAsync(ws, ct) != "authenticated")
                     {
-                        await RunWebSocketAsync(cfg, ct); // returns on close/error
-                    }
-                    else
-                    {
-                        await RunPollerOnceAsync(cfg, ct); // one interval, then re-negotiate
+                        throw new InvalidOperationException("notify_push authentication failed");
                     }
 
-                    backoff = TimeSpan.FromSeconds(1); // any successful pass resets it
+                    // A gap may have opened while we were disconnected.
+                    await CatchUpFromLedgerAsync(ct);
+                    backoff = TimeSpan.FromSeconds(1);
+
+                    while (ws.State == WebSocketState.Open && !ct.IsCancellationRequested)
+                    {
+                        var frame = await ReceiveTextAsync(ws, ct);
+                        await OnFrameAsync(frame, ct);
+                    }
                 }
                 catch (OperationCanceledException) when (ct.IsCancellationRequested)
                 {
                     return;
                 }
-                catch (Exception e)
+                catch
                 {
-                    _log($"change-feed pass failed, retrying in {backoff.TotalSeconds:F0}s: {e.Message}");
-                    await Task.Delay(Jitter(backoff), ct);
+                    await Task.Delay(backoff + TimeSpan.FromMilliseconds(Random.Shared.Next(0, 1000)), ct);
                     backoff = TimeSpan.FromSeconds(Math.Min(backoff.TotalSeconds * 2, 300));
                 }
             }
         }
 
-        // ── Transport B / catch-up (also transport A's recovery path) ───────
-
-        /// <summary>Contract rule 1: overlapped read of everything above lastCursor.</summary>
-        private async Task CatchUpAsync(long rereadOverlap, CancellationToken ct)
+        /// <summary>Filters and parses one frame; decides between inline refs and ledger catch-up.</summary>
+        private async Task OnFrameAsync(string frame, CancellationToken ct)
         {
-            var since = Math.Max(0, _lastCursor - rereadOverlap);
-            var seen = new HashSet<string>(); // dedup within this run; overlap re-reads are expected
-
-            while (true)
+            // The socket also carries the bot's own notify_file/notify_activity/
+            // notify_notification frames — ignore everything that is not ours.
+            if (frame == MessageName)
             {
-                var page = await GetJsonAsync<ChangesPage>(
-                    $"index.php/apps/sendentsynchroniser/api/1.0/notify/changes?since={since}&limit={PageLimit}", ct);
-
-                foreach (var r in page.Refs)
-                {
-                    if (seen.Add(r.WorkKey(_instance)))
-                    {
-                        await _onCollectionChanged(r, ct); // TODO: enqueue into the per-mailbox scheduler
-                    }
-                }
-
-                since = page.Cursor;
-                if (!page.HasMore)
-                {
-                    break;
-                }
+                // Body-less frame (very old notify_push): a bare hint.
+                await CatchUpFromLedgerAsync(ct);
+                return;
+            }
+            if (!frame.StartsWith(MessageName + " ", StringComparison.Ordinal))
+            {
+                return;
             }
 
-            if (since > _lastCursor) // rule 6: '>' only, never arithmetic
+            var signal = JsonSerializer.Deserialize<Signal>(frame[(MessageName.Length + 1)..]);
+            if (signal is null)
             {
-                _lastCursor = since;
-                await _cursorStore.SaveAsync(_instance, _lastCursor, ct); // rule 4
-                await AckAsync(ct);
+                return;
+            }
+
+            if (signal.Prev > _lastCursor || signal.Truncated)
+            {
+                // Dropped frames (the daemon buffers only 4 per connection) or an
+                // over-cap signal: the ledger is the source of truth — page it.
+                await CatchUpFromLedgerAsync(ct);
+                return;
+            }
+
+            foreach (var changeRef in signal.Refs)
+            {
+                await HandleChangedCollectionAsync(changeRef, ct);
+            }
+
+            if (signal.Cursor > _lastCursor) // monotonic compare only; sequences are not gapless
+            {
+                _lastCursor = signal.Cursor;
+                // TODO: persist _lastCursor; optionally POST /notify/ack?cursor=…
             }
         }
 
-        private async Task RunPollerOnceAsync(ConnectorConfig cfg, CancellationToken ct)
-        {
-            await Task.Delay(TimeSpan.FromSeconds(cfg.PollIntervalSeconds), ct);
-            await CatchUpAsync(cfg.RereadOverlap, ct);
-        }
+        // ── Hooks the Connector implements (intentionally empty) ────────────
 
-        // ── Transport A: notify_push websocket ──────────────────────────────
+        /// <summary>
+        /// TODO: page GET /index.php/apps/sendentsynchroniser/api/1.0/notify/changes
+        /// (Basic auth as the bot) with since = max(0, _lastCursor - reread_overlap)
+        /// until has_more=false; dispatch each ref like below; advance _lastCursor.
+        /// </summary>
+        protected virtual Task CatchUpFromLedgerAsync(CancellationToken ct) => Task.CompletedTask;
 
-        private async Task RunWebSocketAsync(ConnectorConfig cfg, CancellationToken ct)
-        {
-            using var ws = new ClientWebSocket();
-            await ws.ConnectAsync(new Uri(cfg.WsUrl!), ct);
+        /// <summary>
+        /// TODO: ref.Uid changed — enqueue a sync-collection for
+        /// (ref.Uid, ref.CollectionType, ref.CollectionUri) using OUR stored token.
+        /// </summary>
+        protected virtual Task HandleChangedCollectionAsync(ChangeRef changeRef, CancellationToken ct) => Task.CompletedTask;
 
-            // notify_push auth handshake: username frame, then password frame,
-            // then wait for the literal "authenticated".
-            await SendTextAsync(ws, _botUser, ct);
-            await SendTextAsync(ws, _appPassword, ct);
-
-            var greeting = await ReceiveTextAsync(ws, ct);
-            if (greeting != "authenticated")
-            {
-                throw new InvalidOperationException($"notify_push auth failed: '{greeting}'");
-            }
-            _log("websocket authenticated; live");
-
-            var lastSweep = DateTimeOffset.UtcNow;
-
-            while (ws.State == WebSocketState.Open && !ct.IsCancellationRequested)
-            {
-                // Rule 3: periodic overlap sweep even while frames flow.
-                if (DateTimeOffset.UtcNow - lastSweep > WsOverlapSweep)
-                {
-                    await CatchUpAsync(cfg.RereadOverlap, ct);
-                    lastSweep = DateTimeOffset.UtcNow;
-                }
-
-                var frame = await ReceiveTextAsync(ws, ct, WsOverlapSweep);
-                if (frame is null)
-                {
-                    continue; // receive window elapsed; loop for the sweep check
-                }
-
-                // Wire format: "<message_name> <json>" — split on the FIRST space.
-                // The socket also carries the bot's own notify_file/activity/
-                // notification frames; ignore everything that is not ours.
-                if (frame == cfg.MessageName)
-                {
-                    // Body-less frame (very old notify_push): a bare hint.
-                    await CatchUpAsync(cfg.RereadOverlap, ct);
-                    lastSweep = DateTimeOffset.UtcNow;
-                    continue;
-                }
-                if (!frame.StartsWith(cfg.MessageName + " ", StringComparison.Ordinal))
-                {
-                    continue;
-                }
-
-                var signal = JsonSerializer.Deserialize<Signal>(frame[(cfg.MessageName.Length + 1)..]);
-                if (signal is null)
-                {
-                    continue;
-                }
-
-                if (signal.Prev > _lastCursor || signal.Truncated)
-                {
-                    // Rule 2: exact gap (dropped frames) or an over-cap signal —
-                    // either way the ledger is the source; page it.
-                    await CatchUpAsync(cfg.RereadOverlap, ct);
-                    lastSweep = DateTimeOffset.UtcNow;
-                    continue;
-                }
-
-                foreach (var r in signal.Refs)
-                {
-                    await _onCollectionChanged(r, ct);
-                }
-
-                if (signal.Cursor > _lastCursor)
-                {
-                    _lastCursor = signal.Cursor;
-                    await _cursorStore.SaveAsync(_instance, _lastCursor, ct);
-                    await AckAsync(ct);
-                }
-            }
-        }
-
-        // ── Small helpers ───────────────────────────────────────────────────
-
-        /// <summary>Optional: lets the Nextcloud admin UI show Connector lag.</summary>
-        private async Task AckAsync(CancellationToken ct)
-        {
-            try
-            {
-                using var response = await _http.PostAsync(
-                    $"index.php/apps/sendentsynchroniser/api/1.0/notify/ack?cursor={_lastCursor}", content: null, ct);
-            }
-            catch
-            {
-                // Fire-and-forget by contract; never let ack failures disturb the feed.
-            }
-        }
-
-        private async Task<T> GetJsonAsync<T>(string relative, CancellationToken ct)
-        {
-            using var response = await _http.GetAsync(relative, ct);
-            response.EnsureSuccessStatusCode(); // 403 here means wrong bot credentials
-            await using var stream = await response.Content.ReadAsStreamAsync(ct);
-            return await JsonSerializer.DeserializeAsync<T>(stream, cancellationToken: ct)
-                   ?? throw new InvalidOperationException($"empty response from {relative}");
-        }
+        // ── Websocket plumbing ──────────────────────────────────────────────
 
         private static Task SendTextAsync(ClientWebSocket ws, string text, CancellationToken ct)
             => ws.SendAsync(Encoding.UTF8.GetBytes(text), WebSocketMessageType.Text, endOfMessage: true, ct);
 
-        /// <summary>One text frame, or null when <paramref name="window"/> elapses first.</summary>
-        private static async Task<string?> ReceiveTextAsync(ClientWebSocket ws, CancellationToken ct, TimeSpan? window = null)
+        private static async Task<string> ReceiveTextAsync(ClientWebSocket ws, CancellationToken ct)
         {
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            if (window is { } w)
+            var buffer = new byte[64 * 1024]; // a full 500-ref signal is ~45 KB
+            var builder = new StringBuilder();
+            while (true)
             {
-                timeout.CancelAfter(w);
-            }
-
-            var buffer = new byte[64 * 1024]; // a 500-ref signal is ~45 KB; frames larger than
-            var builder = new StringBuilder(); // the buffer arrive in parts and are reassembled
-            try
-            {
-                while (true)
+                var result = await ws.ReceiveAsync(buffer, ct);
+                if (result.MessageType == WebSocketMessageType.Close)
                 {
-                    var result = await ws.ReceiveAsync(buffer, timeout.Token);
-                    if (result.MessageType == WebSocketMessageType.Close)
-                    {
-                        throw new WebSocketException("server closed the connection");
-                    }
-                    builder.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
-                    if (result.EndOfMessage)
-                    {
-                        return builder.ToString();
-                    }
+                    throw new WebSocketException("server closed the connection");
+                }
+                builder.Append(Encoding.UTF8.GetString(buffer, 0, result.Count));
+                if (result.EndOfMessage)
+                {
+                    return builder.ToString();
                 }
             }
-            catch (OperationCanceledException) when (!ct.IsCancellationRequested)
-            {
-                return null; // receive window elapsed, connection still fine
-            }
-        }
-
-        private static TimeSpan Jitter(TimeSpan basis)
-            => basis + TimeSpan.FromMilliseconds(Random.Shared.Next(0, 1000));
-
-        public async ValueTask DisposeAsync()
-        {
-            _http.Dispose();
-            await Task.CompletedTask;
         }
     }
 }
