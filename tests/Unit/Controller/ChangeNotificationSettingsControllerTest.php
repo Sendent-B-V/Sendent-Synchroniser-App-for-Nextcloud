@@ -182,4 +182,28 @@ class ChangeNotificationSettingsControllerTest extends TestCase {
 
 		$this->assertTrue($data['queued']);
 	}
+
+	public function testSetConnectorUrlStoresAnHttpsUrl(): void {
+		$this->config->expects($this->once())->method('setConnectorUrl')->with('https://connector.example.com');
+
+		$response = $this->controller->setConnectorUrl('https://connector.example.com');
+
+		$this->assertSame(Http::STATUS_OK, $response->getStatus());
+	}
+
+	public function testSetConnectorUrlAllowsClearing(): void {
+		$this->config->expects($this->once())->method('setConnectorUrl')->with('');
+
+		$response = $this->controller->setConnectorUrl('');
+
+		$this->assertSame(Http::STATUS_OK, $response->getStatus());
+	}
+
+	public function testSetConnectorUrlRejectsNonHttp(): void {
+		$this->config->expects($this->never())->method('setConnectorUrl');
+
+		$response = $this->controller->setConnectorUrl('ftp://nope');
+
+		$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
+	}
 }

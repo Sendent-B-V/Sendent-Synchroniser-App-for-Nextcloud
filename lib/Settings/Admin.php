@@ -114,6 +114,7 @@ class Admin implements ISettings {
 		// Change notifications (Connector signal transport)
 		$params['cnTransportMode'] = $this->appConfig->getAppValue(Constants::CN_TRANSPORT_MODE_KEY, Constants::CN_TRANSPORT_MODE_DEFAULT);
 		$params['cnBotUser'] = $this->appConfig->getAppValue(Constants::CN_BOT_USER_KEY, '');
+		$params['cnConnectorUrl'] = $this->appConfig->getAppValue(Constants::CN_CONNECTOR_URL_KEY, '');
 		$params['cnBatchWindow'] = $this->appConfig->getAppValue(Constants::CN_BATCH_WINDOW_KEY, (string)Constants::CN_BATCH_WINDOW_DEFAULT);
 		$params['cnMaxRefsPerSignal'] = $this->appConfig->getAppValue(Constants::CN_MAX_REFS_KEY, (string)Constants::CN_MAX_REFS_DEFAULT);
 		$params['cnPollInterval'] = $this->appConfig->getAppValue(Constants::CN_POLL_INTERVAL_KEY, (string)Constants::CN_POLL_INTERVAL_DEFAULT);

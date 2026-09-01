@@ -56,6 +56,18 @@ class ChangeNotificationSettingsController extends ApiController {
 		return new DataResponse(['botUser' => $uid]);
 	}
 
+	public function setConnectorUrl(string $url): DataResponse {
+		// Empty clears the value; otherwise require an absolute http(s) URL so
+		// the diagnostics never show something unusable.
+		if ($url !== '' && !str_starts_with($url, 'https://') && !str_starts_with($url, 'http://')) {
+			return new DataResponse(['message' => 'Connector address must be an http(s) URL'], Http::STATUS_BAD_REQUEST);
+		}
+
+		$this->config->setConnectorUrl($url);
+
+		return new DataResponse(['connectorUrl' => $url]);
+	}
+
 	public function setBatching(int $batchWindow, int $maxRefsPerSignal, int $pollInterval): DataResponse {
 		// Setters clamp on write (and getters on read), so out-of-range input
 		// degrades to the nearest bound instead of erroring.

@@ -46,6 +46,14 @@ class ChangeNotificationConfig {
 		$this->appConfig->setAppValue(Constants::CN_BOT_USER_KEY, $uid);
 	}
 
+	public function connectorUrl(): string {
+		return (string)$this->appConfig->getAppValue(Constants::CN_CONNECTOR_URL_KEY, '');
+	}
+
+	public function setConnectorUrl(string $url): void {
+		$this->appConfig->setAppValue(Constants::CN_CONNECTOR_URL_KEY, $url);
+	}
+
 	public function batchWindow(): int {
 		return $this->clamped(
 			Constants::CN_BATCH_WINDOW_KEY,
