@@ -125,13 +125,25 @@
 			<label>{{ t('sendentsynchroniser', 'Batching') }}</label>
 			<div class="settings-section__input-row">
 				<label class="cn-inline-label">{{ t('sendentsynchroniser', 'Batch window (s)') }}
-					<input v-model="batchWindow" type="number" min="0" max="10" @change="saveBatching">
+					<input v-model="batchWindow"
+						type="number"
+						min="0"
+						max="10"
+						@change="saveBatching">
 				</label>
 				<label class="cn-inline-label">{{ t('sendentsynchroniser', 'Max references per signal') }}
-					<input v-model="maxRefsPerSignal" type="number" min="1" max="5000" @change="saveBatching">
+					<input v-model="maxRefsPerSignal"
+						type="number"
+						min="1"
+						max="5000"
+						@change="saveBatching">
 				</label>
 				<label class="cn-inline-label">{{ t('sendentsynchroniser', 'Poll interval (s)') }}
-					<input v-model="pollInterval" type="number" min="5" max="300" @change="saveBatching">
+					<input v-model="pollInterval"
+						type="number"
+						min="5"
+						max="300"
+						@change="saveBatching">
 				</label>
 				<span v-if="saved.batching" class="settings-section__saved">&#x2713;</span>
 			</div>
@@ -152,8 +164,12 @@
 					:placeholder="t('sendentsynchroniser', 'Shared secret (leave empty to keep current)')"
 					@change="saveWebhook">
 				<select v-model="webhookEnabled" @change="saveWebhook">
-					<option value="true">{{ t('sendentsynchroniser', 'Enabled') }}</option>
-					<option value="false">{{ t('sendentsynchroniser', 'Disabled') }}</option>
+					<option value="true">
+						{{ t('sendentsynchroniser', 'Enabled') }}
+					</option>
+					<option value="false">
+						{{ t('sendentsynchroniser', 'Disabled') }}
+					</option>
 				</select>
 				<button type="button"
 					:disabled="webhookEnabled !== 'true'"
@@ -287,6 +303,7 @@ const notifyPushInstalled = props.notifyPushInstalled
 
 const saved = reactive<Record<string, boolean>>({})
 
+/** @param key feedback key to flash briefly */
 function showSaved(key: string) {
 	saved[key] = true
 	setTimeout(() => { saved[key] = false }, 1500)
