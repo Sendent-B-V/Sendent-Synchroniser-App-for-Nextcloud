@@ -8,12 +8,7 @@ use OCP\AppFramework\Services\IAppConfig;
 
 /**
  * Typed, clamped read/write access to every change-notification app-config key.
- *
- * Everything that reads configuration goes through here so bounds live in one
- * place: an admin (or an occ command) writing a nonsense value can never widen
- * a window, uncap a signal or shrink a poll interval past what the design
- * tolerates. Setters clamp on write too, so a stored value never disagrees
- * with what the getters report.
+ * Setters clamp too, so stored and effective values always agree.
  */
 class ChangeNotificationConfig {
 
@@ -101,10 +96,7 @@ class ChangeNotificationConfig {
 		return max(0, (int)$this->appConfig->getAppValue(Constants::CN_FLUSHED_SEQ_KEY, '0'));
 	}
 
-	/**
-	 * Monotonic by construction: a stale flusher that read an old watermark can
-	 * never drag it backwards and cause the same refs to be published twice.
-	 */
+	/** Monotonic: a stale flusher can never drag the watermark backwards. */
 	public function setFlushedSeq(int $seq): void {
 		if ($seq <= $this->flushedSeq()) {
 			return;

@@ -7,12 +7,9 @@ use OCP\AppFramework\Services\IAppConfig;
 use OCP\AppFramework\Utility\ITimeFactory;
 
 /**
- * Lightweight flush counters for the diagnostics block ("Signals last hour:
- * 3,412 flushes · avg 18.6 refs/signal · truncated x2").
- *
- * One app-config JSON blob, bucketed per clock hour. Deliberately approximate:
- * concurrent flushers may lose an increment, which is irrelevant for a gauge
- * an admin reads. No new table for a nice-to-have.
+ * Lightweight flush counters for the diagnostics block, bucketed per clock
+ * hour in one app-config JSON blob. Deliberately approximate — concurrent
+ * flushers may lose an increment, fine for an admin-facing gauge.
  */
 class SignalMetrics {
 

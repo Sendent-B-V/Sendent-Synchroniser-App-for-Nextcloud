@@ -12,10 +12,9 @@ use OCP\Http\Client\IClientService;
 use Psr\Log\LoggerInterface;
 
 /**
- * Delivers one signal to the customer's webhook URL, off the request path.
- * A hint only: the Connector treats it exactly like a websocket frame and
- * still trusts the ledger, so retries are bounded (3) and failures are logged,
- * not escalated.
+ * Delivers one signal to the customer's webhook URL, off the request path. A
+ * hint only — the Connector still trusts the ledger — so retries are bounded
+ * (3) and failures are logged, not escalated.
  *
  * Argument shape: ['signal' => array, 'attempt' => int]
  */

@@ -8,7 +8,6 @@
 			{{ saveError }}
 		</p>
 
-		<!-- Transport -->
 		<div class="settings-section__field">
 			<label>{{ t('sendentsynchroniser', 'Transport') }}</label>
 			<div class="settings-section__input-row">
@@ -35,7 +34,6 @@
 			</p>
 		</div>
 
-		<!-- notify_push status -->
 		<div class="settings-section__field">
 			<label>{{ t('sendentsynchroniser', 'notify_push status') }}</label>
 			<div v-if="testResult" class="cn-status">
@@ -75,7 +73,6 @@
 			</div>
 		</div>
 
-		<!-- Service account -->
 		<div class="settings-section__field">
 			<label>{{ t('sendentsynchroniser', 'Service account (bot user)') }}</label>
 			<div class="settings-section__input-row">
@@ -91,7 +88,6 @@
 			</p>
 		</div>
 
-		<!-- Exchange Connector address -->
 		<div class="settings-section__field">
 			<label>{{ t('sendentsynchroniser', 'Exchange Connector address') }}</label>
 			<div class="settings-section__input-row">
@@ -120,7 +116,6 @@
 			</p>
 		</div>
 
-		<!-- Batching -->
 		<div class="settings-section__field">
 			<label>{{ t('sendentsynchroniser', 'Batching') }}</label>
 			<div class="settings-section__input-row">
@@ -149,7 +144,6 @@
 			</div>
 		</div>
 
-		<!-- Optional webhook -->
 		<div class="settings-section__field">
 			<label>{{ t('sendentsynchroniser', 'Outbound webhook (optional)') }}</label>
 			<div class="settings-section__input-row">
@@ -183,7 +177,6 @@
 			</p>
 		</div>
 
-		<!-- Diagnostics -->
 		<div class="settings-section__field">
 			<label>{{ t('sendentsynchroniser', 'Diagnostics') }}</label>
 			<div v-if="health" class="cn-status">
@@ -344,7 +337,7 @@ async function runConnectorCheck() {
 	}
 }
 
-/** Save, then re-check: the check is the extra layer around the setting. */
+/** */
 async function saveConnectorUrlAndCheck() {
 	await saveSetting('cnConnectorUrl', { url: connectorUrl.value }, 'connectorUrl')
 	await runConnectorCheck()
@@ -405,12 +398,7 @@ async function runTest() {
 	}
 }
 
-/**
- * Asks the server to publish a ping addressed to the bot user and measures
- * the request round-trip. The admin session cannot see bot-addressed frames,
- * so this verifies and times the publish side only; end-to-end delivery
- * confirmation is the Connector's own startup check.
- */
+/** Admin session can't see bot-addressed frames, so this times the publish side only — not end-to-end delivery. */
 async function runRoundTrip() {
 	const started = Date.now()
 	try {

@@ -12,9 +12,6 @@ use OCP\EventDispatcher\IEventListener;
 use Psr\Log\LoggerInterface;
 
 /**
- * Reduces every CalDAV/CardDAV write event to collection references, records
- * them in the ledger, and offers the batch window a chance to flush.
- *
  * Runs in-request, inside the DAV backend's still-open atomic() transaction,
  * so it must never throw: a throw here rolls back the user's own calendar or
  * contact write. Every failure is caught and logged.
@@ -88,11 +85,6 @@ class DavChangeListener implements IEventListener {
 		}
 
 		// ── CalDAV, collection level ────────────────────────────────────
-		// The OCP flavours of the collection-level trash events are included
-		// defensively: instanceof on a class absent from the running NC
-		// version is false, and if NC 32+ moved these events to OCP (as it
-		// did the object-level ones) omitting them would silence calendar
-		// trash/restore entirely there.
 		if ($event instanceof \OCA\DAV\Events\CalendarCreatedEvent
 			|| $event instanceof \OCA\DAV\Events\CalendarUpdatedEvent
 			|| $event instanceof \OCA\DAV\Events\CalendarDeletedEvent

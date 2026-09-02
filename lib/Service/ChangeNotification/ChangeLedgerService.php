@@ -9,12 +9,11 @@ use OCA\SendentSynchroniser\Db\DirtyCollectionMapper;
 use OCP\AppFramework\Utility\ITimeFactory;
 
 /**
- * The durable half of the design: every change lands here before any transport
- * is considered, so a lost, debounced or duplicated signal only ever costs a
- * reader one extra idempotent read.
- *
- * Cost is one cursor operation plus one upsert per collection reference (a DAV
- * event yields one ref, or two for a cross-calendar move).
+ * The durable half of the design: every change lands here before any
+ * transport is considered, so a lost or duplicated signal only ever costs a
+ * reader one extra idempotent read. Cost: one cursor op plus one upsert per
+ * collection reference (a DAV event yields one ref, or two for a
+ * cross-calendar move).
  */
 class ChangeLedgerService {
 
@@ -65,9 +64,7 @@ class ChangeLedgerService {
 	}
 
 	/**
-	 * Collapses references to the same collection, keeping the last sync token
-	 * and OR-ing the structural flag.
-	 *
+	 * Collapses references to the same collection, keeping the last sync token and OR-ing the structural flag.
 	 * @param CollectionReference[] $refs
 	 * @return CollectionReference[]
 	 */

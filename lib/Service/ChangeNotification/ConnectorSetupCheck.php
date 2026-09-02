@@ -7,22 +7,11 @@ use OCA\SendentSynchroniser\Constants;
 use OCP\AppFramework\Utility\ITimeFactory;
 
 /**
- * "Is everything set up correctly?" diagnostic around the Exchange Connector
- * address setting.
- *
- * Layer 1 (notify_push, the pass/fail layer): is transport A actually
- * available on this server — app enabled, a real queue behind it, the daemon
- * answering, and the advertised websocket URL secure (wss://). This is the
- * channel the Connector consumes, and its TLS is Nextcloud's own certificate.
- * A polling-pinned instance passes this layer by choice.
- *
- * Connector visibility (informational): every runtime connection goes
- * Connector -> Nextcloud, so the only honest reachability evidence Nextcloud
- * has is whether the Connector has been READING the feed — which its
- * /notify/ack calls record. A TLS/reachability probe of the connector address
- * was deliberately removed: internal Connectors are routinely unreachable
- * from the Nextcloud host, and nothing at runtime depends on that direction
- * (the optional webhook validates its own URL when enabled).
+ * "Is everything set up correctly?" diagnostic. notify_push availability
+ * (app enabled, real queue, daemon reachable, wss:// URL) is the pass/fail
+ * layer; Connector visibility is informational only, inferred from
+ * /notify/ack calls — Nextcloud never reaches the Connector directly, so no
+ * reachability probe is attempted.
  *
  * Admin-triggered only (settings button, save hook, occ cn-check) — never on
  * the DAV write path.

@@ -42,10 +42,9 @@ class Application extends App implements IBootstrap {
 			\OCP\Calendar\Events\CalendarObjectMovedToTrashEvent::class,
 			\OCA\SendentSynchroniser\Listener\CalendarObjectTrashScrubListener::class,
 		);
-		// A class-string for an event that doesn't exist on the running Nextcloud
-		// version is harmless — it's simply never dispatched. That covers the
-		// NC 28-34 range, where move-to-trash and restore moved from
-		// OCA\DAV\Events to OCP\Calendar\Events in NC 31.0.2.
+		// A class-string for an event absent on the running NC version is
+		// harmless — it's simply never dispatched. Covers NC 28-34, where
+		// move-to-trash/restore moved to OCP\Calendar\Events in NC 31.0.2.
 		$changeEvents = [
 			\OCA\DAV\Events\CalendarObjectCreatedEvent::class,
 			\OCA\DAV\Events\CalendarObjectUpdatedEvent::class,

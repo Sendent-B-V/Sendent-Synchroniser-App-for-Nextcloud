@@ -11,13 +11,10 @@ use OCP\BackgroundJob\TimedJob;
 use Psr\Log\LoggerInterface;
 
 /**
- * Sweeper behind the leading-edge batch window: when traffic stops, whatever
- * accumulated after the last in-request flush would sit unpublished forever.
- * This job publishes it within one cron interval - about a minute with
- * webcron/AJAX cron, and commonly five minutes with the recommended system
- * cron, which is the real trailing-latency bound.
- *
- * Also the housekeeping hook for the DB sequence table.
+ * Sweeper behind the leading-edge batch window: publishes whatever
+ * accumulated after the last in-request flush within one cron interval —
+ * about a minute with webcron/AJAX cron, five minutes with system cron.
+ * Also houses the DB sequence table's prune.
  */
 class FlushSignalBatch extends TimedJob {
 
@@ -35,12 +32,9 @@ class FlushSignalBatch extends TimedJob {
 	}
 
 	protected function run($arguments): void {
-		// With no bot user and no webhook there is no signal channel: flush()
-		// would read rows, fail to publish, never advance the watermark, and
-		// repeat forever. Polling readers use the ledger directly, so skip.
-		// Pinning transport mode to polling has the same effect even with a
-		// bot user configured: NotifyPushTransport::publish() refuses to send
-		// while pinned, so that channel is equally absent.
+		// No signal channel exists without a bot user (or while pinned to
+		// polling, which NotifyPushTransport::publish() also refuses); skip so
+		// flush() doesn't spin forever failing to advance the watermark.
 		$pushChannel = $this->config->transportMode() !== \OCA\SendentSynchroniser\Constants::TRANSPORT_POLLING
 			&& $this->config->botUser() !== '';
 		if ($pushChannel || $this->config->webhookEnabled()) {

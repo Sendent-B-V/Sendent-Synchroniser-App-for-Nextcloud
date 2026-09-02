@@ -14,11 +14,7 @@ use OCP\Migration\SimpleMigrationStep;
  *
  * sndntsync_dirty holds one row per DAV collection, upserted on every change,
  * so the table is bounded by the number of collections on the instance
- * (roughly users x 2-3) rather than by event volume — no pruning is needed.
- *
- * sndntsync_seq is a portable monotonic counter used only when no distributed
- * cache is configured. It is an insert-and-read-last-id table; its rows are
- * pruned by the flush sweeper.
+ * rather than by event volume — no pruning is needed.
  *
  * The sequence column is called change_seq because CURSOR is a reserved word
  * in MySQL 8 and PostgreSQL.
@@ -65,9 +61,7 @@ class Version000004Date20260820 extends SimpleMigrationStep {
 				'default' => 0,
 				'length' => 20,
 			]);
-			// Sequence number of the last structural (collection-level) change.
-			// The feed reports c = structural_seq > since, which makes the flag
-			// exact per request and safe to re-read.
+			// Sequence of the last structural (collection-level) change; the feed reports c = structural_seq > since.
 			$table->addColumn('structural_seq', Types::BIGINT, [
 				'notnull' => true,
 				'default' => 0,

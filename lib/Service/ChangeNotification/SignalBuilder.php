@@ -33,9 +33,7 @@ class SignalBuilder {
 			'instance' => $this->config->getSystemValueString('instanceid'),
 			'prev' => $prev,
 			'cursor' => $cursor,
-			// A truncated signal deliberately carries no refs: past the cap it
-			// is cheaper for the Connector to page /changes than to parse a
-			// giant frame, and the ledger is the durable source anyway.
+			// Truncated signals carry no refs: cheaper for the Connector to page /changes than parse a giant frame.
 			'truncated' => $truncated,
 			'refs' => $truncated
 				? []

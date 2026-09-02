@@ -9,15 +9,13 @@ use OCP\DB\QueryBuilder\IQueryBuilder;
 use OCP\IDBConnection;
 
 /**
- * Portable monotonic counter for instances with no distributed cache.
+ * Portable monotonic counter for instances with no distributed cache: insert
+ * a row, read the autoincrement id — works identically on MySQL, PostgreSQL
+ * and SQLite, with no row lock on the DAV write path.
  *
- * Insert a row, read the autoincrement id. This works identically on MySQL,
- * PostgreSQL and SQLite and needs no SELECT ... FOR UPDATE, so it never holds
- * a row lock on the DAV write path.
- *
- * A configured offset is added to every id so the sequence can be lifted above
- * the ledger's high-water mark if an instance loses its distributed cache
- * permanently (`occ sendentsynchroniser:cn-setup --reseed`).
+ * A configured offset is added to every id so the sequence can be lifted
+ * above the ledger's high-water mark after a permanent cache loss
+ * (`occ sendentsynchroniser:cn-setup --reseed`).
  */
 class SequenceMapper {
 

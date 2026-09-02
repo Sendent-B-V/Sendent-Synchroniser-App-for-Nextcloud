@@ -16,12 +16,9 @@ use Symfony\Component\Console\Output\OutputInterface;
  * occ sendentsynchroniser:cn-loadtest --events=350 --seconds=60 --users=10000
  *
  * Drives the ledger + batch-window path at a target event rate with synthetic
- * references (no DAV objects are created), and reports achieved rate and
- * per-event latency. Validates the capacity model: at 350 ev/s the write
- * path must stay in the low milliseconds and flushes must stay ~1 per window.
- *
- * Synthetic refs use the reserved principal prefix below so a test run is
- * distinguishable in the ledger; run against staging, not production.
+ * references (no DAV objects are created). Synthetic refs use the reserved
+ * principal prefix below so a test run is distinguishable in the ledger; run
+ * against staging, not production.
  */
 class ChangeNotificationLoadTest extends Command {
 

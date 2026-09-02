@@ -17,8 +17,7 @@ use Symfony\Component\Console\Output\OutputInterface;
  *     --bot-user=sendent-sync --transport=auto
  *
  * --reseed lifts the DB sequence above the ledger's high-water mark — needed
- * once if an instance permanently loses its distributed cache and the DB
- * sequence would otherwise restart below already-published cursors.
+ * once if an instance permanently loses its distributed cache.
  */
 class ChangeNotificationSetup extends Command {
 
@@ -89,9 +88,7 @@ class ChangeNotificationSetup extends Command {
 		}
 
 		if ($input->getOption('reseed')) {
-			// Floor at the flushed watermark too: deleting high-seq rows (e.g.
-			// loadtest cleanup) can leave the ledger's max below cursors that
-			// were already published to readers.
+			// Floor at the flushed watermark: deleting high-seq rows (e.g. loadtest cleanup) can leave the ledger's max below already-published cursors.
 			$mark = max($this->ledger->highWaterMark(), $this->config->flushedSeq());
 			$this->sequence->reseedAbove($mark);
 			$output->writeln('Sequence reseeded above ' . $mark);

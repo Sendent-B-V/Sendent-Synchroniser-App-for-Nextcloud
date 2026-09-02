@@ -10,10 +10,9 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * occ sendentsynchroniser:cn-check — the settings page's setup check for
- * terminals and scripts. The exit code reflects notify_push health, where
- * pinned-to-polling counts as healthy; the connector line is informational,
- * derived from the Connector's own /notify/ack calls. Network-touching
- * (daemon probe), so it is a separate command rather than a cn-status line.
+ * terminals and scripts. Exit code reflects notify_push health (pinned-to-
+ * polling counts as healthy); network-touching, so it's separate from
+ * cn-status rather than a line in it.
  */
 class ChangeNotificationCheck extends Command {
 

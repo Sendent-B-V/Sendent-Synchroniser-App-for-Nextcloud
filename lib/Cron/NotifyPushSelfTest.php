@@ -11,9 +11,9 @@ use OCP\BackgroundJob\TimedJob;
 use Psr\Log\LoggerInterface;
 
 /**
- * Keeps the cached daemon reachability current without ever probing from the
- * DAV write path. In `auto` mode this is what flips the effective transport
- * to polling when the daemon dies, and back when it returns.
+ * Keeps the cached daemon reachability current without probing from the DAV
+ * write path; in `auto` mode this flips the effective transport when the
+ * daemon dies or returns.
  */
 class NotifyPushSelfTest extends TimedJob {
 

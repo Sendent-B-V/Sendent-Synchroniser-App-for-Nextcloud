@@ -7,15 +7,11 @@ use OCP\AppFramework\Utility\ITimeFactory;
 use Psr\Log\LoggerInterface;
 
 /**
- * The flush: everything in the ledger above the flushed watermark becomes one
- * signal. Under the cap the refs travel inline; over it the signal degrades to
- * `truncated: true` and the Connector pages /changes — under extreme load the
- * system deliberately shifts from push-refs to read-the-ledger, the cheaper
- * path.
+ * The flush: everything above the flushed watermark becomes one signal. Under
+ * the cap the refs travel inline; over it the signal is `truncated: true` and
+ * the Connector pages /changes instead.
  *
- * The watermark (cnFlushedSeq) only advances after a successful publish, so a
- * dropped publish means the same refs ride the next flush or the sweeper's.
- * Duplicate delivery is free by design; missed delivery is what costs.
+ * The watermark only advances after a successful publish, so a dropped publish leaves the same refs for the next flush or the sweeper — duplicate delivery is free, missed delivery is what costs.
  */
 class SignalPublisher {
 
@@ -38,11 +34,7 @@ class SignalPublisher {
 		private LoggerInterface $logger,
 	) {}
 
-	/**
-	 * In-request path: flush only when this request wins the batch window.
-	 *
-	 * @return array<string, mixed>|null the published signal
-	 */
+	/** In-request: flushes only when this request wins the batch window. @return array<string, mixed>|null */
 	public function flushIfDue(): ?array {
 		// Pinned to polling with no webhook: no signal channel exists, so
 		// winning the window would only read rows and drop them.
@@ -58,11 +50,7 @@ class SignalPublisher {
 		return $this->flush();
 	}
 
-	/**
-	 * Unconditional flush — sweeper, occ command, admin "flush now".
-	 *
-	 * @return array<string, mixed>|null the published signal
-	 */
+	/** Unconditional flush — sweeper, occ command, admin "flush now". @return array<string, mixed>|null */
 	public function flush(): ?array {
 		$since = $this->config->flushedSeq();
 		$max = $this->config->maxRefsPerSignal();
@@ -86,10 +74,8 @@ class SignalPublisher {
 
 		$signal = $this->builder->build($since, $cursor, $refs, $truncated);
 
-		// Two independent hint channels; a signal counts as delivered when
-		// EITHER accepted it. In particular, a webhook-only setup (no bot
-		// user / no notify_push) must still advance the watermark, or the
-		// sweeper would re-deliver the same batch every cron run forever.
+		// Delivered if EITHER channel accepted it — a webhook-only setup must
+		// still advance the watermark, or the sweeper re-delivers forever.
 		$delivered = $this->transport->publish($signal);
 
 		if ($this->config->webhookEnabled()) {
@@ -104,9 +90,7 @@ class SignalPublisher {
 				);
 				$delivered = true;
 			} catch (\Throwable $e) {
-				// Belt and braces: a failed enqueue must not wedge the flush.
-				// If notify_push also failed, the watermark stays put and the
-				// sweeper retries the whole batch.
+				// A failed enqueue must not wedge the flush.
 				$this->logger->warning('Could not queue webhook signal: ' . $e->getMessage(), [
 					'app' => 'sendentsynchroniser',
 				]);

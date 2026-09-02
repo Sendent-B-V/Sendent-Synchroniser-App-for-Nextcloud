@@ -19,8 +19,7 @@ use OCP\IRequest;
 /**
  * The polling transport, and every transport's catch-up path: the Connector
  * reads the ledger through these endpoints with the bot account's app
- * password (Basic auth). Same payload schema as the websocket signal, so
- * one Connector code path consumes both.
+ * password. Same payload schema as the websocket signal.
  */
 class ChangeFeedApiController extends ApiController {
 
@@ -42,9 +41,6 @@ class ChangeFeedApiController extends ApiController {
 	}
 
 	/**
-	 * Transport negotiation. The Connector calls this at startup and never
-	 * has to guess which transport the instance supports.
-	 *
 	 * @NoAdminRequired
 	 * @NoCSRFRequired
 	 */
@@ -68,8 +64,7 @@ class ChangeFeedApiController extends ApiController {
 	}
 
 	/**
-	 * One page of the ledger above `since`. A single indexed range scan; the
-	 * bounded table keeps this cheap at any user count.
+	 * Single indexed range scan; the bounded table keeps this cheap at any user count.
 	 *
 	 * @NoAdminRequired
 	 * @NoCSRFRequired
@@ -110,8 +105,7 @@ class ChangeFeedApiController extends ApiController {
 	}
 
 	/**
-	 * Optional: the Connector reports how far it has read, so the admin
-	 * settings can show lag. Ignoring this endpoint costs nothing.
+	 * Optional: ignoring this endpoint costs nothing but lag visibility.
 	 *
 	 * @NoAdminRequired
 	 * @NoCSRFRequired
@@ -151,9 +145,6 @@ class ChangeFeedApiController extends ApiController {
 	}
 
 	/**
-	 * The Connector uploads the principals it maps; only those appear in
-	 * /changes afterwards (when the allow-list is enabled in settings).
-	 *
 	 * @NoAdminRequired
 	 * @NoCSRFRequired
 	 * @param string[] $principals

@@ -7,14 +7,11 @@ use OCA\SendentSynchroniser\Constants;
 use OCP\AppFramework\Services\IAppConfig;
 
 /**
- * Optional privacy hardening: when a customer considers collection URIs
- * sensitive, the Connector uploads the principals it actually maps, and
- * /changes stops returning refs for anyone else. Off by default; disabled
- * means allow-all.
+ * Optional privacy hardening: when enabled, /changes only returns refs for
+ * principals the Connector has uploaded. Off by default (allow-all).
  *
- * Fail-closed on purpose: enabled + empty = nothing is returned, so a
- * Connector that enables the list before uploading it sees an empty feed
- * rather than a leak.
+ * Fail-closed: enabled + empty allowlist returns nothing, so enabling before
+ * uploading never leaks refs.
  */
 class PrincipalAllowList {
 

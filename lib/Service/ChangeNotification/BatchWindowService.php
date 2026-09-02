@@ -8,18 +8,14 @@ use OCP\IConfig;
 use OCP\IMemcache;
 
 /**
- * Leading-edge batch window in a single atomic cache operation.
+ * Leading-edge batch window: IMemcache::add() is set-if-absent with a TTL, so
+ * the first event after a window boundary wins the key and flushes
+ * immediately; every other event fails the add and rides the next flush or
+ * the sweeper. Winning the add IS the lock for this window — no separate
+ * flush lock is needed.
  *
- * IMemcache::add() is set-if-absent with a TTL. The first event after a window
- * boundary creates the key (add returns true) and gets to flush immediately —
- * that is the sub-second latency for a quiet instance. Every other event in
- * the window fails the add and does nothing; their changes ride along in the
- * next event's flush after the window expires, or in the sweeper's next run.
- *
- * No separate flush lock is needed: winning the add IS the lock for this
- * window. The trailing edge is deliberately loose — a burst followed by
- * silence waits for the sweeper, i.e. up to one cron interval — an accepted
- * worst case that the Connector's overlap reads and reconcile also bound.
+ * The trailing edge is loose: a burst followed by silence waits up to one
+ * cron interval, a bound also covered by the Connector's overlap reads and reconcile.
  */
 class BatchWindowService {
 
@@ -38,9 +34,8 @@ class BatchWindowService {
 
 		$cache = $this->memcache();
 		if ($cache === null) {
-			// No distributed cache means notify_push is unavailable too
-			// (its IQueue would be a NullQueue). The ledger alone serves
-			// polling readers, so flushing in-request would do nothing.
+			// No distributed cache means notify_push is unavailable too (its
+			// IQueue would be a NullQueue), so flushing here would do nothing.
 			return false;
 		}
 
@@ -52,8 +47,7 @@ class BatchWindowService {
 	}
 
 	private function memcache(): ?IMemcache {
-		// Same guard as CursorService: a local-cache fallback would elect one
-		// flusher per php-fpm worker.
+		// Same guard as CursorService: a local-cache fallback would elect one flusher per php-fpm worker.
 		if ($this->serverConfig->getSystemValue('memcache.distributed', null) === null) {
 			return null;
 		}

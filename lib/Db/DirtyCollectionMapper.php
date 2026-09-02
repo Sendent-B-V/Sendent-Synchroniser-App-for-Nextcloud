@@ -54,18 +54,12 @@ class DirtyCollectionMapper extends QBMapper {
 	/**
 	 * @return int number of rows updated (0 when the collection is new)
 	 *
-	 * change_seq/structural_seq are clamped with GREATEST so a slow writer
-	 * whose UPDATE commits after a concurrent higher-seq writer can never
-	 * regress the row below an already-published watermark — so the
-	 * Connector's reread overlap no longer has to absorb this race.
+	 * change_seq/structural_seq clamp with GREATEST so a slow writer can never
+	 * regress the row below an already-published watermark.
 	 *
-	 * MySQL affected-rows note: updated_at gets a fresh timestamp and
-	 * change_seq normally rises on every call (CursorService never reuses a
-	 * seq), so the UPDATE virtually always changes a value and returns >= 1
-	 * for an existing row. In the rare same-second lower-seq case it can
-	 * return 0 and record() harmlessly falls through to the insert/conflict
-	 * path — the row already holds the higher seq, which is the correct end
-	 * state.
+	 * MySQL note: updated_at always changes, so this returns >= 1 for an
+	 * existing row except a rare same-second lower-seq call, which returns 0
+	 * and record() falls through to the insert/conflict path harmlessly.
 	 */
 	private function touch(CollectionReference $ref, int $seq, int $now): int {
 		$qb = $this->db->getQueryBuilder();

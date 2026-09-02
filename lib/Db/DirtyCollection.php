@@ -44,12 +44,9 @@ class DirtyCollection extends Entity {
 	}
 
 	/**
-	 * Converts the row to a wire reference relative to a reader's position.
-	 *
-	 * `collectionChanged` is computed, not stored: it is true exactly when the
-	 * last structural change happened after the sequence number the reader has
-	 * already seen. That keeps the flag correct even when readers intentionally
-	 * re-read overlapping ranges.
+	 * `collectionChanged` is computed, not stored: true exactly when the last
+	 * structural change happened after $since, which keeps it correct even
+	 * when readers intentionally re-read overlapping ranges.
 	 */
 	public function toReference(int $since): CollectionReference {
 		return new CollectionReference(

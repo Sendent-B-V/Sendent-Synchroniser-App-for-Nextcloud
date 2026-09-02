@@ -58,8 +58,6 @@ class ChangeNotificationSettingsController extends ApiController {
 	}
 
 	public function setConnectorUrl(string $url): DataResponse {
-		// Empty clears the value; otherwise require an absolute http(s) URL so
-		// the diagnostics never show something unusable.
 		if ($url !== '' && !str_starts_with($url, 'https://') && !str_starts_with($url, 'http://')) {
 			return new DataResponse(['message' => 'Connector address must be an http(s) URL'], Http::STATUS_BAD_REQUEST);
 		}
@@ -69,7 +67,6 @@ class ChangeNotificationSettingsController extends ApiController {
 		return new DataResponse(['connectorUrl' => $url]);
 	}
 
-	/** Layered setup check: notify_push availability + connector TLS. */
 	public function checkConnectorSetup(): DataResponse {
 		return new DataResponse($this->setupCheck->run());
 	}
@@ -88,7 +85,6 @@ class ChangeNotificationSettingsController extends ApiController {
 		]);
 	}
 
-	/** The settings page's "Run test" button: all availability checks, live. */
 	public function runTest(): DataResponse {
 		$appEnabled = $this->availability->isAppEnabled();
 		$queueAvailable = $this->availability->queue() !== null;
@@ -114,11 +110,7 @@ class ChangeNotificationSettingsController extends ApiController {
 		]);
 	}
 
-	/**
-	 * Publishes a ping frame addressed to the bot. The admin session cannot
-	 * see bot-addressed frames, so this confirms only that publishing
-	 * succeeded — not delivery.
-	 */
+	/** The admin session can't see bot-addressed frames, so this confirms publishing, not delivery. */
 	public function sendPing(): DataResponse {
 		$nonce = bin2hex(random_bytes(8));
 		$published = $this->transport->publishPing([
@@ -129,7 +121,6 @@ class ChangeNotificationSettingsController extends ApiController {
 		return new DataResponse(['published' => $published, 'nonce' => $nonce]);
 	}
 
-	/** The page reports whether (and how fast) the publish round-tripped. */
 	public function reportPing(bool $ok, int $ms): DataResponse {
 		$this->config->setRoundTrip($ok, $this->time->getTime(), max(0, $ms));
 
@@ -143,12 +134,9 @@ class ChangeNotificationSettingsController extends ApiController {
 
 		$this->config->setWebhookUrl($url);
 		if ($secret !== '') {
-			// Empty secret in the payload means "keep the stored one".
 			$this->config->setWebhookSecret($secret);
-			// Secrets are sensitive IAppConfig values (redacted from
-			// occ config:list and reports). updateSensitive() exists since
-			// NC 29; on NC 28 this call is skipped, so the secret stays
-			// unredacted there.
+			// updateSensitive() redacts the secret from occ config:list/reports;
+			// it exists since NC 29, so it stays unredacted on NC 28.
 			if (method_exists($this->globalAppConfig, 'updateSensitive')) {
 				$this->globalAppConfig->updateSensitive(
 					'sendentsynchroniser',
@@ -162,7 +150,6 @@ class ChangeNotificationSettingsController extends ApiController {
 		return new DataResponse(['enabled' => $this->config->webhookEnabled()]);
 	}
 
-	/** "Send test" button: queues one synthetic signal through the webhook path. */
 	public function sendTestWebhook(): DataResponse {
 		if (!$this->config->webhookEnabled()) {
 			return new DataResponse(['message' => 'Webhook is not enabled'], Http::STATUS_BAD_REQUEST);

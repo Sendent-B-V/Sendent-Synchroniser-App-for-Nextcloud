@@ -7,13 +7,12 @@ use OCA\SendentSynchroniser\Constants;
 use Psr\Log\LoggerInterface;
 
 /**
- * Publishes one signal as a notify_push custom message addressed to the bot
- * account. The 'user' field is the RECIPIENT (whose websockets get the frame);
- * the changed users ride inside body.refs. Wire format on the socket:
- * `sendent_sync {json}`.
+ * Publishes one signal as a notify_push custom message to the bot account.
+ * 'user' is the RECIPIENT (whose websockets get the frame); changed users
+ * ride inside body.refs. Wire format: `sendent_sync {json}`.
  *
- * Fire-and-forget by design: false is "not delivered to the queue", and the
- * callers leave the watermark untouched so the refs surface again.
+ * Fire-and-forget: false means "not delivered to the queue", so callers leave
+ * the watermark untouched and the refs surface again.
  */
 class NotifyPushTransport {
 
@@ -36,9 +35,7 @@ class NotifyPushTransport {
 	/** @param array<string, mixed> $body */
 	private function push(string $message, array $body): bool {
 		if ($this->config->transportMode() === Constants::TRANSPORT_POLLING) {
-			// The admin pinned polling: publishing frames nobody listens for
-			// would only spend a Redis publish per window. The ledger alone
-			// serves polling readers.
+			// Polling pinned: nobody listens for frames, so don't spend a Redis publish.
 			return false;
 		}
 

@@ -12,9 +12,8 @@ use OCP\IMemcache;
 /**
  * The monotonic sequence stamped onto every ledger row.
  *
- * Preferred source is an atomic INCR on the distributed cache (~50 us).
- * Without one, the DB sequence table is used instead — realistic only on small
- * instances, which are also the instances that fall back to polling anyway.
+ * Preferred source: atomic INCR on the distributed cache (~50 us); falls back
+ * to the DB sequence table on small, polling-only instances.
  *
  * Sequence numbers are monotonic but NOT gapless: a DAV write that rolls back
  * still consumed one. Readers only ever compare with `>`, so gaps are free.
@@ -49,10 +48,9 @@ class CursorService {
 			return $this->sequence->next();
 		}
 
-		// Restart detection. flushedSeq() is the cheap per-event gate (config
-		// read); value === 1 additionally catches polling-only instances whose
-		// watermark never advances. maxSeq() (one indexed MAX) only runs on
-		// the rare repair path.
+		// flushedSeq() is the cheap per-event gate (config read); value === 1
+		// additionally catches polling-only instances whose watermark never
+		// advances. maxSeq() (one indexed MAX) only runs on the repair path.
 		$floor = $this->config->flushedSeq();
 		if ($value <= $floor || $value === 1) {
 			$seed = max($this->ledger->maxSeq(), $floor);
@@ -88,19 +86,15 @@ class CursorService {
 			}
 		}
 
-		// Floor at the flushed watermark for symmetry with next()'s repair
-		// path: under-reporting after a cache eviction is safe (readers only
-		// re-see known rows) but pointless when the watermark is known higher.
+		// Floors at the flushed watermark: under-reporting after a cache
+		// eviction is safe but pointless when the watermark is known higher.
 		return max($this->ledger->maxSeq(), $this->config->flushedSeq());
 	}
 
 	private function memcache(): ?IMemcache {
-		// ICacheFactory::createDistributed() silently falls back to the LOCAL
-		// cache class when memcache.distributed is not configured (the common
-		// APCu-only install). A local counter is per-process — php-fpm workers
-		// and the cron CLI would hand out duplicate sequence numbers — so an
-		// explicitly configured distributed cache is required; anything else
-		// uses the DB sequence.
+		// createDistributed() silently falls back to a per-process LOCAL cache
+		// when memcache.distributed isn't configured, which would let php-fpm
+		// workers hand out duplicate sequence numbers; require it explicitly.
 		if ($this->serverConfig->getSystemValue('memcache.distributed', null) === null) {
 			return null;
 		}

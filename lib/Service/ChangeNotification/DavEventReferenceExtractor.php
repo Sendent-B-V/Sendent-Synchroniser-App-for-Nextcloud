@@ -7,13 +7,11 @@ use OCA\SendentSynchroniser\ChangeNotification\CollectionReference;
 use OCA\SendentSynchroniser\Constants;
 
 /**
- * Turns a CalDAV/CardDAV collection row — as carried by every OCA\DAV event —
- * into a CollectionReference.
+ * Turns a CalDAV/CardDAV collection row into a CollectionReference.
+ * Deliberately free of Nextcloud types, so the payload-shape matrix across
+ * NC 28-34 is unit-testable without a server.
  *
- * Deliberately free of Nextcloud types: it sees plain arrays, so the whole
- * matrix of payload shapes across NC 28-34 is unit-testable without a server.
- *
- * The principal comes from the collection row, never from the acting session
+ * The principal comes from the collection row, never the acting session
  * user: a shared calendar edited by Bob has to signal Alice's collection.
  */
 class DavEventReferenceExtractor {
@@ -21,11 +19,7 @@ class DavEventReferenceExtractor {
 	/** Only user principals map to a mailbox. */
 	private const USER_PRINCIPAL_PREFIX = 'principals/users/';
 
-	/**
-	 * Sabre renders sync tokens as this URL in some payload shapes; the
-	 * confirmed OCA\DAV backend events carry a bare integer under the
-	 * namespaced key. The strip below is defensive cross-version tolerance.
-	 */
+	/** Sabre renders sync tokens as this URL in some payload shapes; stripped below for cross-version tolerance. */
 	private const SYNC_TOKEN_PREFIX = 'http://sabre.io/ns/sync/';
 
 	/** @param array<string, mixed>|null $row */
@@ -61,8 +55,7 @@ class DavEventReferenceExtractor {
 
 	/** @param array<string, mixed> $row */
 	private function syncToken(array $row): int {
-		// Confirmed OCA\DAV events put the token under the namespaced key
-		// only; the raw column is accepted defensively for raw-DB-row shapes.
+		// Namespaced key is what OCA\DAV events carry; raw column is a defensive fallback.
 		$raw = $row['synctoken'] ?? null;
 		if ($raw === null) {
 			$raw = $row['{http://sabredav.org/ns}sync-token'] ?? null;

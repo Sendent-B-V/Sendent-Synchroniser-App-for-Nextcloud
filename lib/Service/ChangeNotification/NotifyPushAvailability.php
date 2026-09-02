@@ -11,20 +11,14 @@ use OCP\IConfig;
 use Psr\Container\ContainerInterface;
 
 /**
- * Decides whether transport A (notify_push) is usable, and resolves its queue.
+ * Decides whether transport A (notify_push) is usable, and resolves its
+ * queue. Checks, in order of cost: app enabled; IQueue resolves to a real
+ * queue (NullQueue means Redis isn't the distributed cache); the daemon
+ * answers /test/cookie (cached for CN_DAEMON_CHECK_TTL so the DAV write path
+ * never blocks on HTTP).
  *
- * The checks, in order of cost:
- *  1. notify_push app enabled.
- *  2. Its IQueue resolves to a real queue — NullQueue means Redis is not
- *     configured as the distributed cache and messages would go nowhere.
- *  3. The daemon answers its /test/cookie endpoint (cached for
- *     CN_DAEMON_CHECK_TTL so the DAV write path never blocks on HTTP).
- *
- * The browser publish test from the admin settings page is informational
- * only and does not gate isActive().
- *
- * notify_push is an optional dependency: every reference to its classes is by
- * string through the container, inside try/catch.
+ * notify_push is optional: every reference to its classes is by string
+ * through the container, inside try/catch.
  */
 class NotifyPushAvailability {
 
@@ -44,7 +38,6 @@ class NotifyPushAvailability {
 		return $this->appManager->isInstalled(Constants::CN_NOTIFY_PUSH_APPID);
 	}
 
-	/** The resolved queue, or null when notify_push is absent or queue-less. */
 	public function queue(): ?object {
 		if (!$this->isAppEnabled()) {
 			return null;
@@ -63,10 +56,6 @@ class NotifyPushAvailability {
 		return $queue;
 	}
 
-	/**
-	 * Cheap enough for the write path: reads only cached state.
-	 * The daemon probe is refreshed out-of-band (settings page, TimedJob).
-	 */
 	public function isActive(): bool {
 		$mode = $this->config->transportMode();
 		if ($mode === Constants::TRANSPORT_POLLING) {
@@ -76,8 +65,7 @@ class NotifyPushAvailability {
 		$queue = $this->queue();
 
 		// Force-notify_push publishes even while unhealthy: the admin pinned
-		// it, the settings page shows the persistent warning, and the ledger
-		// still serves catch-up either way.
+		// it, and the settings page shows a persistent warning either way.
 		if ($mode === Constants::TRANSPORT_NOTIFY_PUSH) {
 			return $queue !== null;
 		}
@@ -85,27 +73,19 @@ class NotifyPushAvailability {
 		return $queue !== null && $this->cachedDaemonCheck()['ok'];
 	}
 
-	/** The transport /config advertises to the Connector. */
 	public function effectiveTransport(): string {
 		return $this->isActive() ? Constants::TRANSPORT_NOTIFY_PUSH : Constants::TRANSPORT_POLLING;
 	}
 
 	/**
-	 * The stored probe result, however stale. Stale is still usable — better a
-	 * possibly-outdated push attempt (harmless: the ledger catches up) than an
-	 * HTTP probe per DAV write. The TimedJob and the settings page refresh it.
-	 *
+	 * However stale — better a possibly-outdated push than an HTTP probe per DAV write.
 	 * @return array{ok: bool, at: int, message: string}
 	 */
 	public function cachedDaemonCheck(): array {
 		return $this->config->daemonCheck();
 	}
 
-	/**
-	 * Probes the daemon's HTTP test endpoint and caches the outcome.
-	 * Called from the settings controller and the self-test TimedJob — never
-	 * from the DAV write path.
-	 */
+	/** Called from the settings controller and the self-test TimedJob — never the DAV write path. */
 	public function refreshDaemonCheck(): array {
 		$now = $this->time->getTime();
 
@@ -118,19 +98,15 @@ class NotifyPushAvailability {
 
 		try {
 			$client = $this->clientService->newClient();
-			// http_errors=false: the client must hand 4xx back as a response
-			// (Guzzle throws on it by default), because a 4xx is a POSITIVE
-			// liveness signal here — see below.
+			// http_errors=false: notify_push guards /test/* with a per-run token,
+			// so an unauthenticated probe legitimately gets 4xx (Guzzle would
+			// otherwise throw) — a POSITIVE liveness signal. 5xx means a dead
+			// backend behind a proxy; deep health is `occ notify_push:self-test`'s job.
 			$response = $client->get($base . '/test/cookie', [
 				'timeout' => 5,
 				'http_errors' => false,
 				'nextcloud' => ['allow_local_address' => true],
 			]);
-			// Liveness only: current notify_push guards /test/* with a per-run
-			// token its own self-test shares over Redis, so an unauthenticated
-			// probe legitimately gets a 4xx — which still proves a daemon is
-			// answering at base_endpoint. 5xx is a proxy fronting a dead
-			// backend. Deep health stays `occ notify_push:self-test`'s job.
 			$status = $response->getStatusCode();
 			$ok = $status < 500;
 			$message = $ok
@@ -164,8 +140,7 @@ class NotifyPushAvailability {
 			return null;
 		}
 
-		// notify_push stores its reachable base endpoint in its own app config
-		// during `occ notify_push:setup`.
+		// notify_push writes this during `occ notify_push:setup`.
 		$endpoint = $this->serverConfig->getAppValue(Constants::CN_NOTIFY_PUSH_APPID, 'base_endpoint', '');
 
 		return $endpoint !== '' ? rtrim($endpoint, '/') : null;
