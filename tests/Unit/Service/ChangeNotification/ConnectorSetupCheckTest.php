@@ -28,7 +28,26 @@ class ConnectorSetupCheckTest extends TestCase {
 		$this->availability = $this->createMock(NotifyPushAvailability::class);
 		$time = $this->createMock(ITimeFactory::class);
 		$time->method('getTime')->willReturn(self::NOW);
-		$this->check = new ConnectorSetupCheck($this->config, $this->availability, $time);
+		$this->check = $this->checkWithServerSupport(true);
+	}
+
+	/**
+	 * Pins the NC-version capability probe so these tests behave identically
+	 * on every server checkout the suite runs against.
+	 */
+	private function checkWithServerSupport(bool $supported): ConnectorSetupCheck {
+		$time = $this->createMock(ITimeFactory::class);
+		$time->method('getTime')->willReturn(self::NOW);
+
+		return new class($this->config, $this->availability, $time, $supported) extends ConnectorSetupCheck {
+			public function __construct($config, $availability, $time, private bool $supported) {
+				parent::__construct($config, $availability, $time);
+			}
+
+			protected function serverSupportsChangeEvents(): bool {
+				return $this->supported;
+			}
+		};
 	}
 
 	private function healthyNotifyPush(): void {
@@ -45,8 +64,18 @@ class ConnectorSetupCheckTest extends TestCase {
 		$result = $this->check->run();
 
 		$this->assertTrue($result['ok']);
+		$this->assertTrue($result['server_supported']);
 		$this->assertTrue($result['notify_push']['ok']);
 		$this->assertTrue($result['notify_push']['websocket_secure']);
+	}
+
+	public function testAPre32ServerFailsTheCheck(): void {
+		$this->healthyNotifyPush();
+
+		$result = $this->checkWithServerSupport(false)->run();
+
+		$this->assertFalse($result['ok']);
+		$this->assertFalse($result['server_supported']);
 	}
 
 	public function testAMissingNotifyPushFailsInAutoMode(): void {

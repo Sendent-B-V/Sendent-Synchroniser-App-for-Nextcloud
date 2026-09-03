@@ -42,16 +42,11 @@ class Application extends App implements IBootstrap {
 			\OCP\Calendar\Events\CalendarObjectMovedToTrashEvent::class,
 			\OCA\SendentSynchroniser\Listener\CalendarObjectTrashScrubListener::class,
 		);
-		// A class-string for an event absent on the running NC version is
-		// harmless — it's simply never dispatched. Covers NC 28-34, where
-		// move-to-trash/restore moved to OCP\Calendar\Events in NC 31.0.2.
+		// Change notifications require NC 32+: object-level events exist only
+		// as OCP\Calendar\Events (@since 32.0.0). On older servers these
+		// class-strings are never dispatched and the feature is inert.
+		// Collection-level and CardDAV events are OCA on every version.
 		$changeEvents = [
-			\OCA\DAV\Events\CalendarObjectCreatedEvent::class,
-			\OCA\DAV\Events\CalendarObjectUpdatedEvent::class,
-			\OCA\DAV\Events\CalendarObjectDeletedEvent::class,
-			\OCA\DAV\Events\CalendarObjectMovedEvent::class,
-			\OCA\DAV\Events\CalendarObjectMovedToTrashEvent::class,
-			\OCA\DAV\Events\CalendarObjectRestoredEvent::class,
 			\OCP\Calendar\Events\CalendarObjectCreatedEvent::class,
 			\OCP\Calendar\Events\CalendarObjectUpdatedEvent::class,
 			\OCP\Calendar\Events\CalendarObjectDeletedEvent::class,
@@ -63,8 +58,6 @@ class Application extends App implements IBootstrap {
 			\OCA\DAV\Events\CalendarDeletedEvent::class,
 			\OCA\DAV\Events\CalendarMovedToTrashEvent::class,
 			\OCA\DAV\Events\CalendarRestoredEvent::class,
-			\OCP\Calendar\Events\CalendarMovedToTrashEvent::class,
-			\OCP\Calendar\Events\CalendarRestoredEvent::class,
 			\OCA\DAV\Events\CalendarShareUpdatedEvent::class,
 			\OCA\DAV\Events\CalendarPublishedEvent::class,
 			\OCA\DAV\Events\CalendarUnpublishedEvent::class,

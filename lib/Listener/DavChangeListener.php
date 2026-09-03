@@ -16,12 +16,11 @@ use Psr\Log\LoggerInterface;
  * so it must never throw: a throw here rolls back the user's own calendar or
  * contact write. Every failure is caught and logged.
  *
- * instanceof against a class that does not exist on the running Nextcloud
- * version evaluates to false, which is what lets one listener cover NC 28-34
- * (the move-to-trash and restore events changed namespace in NC 31.0.2/32).
- * On NC 31 both flavours are dispatched for one delete, arriving as two
- * separate handle() calls; the ledger's upsert makes the second one a
- * harmless re-touch of the same row.
+ * Change notifications require Nextcloud 32+: object-level events are matched
+ * only in their OCP\Calendar\Events form (@since 32.0.0). On older servers
+ * those classes do not exist, instanceof evaluates to false, and the feature
+ * is simply inert — the app itself still runs. Collection-level and CardDAV
+ * events remain in OCA\DAV\Events on every version.
  */
 class DavChangeListener implements IEventListener {
 
@@ -66,16 +65,8 @@ class DavChangeListener implements IEventListener {
 
 	/** @return CollectionReference[] */
 	private function references(Event $event): array {
-		// ── CalDAV, object level ────────────────────────────────────────
-		// NC 32 removed the whole OCA\DAV object-level family in favour of
-		// OCP\Calendar\Events (@since 32.0.0, identical constructors/getters);
-		// both flavours are matched so one listener covers NC 28-34.
-		if ($event instanceof \OCA\DAV\Events\CalendarObjectCreatedEvent
-			|| $event instanceof \OCA\DAV\Events\CalendarObjectUpdatedEvent
-			|| $event instanceof \OCA\DAV\Events\CalendarObjectDeletedEvent
-			|| $event instanceof \OCA\DAV\Events\CalendarObjectMovedToTrashEvent
-			|| $event instanceof \OCA\DAV\Events\CalendarObjectRestoredEvent
-			|| $event instanceof \OCP\Calendar\Events\CalendarObjectCreatedEvent
+		// ── CalDAV, object level (OCP, @since 32.0.0) ───────────────────
+		if ($event instanceof \OCP\Calendar\Events\CalendarObjectCreatedEvent
 			|| $event instanceof \OCP\Calendar\Events\CalendarObjectUpdatedEvent
 			|| $event instanceof \OCP\Calendar\Events\CalendarObjectDeletedEvent
 			|| $event instanceof \OCP\Calendar\Events\CalendarObjectMovedToTrashEvent
@@ -83,22 +74,19 @@ class DavChangeListener implements IEventListener {
 			return $this->one($this->extractor->fromCalendarRow($event->getCalendarData(), false));
 		}
 
-		if ($event instanceof \OCA\DAV\Events\CalendarObjectMovedEvent
-			|| $event instanceof \OCP\Calendar\Events\CalendarObjectMovedEvent) {
+		if ($event instanceof \OCP\Calendar\Events\CalendarObjectMovedEvent) {
 			return array_merge(
 				$this->one($this->extractor->fromCalendarRow($event->getSourceCalendarData(), false)),
 				$this->one($this->extractor->fromCalendarRow($event->getTargetCalendarData(), false)),
 			);
 		}
 
-		// ── CalDAV, collection level ────────────────────────────────────
+		// ── CalDAV, collection level (OCA on every version, NC 33 included) ─
 		if ($event instanceof \OCA\DAV\Events\CalendarCreatedEvent
 			|| $event instanceof \OCA\DAV\Events\CalendarUpdatedEvent
 			|| $event instanceof \OCA\DAV\Events\CalendarDeletedEvent
 			|| $event instanceof \OCA\DAV\Events\CalendarMovedToTrashEvent
 			|| $event instanceof \OCA\DAV\Events\CalendarRestoredEvent
-			|| $event instanceof \OCP\Calendar\Events\CalendarMovedToTrashEvent
-			|| $event instanceof \OCP\Calendar\Events\CalendarRestoredEvent
 			|| $event instanceof \OCA\DAV\Events\CalendarShareUpdatedEvent
 			|| $event instanceof \OCA\DAV\Events\CalendarPublishedEvent
 			|| $event instanceof \OCA\DAV\Events\CalendarUnpublishedEvent) {

@@ -10,6 +10,14 @@ it for use with the Exchange Connector. It does not cover the Connector's
 own configuration — see `docs/connector-change-feed-contract.md` for the
 wire contract the Connector implements against.
 
+**Requires Nextcloud 32 or later.** Change notifications listen to the
+`OCP\Calendar\Events` object-level calendar events. On Nextcloud 30 or older
+those events do not exist: the app itself still runs, but this feature is
+inert — no changes are recorded, the change feed stays empty, and both the
+settings page's "Check setup" and `occ sendentsynchroniser:cn-check` say so
+explicitly. (Nextcloud 31 ships and dispatches the same events, so the
+feature happens to work there, but 32+ is the supported floor.)
+
 ## 1. What it is
 
 The Exchange Connector needs to know when a Nextcloud calendar or address

@@ -49,6 +49,9 @@ class DavChangeListenerTest extends TestCase {
 
 	protected function setUp(): void {
 		parent::setUp();
+		if (!class_exists(\OCP\Calendar\Events\CalendarObjectCreatedEvent::class)) {
+			$this->markTestSkipped('Change notifications require Nextcloud 32+');
+		}
 		$this->ledger = $this->createMock(ChangeLedgerService::class);
 		$this->publisher = $this->createMock(SignalPublisher::class);
 		$this->listener = new DavChangeListener(
@@ -60,21 +63,11 @@ class DavChangeListenerTest extends TestCase {
 	}
 
 	/**
-	 * NC 32 removed the OCA\DAV object-level events in favour of the OCP
-	 * family (@since 32.0.0, identical constructor and getters); instantiate
-	 * whichever flavour exists on the server checkout the tests run against,
-	 * so the CI matrix exercises the OCA path on NC <= 31 and the OCP path
-	 * on NC 32+, mirroring production.
-	 *
 	 * @param array<string, mixed> $calendarData
 	 * @param array<string, mixed> $objectData
 	 */
 	private function calendarObjectCreatedEvent(int $calendarId, array $calendarData, array $shares, array $objectData): Event {
-		$class = class_exists(\OCA\DAV\Events\CalendarObjectCreatedEvent::class)
-			? \OCA\DAV\Events\CalendarObjectCreatedEvent::class
-			: \OCP\Calendar\Events\CalendarObjectCreatedEvent::class;
-
-		return new $class($calendarId, $calendarData, $shares, $objectData);
+		return new \OCP\Calendar\Events\CalendarObjectCreatedEvent($calendarId, $calendarData, $shares, $objectData);
 	}
 
 	/**
@@ -83,11 +76,7 @@ class DavChangeListenerTest extends TestCase {
 	 * @param array<string, mixed> $objectData
 	 */
 	private function calendarObjectMovedEvent(int $sourceId, array $sourceCalendarData, int $targetId, array $targetCalendarData, array $sourceShares, array $targetShares, array $objectData): Event {
-		$class = class_exists(\OCA\DAV\Events\CalendarObjectMovedEvent::class)
-			? \OCA\DAV\Events\CalendarObjectMovedEvent::class
-			: \OCP\Calendar\Events\CalendarObjectMovedEvent::class;
-
-		return new $class($sourceId, $sourceCalendarData, $targetId, $targetCalendarData, $sourceShares, $targetShares, $objectData);
+		return new \OCP\Calendar\Events\CalendarObjectMovedEvent($sourceId, $sourceCalendarData, $targetId, $targetCalendarData, $sourceShares, $targetShares, $objectData);
 	}
 
 	/** @return CollectionReference[] */
@@ -157,10 +146,6 @@ class DavChangeListenerTest extends TestCase {
 	}
 
 	public function testACardMovedEventRecordsBothAddressBooks(): void {
-		if (!class_exists(\OCA\DAV\Events\CardMovedEvent::class)) {
-			$this->markTestSkipped('CardMovedEvent exists since NC 32');
-		}
-
 		$otherBook = ['id' => 8, 'uri' => 'work-contacts', 'principaluri' => 'principals/users/bob', 'synctoken' => 5];
 		$refs = $this->captureRecordedRefs(new \OCA\DAV\Events\CardMovedEvent(
 			7,

@@ -104,6 +104,9 @@
 				</button>
 			</div>
 			<div v-if="setupCheck" class="cn-status">
+				<div v-if="!setupCheck.server_supported" class="cn-status__line cn-status__line--fail">
+					{{ t('sendentsynchroniser', 'This Nextcloud is older than 32 — change notifications require Nextcloud 32 or later.') }}
+				</div>
 				<div :class="['cn-status__line', setupCheck.notify_push.ok ? 'cn-status__line--ok' : 'cn-status__line--fail']">
 					{{ t('sendentsynchroniser', 'notify_push: {message}', { message: setupCheck.notify_push.message }) }}
 				</div>
@@ -230,6 +233,7 @@ interface TestResult {
 
 interface SetupCheck {
 	ok: boolean
+	server_supported: boolean
 	notify_push: {
 		ok: boolean
 		app_enabled: boolean

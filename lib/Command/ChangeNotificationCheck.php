@@ -34,6 +34,10 @@ class ChangeNotificationCheck extends Command {
 
 		$mark = static fn (bool $ok): string => $ok ? 'OK ' : 'FAIL';
 
+		$output->writeln('Server: ' . $mark($result['server_supported'])
+			. ($result['server_supported']
+				? ' Nextcloud 32+ change events available'
+				: ' this Nextcloud is older than 32 — change notifications require NC 32 or later'));
 		$output->writeln('Layer 1 - notify_push: ' . $mark($np['ok']) . ' ' . $np['message']);
 		$output->writeln('  app_enabled: ' . $mark($np['app_enabled']));
 		$output->writeln('  queue_available: ' . $mark($np['queue_available']));

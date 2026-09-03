@@ -27,16 +27,26 @@ class ConnectorSetupCheck {
 		private ITimeFactory $time,
 	) {}
 
-	/** @return array{ok: bool, checked_at: int, notify_push: array<string, mixed>, connector: array<string, mixed>} */
+	/** @return array{ok: bool, checked_at: int, server_supported: bool, notify_push: array<string, mixed>, connector: array<string, mixed>} */
 	public function run(): array {
+		$serverSupported = $this->serverSupportsChangeEvents();
 		$notifyPush = $this->checkNotifyPush();
 
 		return [
-			'ok' => $notifyPush['ok'],
+			'ok' => $serverSupported && $notifyPush['ok'],
 			'checked_at' => $this->time->getTime(),
+			'server_supported' => $serverSupported,
 			'notify_push' => $notifyPush,
 			'connector' => $this->connectorInfo(),
 		];
+	}
+
+	/**
+	 * Change notifications need the OCP object-level DAV events, which exist
+	 * since Nextcloud 32. Protected so unit tests can pin either answer.
+	 */
+	protected function serverSupportsChangeEvents(): bool {
+		return class_exists(\OCP\Calendar\Events\CalendarObjectCreatedEvent::class);
 	}
 
 	/** @return array<string, mixed> */
