@@ -16,7 +16,7 @@
     <bugs>https://sendent.com/resources/support</bugs>
     <screenshot>https://download.sendent.com/sendentsynchroniser/1.0.0/sendentbanner.png</screenshot>
     <dependencies>
-        <nextcloud min-version="28" max-version="34"/>
+        <nextcloud min-version="28" max-version="35"/>
     </dependencies>
     <background-jobs>
         <job>OCA\SendentSynchroniser\Cron\NotifyInactiveUsers</job>
