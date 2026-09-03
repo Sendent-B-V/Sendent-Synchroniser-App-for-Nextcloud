@@ -5,8 +5,6 @@ namespace OCA\SendentSynchroniser\Tests\Unit\Listener;
 
 use OCA\DAV\Events\AddressBookDeletedEvent;
 use OCA\DAV\Events\CalendarCreatedEvent;
-use OCA\DAV\Events\CalendarObjectCreatedEvent;
-use OCA\DAV\Events\CalendarObjectMovedEvent;
 use OCA\DAV\Events\CardUpdatedEvent;
 use OCA\SendentSynchroniser\ChangeNotification\CollectionReference;
 use OCA\SendentSynchroniser\Listener\DavChangeListener;
@@ -61,6 +59,37 @@ class DavChangeListenerTest extends TestCase {
 		);
 	}
 
+	/**
+	 * NC 32 removed the OCA\DAV object-level events in favour of the OCP
+	 * family (@since 32.0.0, identical constructor and getters); instantiate
+	 * whichever flavour exists on the server checkout the tests run against,
+	 * so the CI matrix exercises the OCA path on NC <= 31 and the OCP path
+	 * on NC 32+, mirroring production.
+	 *
+	 * @param array<string, mixed> $calendarData
+	 * @param array<string, mixed> $objectData
+	 */
+	private function calendarObjectCreatedEvent(int $calendarId, array $calendarData, array $shares, array $objectData): Event {
+		$class = class_exists(\OCA\DAV\Events\CalendarObjectCreatedEvent::class)
+			? \OCA\DAV\Events\CalendarObjectCreatedEvent::class
+			: \OCP\Calendar\Events\CalendarObjectCreatedEvent::class;
+
+		return new $class($calendarId, $calendarData, $shares, $objectData);
+	}
+
+	/**
+	 * @param array<string, mixed> $sourceCalendarData
+	 * @param array<string, mixed> $targetCalendarData
+	 * @param array<string, mixed> $objectData
+	 */
+	private function calendarObjectMovedEvent(int $sourceId, array $sourceCalendarData, int $targetId, array $targetCalendarData, array $sourceShares, array $targetShares, array $objectData): Event {
+		$class = class_exists(\OCA\DAV\Events\CalendarObjectMovedEvent::class)
+			? \OCA\DAV\Events\CalendarObjectMovedEvent::class
+			: \OCP\Calendar\Events\CalendarObjectMovedEvent::class;
+
+		return new $class($sourceId, $sourceCalendarData, $targetId, $targetCalendarData, $sourceShares, $targetShares, $objectData);
+	}
+
 	/** @return CollectionReference[] */
 	private function captureRecordedRefs(Event $event): array {
 		$captured = [];
@@ -77,7 +106,7 @@ class DavChangeListenerTest extends TestCase {
 
 	public function testObjectEventRecordsANonStructuralReference(): void {
 		$refs = $this->captureRecordedRefs(
-			new CalendarObjectCreatedEvent(42, self::CALENDAR, [], ['uri' => 'a.ics'])
+			$this->calendarObjectCreatedEvent(42, self::CALENDAR, [], ['uri' => 'a.ics'])
 		);
 
 		$this->assertCount(1, $refs);
@@ -94,7 +123,7 @@ class DavChangeListenerTest extends TestCase {
 	}
 
 	public function testMovedEventRecordsBothSourceAndTarget(): void {
-		$refs = $this->captureRecordedRefs(new CalendarObjectMovedEvent(
+		$refs = $this->captureRecordedRefs($this->calendarObjectMovedEvent(
 			42,
 			self::CALENDAR,
 			43,
@@ -127,6 +156,27 @@ class DavChangeListenerTest extends TestCase {
 		$this->assertTrue($refs[0]->collectionChanged);
 	}
 
+	public function testACardMovedEventRecordsBothAddressBooks(): void {
+		if (!class_exists(\OCA\DAV\Events\CardMovedEvent::class)) {
+			$this->markTestSkipped('CardMovedEvent exists since NC 32');
+		}
+
+		$otherBook = ['id' => 8, 'uri' => 'work-contacts', 'principaluri' => 'principals/users/bob', 'synctoken' => 5];
+		$refs = $this->captureRecordedRefs(new \OCA\DAV\Events\CardMovedEvent(
+			7,
+			self::ADDRESS_BOOK,
+			8,
+			$otherBook,
+			[],
+			[],
+			['uri' => 'c.vcf']
+		));
+
+		$uris = array_map(static fn (CollectionReference $r) => $r->collectionUri, $refs);
+		sort($uris);
+		$this->assertSame(['contacts', 'work-contacts'], $uris);
+	}
+
 	public function testUnrelatedEventsAreIgnored(): void {
 		$this->ledger->expects($this->never())->method('record');
 		$this->publisher->expects($this->never())->method('flushIfDue');
@@ -139,7 +189,7 @@ class DavChangeListenerTest extends TestCase {
 		$this->ledger->method('record')->willReturn(1);
 		$this->publisher->expects($this->once())->method('flushIfDue');
 
-		$this->listener->handle(new CalendarObjectCreatedEvent(42, self::CALENDAR, [], ['uri' => 'a.ics']));
+		$this->listener->handle($this->calendarObjectCreatedEvent(42, self::CALENDAR, [], ['uri' => 'a.ics']));
 	}
 
 	public function testAFailingLedgerNeverBreaksTheDavWrite(): void {
@@ -147,7 +197,7 @@ class DavChangeListenerTest extends TestCase {
 		// throw here would roll back the user's own calendar write.
 		$this->ledger->method('record')->willThrowException(new \RuntimeException('db down'));
 
-		$this->listener->handle(new CalendarObjectCreatedEvent(42, self::CALENDAR, [], ['uri' => 'a.ics']));
+		$this->listener->handle($this->calendarObjectCreatedEvent(42, self::CALENDAR, [], ['uri' => 'a.ics']));
 
 		$this->addToAssertionCount(1);
 	}
@@ -156,7 +206,7 @@ class DavChangeListenerTest extends TestCase {
 		$this->ledger->method('record')->willReturn(1);
 		$this->publisher->method('flushIfDue')->willThrowException(new \RuntimeException('redis down'));
 
-		$this->listener->handle(new CalendarObjectCreatedEvent(42, self::CALENDAR, [], ['uri' => 'a.ics']));
+		$this->listener->handle($this->calendarObjectCreatedEvent(42, self::CALENDAR, [], ['uri' => 'a.ics']));
 
 		$this->addToAssertionCount(1);
 	}

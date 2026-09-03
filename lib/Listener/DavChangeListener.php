@@ -67,17 +67,24 @@ class DavChangeListener implements IEventListener {
 	/** @return CollectionReference[] */
 	private function references(Event $event): array {
 		// ── CalDAV, object level ────────────────────────────────────────
+		// NC 32 removed the whole OCA\DAV object-level family in favour of
+		// OCP\Calendar\Events (@since 32.0.0, identical constructors/getters);
+		// both flavours are matched so one listener covers NC 28-34.
 		if ($event instanceof \OCA\DAV\Events\CalendarObjectCreatedEvent
 			|| $event instanceof \OCA\DAV\Events\CalendarObjectUpdatedEvent
 			|| $event instanceof \OCA\DAV\Events\CalendarObjectDeletedEvent
 			|| $event instanceof \OCA\DAV\Events\CalendarObjectMovedToTrashEvent
 			|| $event instanceof \OCA\DAV\Events\CalendarObjectRestoredEvent
+			|| $event instanceof \OCP\Calendar\Events\CalendarObjectCreatedEvent
+			|| $event instanceof \OCP\Calendar\Events\CalendarObjectUpdatedEvent
+			|| $event instanceof \OCP\Calendar\Events\CalendarObjectDeletedEvent
 			|| $event instanceof \OCP\Calendar\Events\CalendarObjectMovedToTrashEvent
 			|| $event instanceof \OCP\Calendar\Events\CalendarObjectRestoredEvent) {
 			return $this->one($this->extractor->fromCalendarRow($event->getCalendarData(), false));
 		}
 
-		if ($event instanceof \OCA\DAV\Events\CalendarObjectMovedEvent) {
+		if ($event instanceof \OCA\DAV\Events\CalendarObjectMovedEvent
+			|| $event instanceof \OCP\Calendar\Events\CalendarObjectMovedEvent) {
 			return array_merge(
 				$this->one($this->extractor->fromCalendarRow($event->getSourceCalendarData(), false)),
 				$this->one($this->extractor->fromCalendarRow($event->getTargetCalendarData(), false)),
@@ -103,6 +110,14 @@ class DavChangeListener implements IEventListener {
 			|| $event instanceof \OCA\DAV\Events\CardUpdatedEvent
 			|| $event instanceof \OCA\DAV\Events\CardDeletedEvent) {
 			return $this->one($this->extractor->fromAddressBookRow($event->getAddressBookData(), false));
+		}
+
+		// CardMovedEvent exists since NC 32.
+		if ($event instanceof \OCA\DAV\Events\CardMovedEvent) {
+			return array_merge(
+				$this->one($this->extractor->fromAddressBookRow($event->getSourceAddressBookData(), false)),
+				$this->one($this->extractor->fromAddressBookRow($event->getTargetAddressBookData(), false)),
+			);
 		}
 
 		// ── CardDAV, collection level ───────────────────────────────────

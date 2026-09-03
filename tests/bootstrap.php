@@ -11,7 +11,7 @@ require_once __DIR__ . '/../../../tests/bootstrap.php';
 // setups where OC_App is unavailable or app loading is not initialised), and
 // complain loudly rather than letting five tests fail with class-not-found.
 $sendentDavDiag = [];
-if (!class_exists(\OCA\DAV\Events\CalendarObjectCreatedEvent::class)) {
+if (!class_exists(\OCA\DAV\Events\CalendarCreatedEvent::class)) {
 	if (!class_exists(\OC_App::class)) {
 		$sendentDavDiag[] = 'OC_App class not found';
 	} else {
@@ -23,7 +23,7 @@ if (!class_exists(\OCA\DAV\Events\CalendarObjectCreatedEvent::class)) {
 		}
 	}
 }
-if (!class_exists(\OCA\DAV\Events\CalendarObjectCreatedEvent::class)) {
+if (!class_exists(\OCA\DAV\Events\CalendarCreatedEvent::class)) {
 	foreach ([
 		__DIR__ . '/../../dav/composer/autoload.php',        // app in apps/
 		__DIR__ . '/../../../apps/dav/composer/autoload.php', // app in custom_apps/
@@ -32,13 +32,13 @@ if (!class_exists(\OCA\DAV\Events\CalendarObjectCreatedEvent::class)) {
 		if (file_exists($davAutoload)) {
 			require_once $davAutoload;
 			$sendentDavDiag[] = 'required ' . $resolved
-				. '; class resolves: ' . var_export(class_exists(\OCA\DAV\Events\CalendarObjectCreatedEvent::class), true);
+				. '; class resolves: ' . var_export(class_exists(\OCA\DAV\Events\CalendarCreatedEvent::class), true);
 			break;
 		}
 		$sendentDavDiag[] = 'missing: ' . $resolved;
 	}
 }
-if (!class_exists(\OCA\DAV\Events\CalendarObjectCreatedEvent::class)) {
+if (!class_exists(\OCA\DAV\Events\CalendarCreatedEvent::class)) {
 	fwrite(STDERR, "sendentsynchroniser tests: could not load the dav app — OCA\\DAV event classes will be missing\n"
 		. '  __DIR__: ' . __DIR__ . "\n"
 		. '  simplexml loaded: ' . var_export(extension_loaded('simplexml'), true) . "\n"
