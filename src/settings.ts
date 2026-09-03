@@ -26,6 +26,15 @@ if (adminEl) {
 		trashbinScrubEnabled: (state.trashbinScrubEnabled as string) || 'false',
 		mailAppInstalled: state.mailAppInstalled || false,
 		notificationsAppInstalled: state.notificationsAppInstalled || false,
+		cnTransportMode: (state.cnTransportMode as string) || 'auto',
+		cnBotUser: (state.cnBotUser as string) || '',
+		cnConnectorUrl: (state.cnConnectorUrl as string) || '',
+		cnBatchWindow: (state.cnBatchWindow as string) || '2',
+		cnMaxRefsPerSignal: (state.cnMaxRefsPerSignal as string) || '500',
+		cnPollInterval: (state.cnPollInterval as string) || '30',
+		cnNotifyPushInstalled: Boolean(state.cnNotifyPushInstalled),
+		cnWebhookUrl: (state.cnWebhookUrl as string) || '',
+		cnWebhookEnabled: (state.cnWebhookEnabled as string) || 'false',
 	})
 
 	const pinia = createPinia()

@@ -1,0 +1,270 @@
+<?php
+declare(strict_types=1);
+
+namespace OCA\SendentSynchroniser\Tests\Unit\Service\ChangeNotification;
+
+use OCA\SendentSynchroniser\Db\DirtyCollection;
+use OCA\SendentSynchroniser\Service\ChangeNotification\BatchWindowService;
+use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeLedgerService;
+use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeNotificationConfig;
+use OCA\SendentSynchroniser\Service\ChangeNotification\NotifyPushTransport;
+use OCA\SendentSynchroniser\Service\ChangeNotification\SignalBuilder;
+use OCA\SendentSynchroniser\Service\ChangeNotification\SignalPublisher;
+use OCP\AppFramework\Utility\ITimeFactory;
+use OCP\IConfig;
+use PHPUnit\Framework\MockObject\MockObject;
+use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
+
+class SignalPublisherTest extends TestCase {
+
+	/** @var BatchWindowService&MockObject */
+	private $window;
+
+	/** @var ChangeLedgerService&MockObject */
+	private $ledger;
+
+	/** @var NotifyPushTransport&MockObject */
+	private $transport;
+
+	/** @var ChangeNotificationConfig&MockObject */
+	private $config;
+
+	/** @var IConfig&MockObject */
+	private $serverConfig;
+
+	/** @var \OCP\BackgroundJob\IJobList&MockObject */
+	private $jobList;
+
+	private SignalPublisher $publisher;
+
+	protected function setUp(): void {
+		parent::setUp();
+		$this->window = $this->createMock(BatchWindowService::class);
+		$this->ledger = $this->createMock(ChangeLedgerService::class);
+		// ChangeLedgerService is mocked, so highestSeqOf() would otherwise
+		// return PHPUnit's default (0) for its declared int return type
+		// regardless of the rows passed in. The publisher relies on this
+		// method to compute the real cursor, so give the mock the same
+		// behaviour as the real implementation.
+		$this->ledger->method('highestSeqOf')->willReturnCallback(
+			static fn (array $rows): int => array_reduce(
+				$rows,
+				static fn (int $carry, DirtyCollection $row): int => max($carry, (int)$row->getChangeSeq()),
+				0
+			)
+		);
+		$this->transport = $this->createMock(NotifyPushTransport::class);
+		$this->config = $this->createMock(ChangeNotificationConfig::class);
+		$this->config->method('maxRefsPerSignal')->willReturn(3);
+		$this->config->method('webhookEnabled')->willReturn(false);
+
+		$this->serverConfig = $this->createMock(IConfig::class);
+		$this->serverConfig->method('getSystemValueString')->willReturn('inst');
+		$this->jobList = $this->createMock(\OCP\BackgroundJob\IJobList::class);
+		$metrics = $this->createMock(\OCA\SendentSynchroniser\Service\ChangeNotification\SignalMetrics::class);
+
+		$this->publisher = new SignalPublisher(
+			$this->window,
+			$this->ledger,
+			new SignalBuilder($this->serverConfig),
+			$this->transport,
+			$this->config,
+			$this->timeFactory(),
+			$metrics,
+			$this->jobList,
+			new NullLogger(),
+		);
+	}
+
+	private function timeFactory(): ITimeFactory {
+		$time = $this->createMock(ITimeFactory::class);
+		$time->method('getTime')->willReturn(1755676800);
+		return $time;
+	}
+
+	private function configWithWebhook(): ChangeNotificationConfig {
+		$config = $this->createMock(ChangeNotificationConfig::class);
+		$config->method('maxRefsPerSignal')->willReturn(3);
+		$config->method('flushedSeq')->willReturn(500);
+		$config->method('webhookEnabled')->willReturn(true);
+		$config->expects($this->once())->method('setFlushedSeq')->with(501);
+		return $config;
+	}
+
+	private function webhookJobList(): \OCP\BackgroundJob\IJobList {
+		$jobList = $this->createMock(\OCP\BackgroundJob\IJobList::class);
+		$jobList->expects($this->once())->method('add');
+		return $jobList;
+	}
+
+	private function row(string $uri, int $seq): DirtyCollection {
+		$row = new DirtyCollection();
+		$row->setPrincipalUri('principals/users/alice');
+		$row->setCollectionType('caldav');
+		$row->setCollectionUri($uri);
+		$row->setSyncToken(1);
+		$row->setChangeSeq($seq);
+		$row->setStructuralSeq(0);
+		$row->setUpdatedAt(1755676800);
+		return $row;
+	}
+
+	public function testFlushIfDueDoesNothingWhenTheWindowIsClosed(): void {
+		$this->window->method('tryOpenWindow')->willReturn(false);
+		$this->transport->expects($this->never())->method('publish');
+
+		$this->assertNull($this->publisher->flushIfDue());
+	}
+
+	public function testFlushPublishesEverythingAboveTheWatermarkAndAdvancesIt(): void {
+		$this->window->method('tryOpenWindow')->willReturn(true);
+		$this->config->method('flushedSeq')->willReturn(500);
+		$this->ledger->method('rows')->with(500, 4)->willReturn([
+			$this->row('personal', 501),
+			$this->row('work', 502),
+		]);
+		$this->transport->method('publish')->willReturn(true);
+		$this->config->expects($this->once())->method('setFlushedSeq')->with(502);
+
+		$signal = $this->publisher->flushIfDue();
+
+		$this->assertNotNull($signal);
+		$this->assertSame(500, $signal['prev']);
+		$this->assertSame(502, $signal['cursor']);
+		$this->assertCount(2, $signal['refs']);
+		$this->assertFalse($signal['truncated']);
+	}
+
+	public function testFlushWithNothingNewPublishesNothing(): void {
+		$this->window->method('tryOpenWindow')->willReturn(true);
+		$this->config->method('flushedSeq')->willReturn(500);
+		$this->ledger->method('rows')->willReturn([]);
+		$this->transport->expects($this->never())->method('publish');
+		$this->config->expects($this->never())->method('setFlushedSeq');
+
+		$this->assertNull($this->publisher->flushIfDue());
+	}
+
+	public function testAnOverfullBatchIsPublishedTruncated(): void {
+		// maxRefsPerSignal is 3; the publisher asks for 4 rows and gets 4,
+		// so the signal switches to "go read /changes" form. The refs are
+		// not in the signal at all, and the cursor points at the ledger's
+		// true position.
+		$this->window->method('tryOpenWindow')->willReturn(true);
+		$this->config->method('flushedSeq')->willReturn(0);
+		$this->ledger->method('rows')->with(0, 4)->willReturn([
+			$this->row('a', 1),
+			$this->row('b', 2),
+			$this->row('c', 3),
+			$this->row('d', 4),
+		]);
+		$this->transport->method('publish')->willReturn(true);
+		$this->config->expects($this->once())->method('setFlushedSeq')->with(4);
+
+		$signal = $this->publisher->flushIfDue();
+
+		$this->assertTrue($signal['truncated']);
+		$this->assertSame([], $signal['refs']);
+		$this->assertSame(4, $signal['cursor']);
+	}
+
+	public function testTheWatermarkDoesNotAdvanceWhenPublishFails(): void {
+		// A failed publish leaves the refs above the watermark so the sweeper
+		// republishes them. Polling readers never notice either way.
+		$this->window->method('tryOpenWindow')->willReturn(true);
+		$this->config->method('flushedSeq')->willReturn(500);
+		$this->ledger->method('rows')->willReturn([$this->row('personal', 501)]);
+		$this->transport->method('publish')->willReturn(false);
+		$this->config->expects($this->never())->method('setFlushedSeq');
+
+		$this->assertNull($this->publisher->flushIfDue());
+	}
+
+	public function testForcedFlushSkipsTheWindow(): void {
+		$this->window->expects($this->never())->method('tryOpenWindow');
+		$this->config->method('flushedSeq')->willReturn(500);
+		$this->ledger->method('rows')->willReturn([$this->row('personal', 501)]);
+		$this->transport->method('publish')->willReturn(true);
+
+		$this->assertNotNull($this->publisher->flush());
+	}
+
+	public function testAWebhookOnlySetupStillAdvancesTheWatermark(): void {
+		// notify_push publish fails (no bot/queue) but the webhook channel is
+		// enabled: the signal is queued for webhook delivery and the watermark
+		// advances — otherwise the sweeper would re-deliver forever.
+		$this->window->method('tryOpenWindow')->willReturn(true);
+		$this->config->method('flushedSeq')->willReturn(500);
+		$this->ledger->method('rows')->willReturn([$this->row('personal', 501)]);
+		$this->transport->method('publish')->willReturn(false);
+
+		$publisher = new SignalPublisher(
+			$this->window,
+			$this->ledger,
+			new SignalBuilder($this->serverConfig),
+			$this->transport,
+			$this->configWithWebhook(),
+			$this->timeFactory(),
+			$this->createMock(\OCA\SendentSynchroniser\Service\ChangeNotification\SignalMetrics::class),
+			$this->webhookJobList(),
+			new NullLogger(),
+		);
+
+		$this->assertNotNull($publisher->flushIfDue());
+	}
+
+	public function testAnOversizedWebhookSignalIsQueuedTruncated(): void {
+		// NC's job list rejects arguments over ~32k JSON chars; an oversized
+		// signal must degrade to the truncated frame for the webhook channel.
+		$this->window->method('tryOpenWindow')->willReturn(true);
+		$this->transport->method('publish')->willReturn(true);
+
+		$rows = [];
+		for ($i = 1; $i <= 200; $i++) {
+			$rows[] = $this->row(str_repeat('x', 200) . $i, 500 + $i);
+		}
+		$this->ledger->method('rows')->willReturn($rows);
+
+		$captured = null;
+		$jobList = $this->createMock(\OCP\BackgroundJob\IJobList::class);
+		$jobList->method('add')->willReturnCallback(
+			function (string $class, array $argument) use (&$captured): void {
+				$captured = $argument;
+			}
+		);
+
+		$config = $this->createMock(ChangeNotificationConfig::class);
+		$config->method('maxRefsPerSignal')->willReturn(500);
+		$config->method('flushedSeq')->willReturn(500);
+		$config->method('webhookEnabled')->willReturn(true);
+
+		$publisher = new SignalPublisher(
+			$this->window,
+			$this->ledger,
+			new SignalBuilder($this->serverConfig),
+			$this->transport,
+			$config,
+			$this->timeFactory(),
+			$this->createMock(\OCA\SendentSynchroniser\Service\ChangeNotification\SignalMetrics::class),
+			$jobList,
+			new NullLogger(),
+		);
+
+		$signal = $publisher->flushIfDue();
+
+		$this->assertNotNull($signal);
+		$this->assertFalse($signal['truncated']); // the live/notify_push frame keeps its refs
+		$this->assertNotNull($captured);
+		$this->assertTrue($captured['signal']['truncated']);
+		$this->assertSame([], $captured['signal']['refs']);
+	}
+
+	public function testPinnedPollingWithoutWebhookSkipsTheWindowEntirely(): void {
+		$this->config->method('transportMode')->willReturn('polling');
+		$this->window->expects($this->never())->method('tryOpenWindow');
+		$this->ledger->expects($this->never())->method('rows');
+
+		$this->assertNull($this->publisher->flushIfDue());
+	}
+}

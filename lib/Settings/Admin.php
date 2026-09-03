@@ -111,6 +111,16 @@ class Admin implements ISettings {
 		$params['graphApiMode'] = $this->appConfig->getAppValue(Constants::DISABLE_ITIP_IMIP_KEY, Constants::DISABLE_ITIP_IMIP_DEFAULT);
 		$params['trashbinScrubEnabled'] = $this->appConfig->getAppValue(Constants::TRASHBIN_SCRUB_KEY, Constants::TRASHBIN_SCRUB_DEFAULT);
 
+		$params['cnTransportMode'] = $this->appConfig->getAppValue(Constants::CN_TRANSPORT_MODE_KEY, Constants::CN_TRANSPORT_MODE_DEFAULT);
+		$params['cnBotUser'] = $this->appConfig->getAppValue(Constants::CN_BOT_USER_KEY, '');
+		$params['cnConnectorUrl'] = $this->appConfig->getAppValue(Constants::CN_CONNECTOR_URL_KEY, '');
+		$params['cnBatchWindow'] = $this->appConfig->getAppValue(Constants::CN_BATCH_WINDOW_KEY, (string)Constants::CN_BATCH_WINDOW_DEFAULT);
+		$params['cnMaxRefsPerSignal'] = $this->appConfig->getAppValue(Constants::CN_MAX_REFS_KEY, (string)Constants::CN_MAX_REFS_DEFAULT);
+		$params['cnPollInterval'] = $this->appConfig->getAppValue(Constants::CN_POLL_INTERVAL_KEY, (string)Constants::CN_POLL_INTERVAL_DEFAULT);
+		$params['cnNotifyPushInstalled'] = $this->appManager->isInstalled(Constants::CN_NOTIFY_PUSH_APPID);
+		$params['cnWebhookUrl'] = $this->appConfig->getAppValue(Constants::CN_WEBHOOK_URL_KEY, '');
+		$params['cnWebhookEnabled'] = $this->appConfig->getAppValue(Constants::CN_WEBHOOK_ENABLED_KEY, 'false');
+
 		return $params;
 	}
 

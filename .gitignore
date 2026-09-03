@@ -147,3 +147,6 @@ lib/.DS_Store
 .DS_Store
 /vendor/*
 /.vs
+
+# Internal planning/research docs (session artifacts, not shipped)
+docs/superpowers/

@@ -32,6 +32,24 @@ return [
 
 		['name' => 'status_api#index', 'url' => '/api/1.0/status', 'verb' => 'GET'],
 
+		['name' => 'change_feed_api#config', 'url' => '/api/1.0/notify/config', 'verb' => 'GET'],
+		['name' => 'change_feed_api#changes', 'url' => '/api/1.0/notify/changes', 'verb' => 'GET'],
+		['name' => 'change_feed_api#ack', 'url' => '/api/1.0/notify/ack', 'verb' => 'POST'],
+		['name' => 'change_feed_api#health', 'url' => '/api/1.0/notify/health', 'verb' => 'GET'],
+
+		['name' => 'change_notification_settings#setTransportMode', 'url' => '/api/1.0/settings/cnTransportMode', 'verb' => 'POST'],
+		['name' => 'change_notification_settings#setBotUser', 'url' => '/api/1.0/settings/cnBotUser', 'verb' => 'POST'],
+		['name' => 'change_notification_settings#setConnectorUrl', 'url' => '/api/1.0/settings/cnConnectorUrl', 'verb' => 'POST'],
+		['name' => 'change_notification_settings#checkConnectorSetup', 'url' => '/api/1.0/settings/cnConnectorCheck', 'verb' => 'POST'],
+		['name' => 'change_notification_settings#setBatching', 'url' => '/api/1.0/settings/cnBatching', 'verb' => 'POST'],
+		['name' => 'change_notification_settings#runTest', 'url' => '/api/1.0/settings/cnRunTest', 'verb' => 'POST'],
+		['name' => 'change_notification_settings#flushNow', 'url' => '/api/1.0/settings/cnFlushNow', 'verb' => 'POST'],
+		['name' => 'change_notification_settings#sendPing', 'url' => '/api/1.0/settings/cnSendPing', 'verb' => 'POST'],
+		['name' => 'change_notification_settings#reportPing', 'url' => '/api/1.0/settings/cnReportPing', 'verb' => 'POST'],
+		['name' => 'change_notification_settings#setWebhook', 'url' => '/api/1.0/settings/cnWebhook', 'verb' => 'POST'],
+		['name' => 'change_notification_settings#sendTestWebhook', 'url' => '/api/1.0/settings/cnWebhookTest', 'verb' => 'POST'],
+		['name' => 'change_feed_api#setAllowList', 'url' => '/api/1.0/notify/allowlist', 'verb' => 'PUT'],
+
 		[
 			'name' => 'license_api#preflighted_cors',
 			'url' => '/api/1.0/{path}',
