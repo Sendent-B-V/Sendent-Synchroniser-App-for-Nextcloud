@@ -37,8 +37,12 @@ class SyncUserService {
 	/** @var IUserManager */
 	private $userManager;
 
+	/** @var SchedulingSuppressionService */
+	private $schedulingSuppression;
+
     public function __construct(IAccountManager $accountManager, $AppName, IAppConfig $appConfig, IGroupManager $groupManager, LoggerInterface $logger,
-		Iprovider $tokenProvider, IUserManager $userManager, SyncUserMapper $syncUserMapper) {
+		Iprovider $tokenProvider, IUserManager $userManager, SyncUserMapper $syncUserMapper,
+		SchedulingSuppressionService $schedulingSuppression) {
 
 		$this->accountManager = $accountManager;
 		$this->appName = $AppName;
@@ -48,6 +52,7 @@ class SyncUserService {
         $this->tokenProvider = $tokenProvider;
         $this->syncUserMapper = $syncUserMapper;
 		$this->userManager = $userManager;
+		$this->schedulingSuppression = $schedulingSuppression;
 
 	}
 
@@ -94,20 +99,43 @@ class SyncUserService {
 
 	}
 
-	/**
-	 * Whether the user still holds an app token minted before the architecture
-	 * rework (legacy name). Such a user has not yet completed the new consent
-	 * flow: activate() replaces the token with one named Constants::TOKEN_NAME,
-	 * so this returning false is the durable "already handled" signal for both
-	 * the consent-modal push and the one-time calendar reset offer.
-	 */
-	public function hasLegacyToken(string $userId): bool {
+	public function hasAnyAppToken(string $userId): bool {
 		foreach ($this->tokenProvider->getTokenByUser($userId) as $token) {
-			if ($token->getName() === Constants::TOKEN_NAME_LEGACY) {
+			if (in_array($token->getName(), [Constants::TOKEN_NAME, Constants::TOKEN_NAME_LEGACY], true)) {
 				return true;
 			}
 		}
 		return false;
+	}
+
+	/** The meeting-invitations setting is the master switch; while off, the flag is left in place. */
+	public function hasPendingResetOffer(string $userId): bool {
+		if (!$this->schedulingSuppression->isSuppressionEnabled()) {
+			return false;
+		}
+		$syncUsers = $this->syncUserMapper->findByUid($userId);
+		if (empty($syncUsers)) {
+			return false;
+		}
+		return (int)$syncUsers[0]->getResetoffer() === 1;
+	}
+
+	/** For ACTIVE users; does not check the status itself. */
+	public function needsReconsent(string $userId): bool {
+		return !$this->hasAnyAppToken($userId) || $this->hasPendingResetOffer($userId);
+	}
+
+	/** Called by activate(); no-op while gated off so the flag survives. */
+	public function clearResetOffer(string $userId): void {
+		if (!$this->schedulingSuppression->isSuppressionEnabled()) {
+			return;
+		}
+		$syncUsers = $this->syncUserMapper->findByUid($userId);
+		if (empty($syncUsers) || (int)$syncUsers[0]->getResetoffer() === 0) {
+			return;
+		}
+		$syncUsers[0]->setResetoffer(0);
+		$this->syncUserMapper->update($syncUsers[0]);
 	}
 
 	/**

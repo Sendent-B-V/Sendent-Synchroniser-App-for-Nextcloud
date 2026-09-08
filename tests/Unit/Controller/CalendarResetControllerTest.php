@@ -11,6 +11,7 @@ use OCP\IUser;
 use OCP\IUserSession;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\NullLogger;
 
 class CalendarResetControllerTest extends TestCase {
 
@@ -25,7 +26,8 @@ class CalendarResetControllerTest extends TestCase {
 			'sendentsynchroniser',
 			$this->createMock(IRequest::class),
 			$this->svc,
-			$this->userSession
+			$this->userSession,
+			new NullLogger()
 		);
 	}
 
@@ -55,6 +57,14 @@ class CalendarResetControllerTest extends TestCase {
 		$this->assertSame(Http::STATUS_UNAUTHORIZED, $resp->getStatus());
 	}
 
+	public function testStatusReportsErrorWhenScanThrows(): void {
+		$this->loginAs('alice');
+		$this->svc->method('shouldOffer')->willThrowException(new \RuntimeException('dav down'));
+		$resp = $this->controller->status();
+		$this->assertSame(Http::STATUS_INTERNAL_SERVER_ERROR, $resp->getStatus());
+		$this->assertSame(['applicable' => false], $resp->getData());
+	}
+
 	public function testExecuteRunsReset(): void {
 		$this->loginAs('alice');
 		$this->svc->expects($this->once())->method('reset')->with('alice')->willReturn(true);
@@ -67,5 +77,21 @@ class CalendarResetControllerTest extends TestCase {
 		$this->svc->method('reset')->willReturn(false);
 		$resp = $this->controller->execute();
 		$this->assertSame(['status' => 'Skipped'], $resp->getData());
+	}
+
+	public function testExecuteReportsErrorWhenResetThrows(): void {
+		// The service rolled back; the UI must not pretend the clean-up happened.
+		$this->loginAs('alice');
+		$this->svc->method('reset')->willThrowException(new \RuntimeException('boom'));
+		$resp = $this->controller->execute();
+		$this->assertSame(Http::STATUS_INTERNAL_SERVER_ERROR, $resp->getStatus());
+		$this->assertSame(['status' => 'Error'], $resp->getData());
+	}
+
+	public function testExecuteUnauthorizedWithoutUser(): void {
+		$this->userSession->method('getUser')->willReturn(null);
+		$this->svc->expects($this->never())->method('reset');
+		$resp = $this->controller->execute();
+		$this->assertSame(Http::STATUS_UNAUTHORIZED, $resp->getStatus());
 	}
 }

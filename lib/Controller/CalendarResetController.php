@@ -11,6 +11,7 @@ use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\IRequest;
 use OCP\IUserSession;
+use Psr\Log\LoggerInterface;
 
 class CalendarResetController extends Controller {
 
@@ -19,6 +20,7 @@ class CalendarResetController extends Controller {
 		IRequest $request,
 		private CalendarResetService $calendarResetService,
 		private IUserSession $userSession,
+		private LoggerInterface $logger,
 	) {
 		parent::__construct($AppName, $request);
 	}
@@ -28,7 +30,7 @@ class CalendarResetController extends Controller {
 	}
 
 	/**
-	 * Whether the one-time calendar reset should be offered to the current user.
+	 * 500 means the scan failed; the client must not read that as "no".
 	 *
 	 * @NoAdminRequired
 	 */
@@ -37,12 +39,17 @@ class CalendarResetController extends Controller {
 		if ($uid === null) {
 			return new JSONResponse(['applicable' => false], Http::STATUS_UNAUTHORIZED);
 		}
-		return new JSONResponse(['applicable' => $this->calendarResetService->shouldOffer($uid)]);
+		try {
+			$applicable = $this->calendarResetService->shouldOffer($uid);
+		} catch (\Throwable $e) {
+			$this->logger->error('Calendar reset status check failed for user "' . $uid . '"', ['exception' => $e]);
+			return new JSONResponse(['applicable' => false], Http::STATUS_INTERNAL_SERVER_ERROR);
+		}
+		return new JSONResponse(['applicable' => $applicable]);
 	}
 
 	/**
-	 * Deletes and re-creates the current user's sync calendar. Refused once the
-	 * user no longer holds a legacy-named token (i.e. after activation).
+	 * OK, Skipped (guard refused, nothing changed) or 500 Error (rolled back).
 	 *
 	 * @NoAdminRequired
 	 */
@@ -51,7 +58,12 @@ class CalendarResetController extends Controller {
 		if ($uid === null) {
 			return new JSONResponse(['status' => 'Error'], Http::STATUS_UNAUTHORIZED);
 		}
-		$done = $this->calendarResetService->reset($uid);
+		try {
+			$done = $this->calendarResetService->reset($uid);
+		} catch (\Throwable $e) {
+			$this->logger->error('Calendar reset endpoint failed for user "' . $uid . '"', ['exception' => $e]);
+			return new JSONResponse(['status' => 'Error'], Http::STATUS_INTERNAL_SERVER_ERROR);
+		}
 		return new JSONResponse(['status' => $done ? 'OK' : 'Skipped']);
 	}
 }

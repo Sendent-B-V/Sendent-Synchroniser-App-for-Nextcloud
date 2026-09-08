@@ -67,21 +67,33 @@ class SettingsControllerShouldShowDialogTest extends TestCase {
 		$this->mapper->method('findByUid')->with('alice')->willReturn([$syncUser]);
 	}
 
-	public function testActiveUserOnLegacyTokenIsPushed(): void {
+	public function testActiveUserNeedingReconsentIsPushed(): void {
 		$this->givenSyncUserWithStatus(Constants::USER_STATUS_ACTIVE);
-		$this->syncUserService->method('hasLegacyToken')->with('alice')->willReturn(true);
+		$this->syncUserService->method('needsReconsent')->with('alice')->willReturn(true);
 		$this->assertTrue($this->controller->shouldShowDialog()->getData());
 	}
 
-	public function testActiveUserOnNewTokenIsNotPushed(): void {
+	public function testActiveUserNotNeedingReconsentIsNotPushed(): void {
 		$this->givenSyncUserWithStatus(Constants::USER_STATUS_ACTIVE);
-		$this->syncUserService->method('hasLegacyToken')->with('alice')->willReturn(false);
+		$this->syncUserService->method('needsReconsent')->with('alice')->willReturn(false);
 		$this->assertFalse($this->controller->shouldShowDialog()->getData());
+	}
+
+	public function testInactiveUserIsAlwaysPushed(): void {
+		// After the migration clear every former ACTIVE user is INACTIVE.
+		$this->givenSyncUserWithStatus(Constants::USER_STATUS_INACTIVE);
+		$this->syncUserService->expects($this->never())->method('needsReconsent');
+		$this->assertTrue($this->controller->shouldShowDialog()->getData());
 	}
 
 	public function testNoconsentUserIsNeverPushed(): void {
 		$this->givenSyncUserWithStatus(Constants::USER_STATUS_NOCONSENT);
-		$this->syncUserService->expects($this->never())->method('hasLegacyToken');
+		$this->syncUserService->expects($this->never())->method('needsReconsent');
 		$this->assertFalse($this->controller->shouldShowDialog()->getData());
+	}
+
+	public function testUserWithoutRowIsPushed(): void {
+		$this->mapper->method('findByUid')->with('alice')->willReturn([]);
+		$this->assertTrue($this->controller->shouldShowDialog()->getData());
 	}
 }

@@ -176,6 +176,9 @@ class UserController extends Controller {
 			$this->logger->info('Updated Sendentsync user "' . $credentials->getUID() . '"');
 		}
 
+		// Accepting and declining the calendar clean-up both end here.
+		$this->syncUserService->clearResetOffer($credentials->getUID());
+
 		return new JSONResponse([
 			'emailDomain' =>  '@' . $this->appConfig->getAppValue('emailDomain', ''),
 			'shouldAskMailSync' => ($this->appManager->isInstalled('mail') && ($this->appConfig->getAppValue('IMAPSyncEnabled', "false") === 'true')),

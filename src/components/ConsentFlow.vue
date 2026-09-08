@@ -19,11 +19,15 @@
 				{{ text }}
 			</p>
 
+			<p v-if="errorText" class="consent-flow__error" role="alert">
+				{{ errorText }}
+			</p>
+
 			<div v-if="showButton" class="consent-flow__actions">
-				<button class="primary" @click="handleClick">
+				<button class="primary" :disabled="busy" @click="handleClick">
 					{{ buttonLabel }}
 				</button>
-				<button v-if="secondaryLabel" @click="handleSecondary">
+				<button v-if="secondaryLabel" :disabled="busy" @click="handleSecondary">
 					{{ secondaryLabel }}
 				</button>
 			</div>
@@ -55,6 +59,10 @@ const text = ref('')
 const buttonLabel = ref('')
 const secondaryLabel = ref('')
 const showButton = ref(true)
+const busy = ref(false)
+const errorText = ref('')
+// Set once the server answered OK or Skipped: further clicks only activate.
+const resetSettled = ref(false)
 
 // Set initial state based on activeUser
 if (props.activeUser) {
@@ -111,27 +119,34 @@ async function doActivate() {
 			showButton.value = !props.isModal
 		}
 
+		errorText.value = ''
+		secondaryLabel.value = ''
 		emit('consent-changed')
 	} catch (err) {
 		console.warn('Error during consent flow activation', err)
+		errorText.value = t('sendentsynchroniser', 'Activation failed. Please try again.')
 	}
 }
 
-/**
- * Declines the one-time calendar reset and continues with activation. No
- * server call needed: activation swaps the app-token name, which is what
- * prevents the offer from appearing again.
- */
+/** Activates without the clean-up: declined, or the status check failed and the user chose to continue. */
 async function handleSecondary() {
-	if (step.value !== 'reset') return
-	secondaryLabel.value = ''
-	await doActivate()
+	if (busy.value) return
+	const canContinue = secondaryLabel.value !== ''
+	if (!canContinue) return
+	busy.value = true
+	try {
+		await doActivate()
+	} finally {
+		busy.value = false
+	}
 }
 
 /**
  * Advances the consent flow.
  */
 async function handleClick() {
+	if (busy.value) return
+
 	if (step.value === 'idle') {
 		step.value = 'step1'
 		title.value = t('sendentsynchroniser', 'Step 1: Set up appointments, contacts, and tasks')
@@ -141,12 +156,24 @@ async function handleClick() {
 	}
 
 	if (step.value === 'step1') {
-		// One-time offer for legacy sync users: reset the synced calendar
-		// before activation so the new sync starts from a clean calendar.
+		busy.value = true
 		try {
-			const statusUrl = generateUrl('/apps/sendentsynchroniser/api/1.0/user/calendarReset/status')
-			const statusResp = await axios.get(statusUrl)
-			if (statusResp.data.applicable) {
+			errorText.value = ''
+			let applicable = false
+			try {
+				const statusUrl = generateUrl('/apps/sendentsynchroniser/api/1.0/user/calendarReset/status')
+				const statusResp = await axios.get(statusUrl)
+				applicable = statusResp.data?.applicable === true
+			} catch (err) {
+				console.warn('Calendar reset status check failed', err)
+				// Activation settles the offer server-side; never fall through silently.
+				errorText.value = t('sendentsynchroniser', 'We could not check whether a one-time calendar clean-up is needed. You can try again or continue without it.')
+				buttonLabel.value = t('sendentsynchroniser', 'Try again')
+				secondaryLabel.value = t('sendentsynchroniser', 'Continue without clean-up')
+				return
+			}
+
+			if (applicable) {
 				step.value = 'reset'
 				title.value = t('sendentsynchroniser', 'One-time calendar clean-up')
 				text.value = t('sendentsynchroniser', 'We found appointments from a previous version of the Exchange synchronisation in your calendar. To avoid duplicate appointments, we recommend deleting and re-creating this calendar before continuing. Warning: this permanently removes all events in the calendar — including ones created in Nextcloud — and removes any shares on it. Your Outlook calendar is not affected and will be synchronised into the new calendar afterwards.')
@@ -154,21 +181,54 @@ async function handleClick() {
 				secondaryLabel.value = t('sendentsynchroniser', 'Keep my calendar as it is')
 				return
 			}
-		} catch (err) {
-			console.warn('Calendar reset status check failed, continuing without it', err)
+
+			await doActivate()
+		} finally {
+			busy.value = false
 		}
-		await doActivate()
 		return
 	}
 
 	if (step.value === 'reset') {
+		busy.value = true
 		try {
-			await axios.post(generateUrl('/apps/sendentsynchroniser/api/1.0/user/calendarReset'))
-		} catch (err) {
-			console.warn('Calendar reset failed', err)
+			errorText.value = ''
+			if (resetSettled.value) {
+				await doActivate()
+				return
+			}
+
+			let status = 'Error'
+			try {
+				const resp = await axios.post(generateUrl('/apps/sendentsynchroniser/api/1.0/user/calendarReset'))
+				status = resp.data?.status ?? 'Error'
+			} catch (err) {
+				console.warn('Calendar reset failed', err)
+			}
+
+			// Skipped/Error: nothing changed server-side.
+			if (status === 'Skipped') {
+				// Retrying would only ever return Skipped again, so offer to move on.
+				resetSettled.value = true
+				errorText.value = t('sendentsynchroniser', 'The calendar clean-up is no longer applicable to your account. You can continue without it.')
+				buttonLabel.value = t('sendentsynchroniser', 'Continue')
+				secondaryLabel.value = ''
+				return
+			}
+
+			if (status !== 'OK') {
+				errorText.value = t('sendentsynchroniser', 'The calendar clean-up could not be completed and your calendar was left unchanged. You can try again or continue without it.')
+				return
+			}
+
+			// Calendar re-created; never offer the destructive action again.
+			resetSettled.value = true
+			buttonLabel.value = t('sendentsynchroniser', 'Continue')
+			secondaryLabel.value = ''
+			await doActivate()
+		} finally {
+			busy.value = false
 		}
-		secondaryLabel.value = ''
-		await doActivate()
 		return
 	}
 
@@ -204,5 +264,10 @@ async function handleClick() {
 
 .consent-flow__actions button + button {
 	margin-inline-start: 8px;
+}
+
+.consent-flow__error {
+	color: var(--color-error-text, #b00020);
+	margin-bottom: 12px;
 }
 </style>
