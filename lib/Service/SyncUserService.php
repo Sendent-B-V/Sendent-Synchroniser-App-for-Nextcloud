@@ -37,8 +37,12 @@ class SyncUserService {
 	/** @var IUserManager */
 	private $userManager;
 
+	/** @var SchedulingSuppressionService */
+	private $schedulingSuppression;
+
     public function __construct(IAccountManager $accountManager, $AppName, IAppConfig $appConfig, IGroupManager $groupManager, LoggerInterface $logger,
-		Iprovider $tokenProvider, IUserManager $userManager, SyncUserMapper $syncUserMapper) {
+		Iprovider $tokenProvider, IUserManager $userManager, SyncUserMapper $syncUserMapper,
+		SchedulingSuppressionService $schedulingSuppression) {
 
 		$this->accountManager = $accountManager;
 		$this->appName = $AppName;
@@ -48,6 +52,7 @@ class SyncUserService {
         $this->tokenProvider = $tokenProvider;
         $this->syncUserMapper = $syncUserMapper;
 		$this->userManager = $userManager;
+		$this->schedulingSuppression = $schedulingSuppression;
 
 	}
 
@@ -70,10 +75,13 @@ class SyncUserService {
 				'message' => 'user does not exist'
 			];
 		} else {
-		    // Invalidates existing app tokens
+		    // Invalidates existing app tokens — both generations: tokens minted
+		    // before the rework are named TOKEN_NAME_LEGACY, newer ones TOKEN_NAME.
+		    // Matching both is security-critical: retracting consent must always
+		    // revoke legacy tokens too.
 		    $existingTokens = $this->tokenProvider->getTokenByUser($userId);
 			foreach($existingTokens as $token) {
-				if ( $token->getName() === $this->appName) {
+				if (in_array($token->getName(), [Constants::TOKEN_NAME, Constants::TOKEN_NAME_LEGACY], true)) {
 					$this->tokenProvider->invalidateTokenById($token->getUid(), $token->getId());
 				}
 			}
@@ -89,6 +97,45 @@ class SyncUserService {
 
 		return $response;
 
+	}
+
+	public function hasAnyAppToken(string $userId): bool {
+		foreach ($this->tokenProvider->getTokenByUser($userId) as $token) {
+			if (in_array($token->getName(), [Constants::TOKEN_NAME, Constants::TOKEN_NAME_LEGACY], true)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** The meeting-invitations setting is the master switch; while off, the flag is left in place. */
+	public function hasPendingResetOffer(string $userId): bool {
+		if (!$this->schedulingSuppression->isSuppressionEnabled()) {
+			return false;
+		}
+		$syncUsers = $this->syncUserMapper->findByUid($userId);
+		if (empty($syncUsers)) {
+			return false;
+		}
+		return (int)$syncUsers[0]->getResetoffer() === 1;
+	}
+
+	/** For ACTIVE users; does not check the status itself. */
+	public function needsReconsent(string $userId): bool {
+		return !$this->hasAnyAppToken($userId) || $this->hasPendingResetOffer($userId);
+	}
+
+	/** Called by activate(); no-op while gated off so the flag survives. */
+	public function clearResetOffer(string $userId): void {
+		if (!$this->schedulingSuppression->isSuppressionEnabled()) {
+			return;
+		}
+		$syncUsers = $this->syncUserMapper->findByUid($userId);
+		if (empty($syncUsers) || (int)$syncUsers[0]->getResetoffer() === 0) {
+			return;
+		}
+		$syncUsers[0]->setResetoffer(0);
+		$this->syncUserMapper->update($syncUsers[0]);
 	}
 
 	/**

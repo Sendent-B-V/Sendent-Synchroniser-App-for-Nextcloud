@@ -12,12 +12,15 @@ class SyncUser extends Entity implements JsonSerializable {
 	protected $username;
 	protected $calendar;
 	protected $addressbook;
+	// 1 until the user answers the one-time calendar clean-up; stamped at upgrade.
+	protected $resetoffer = 0;
 
 	public function __construct() {
-		// add types in constructor
+		$this->addType('resetoffer', 'integer');
 	}
 
 	public function jsonSerialize() {
+		// No resetoffer: this payload goes to the connector.
 		return [
 			'id' => $this->id,
 			'uid' => $this->uid,

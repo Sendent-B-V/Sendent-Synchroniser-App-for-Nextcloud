@@ -14,6 +14,14 @@ class SchedulingSuppressionService {
 		private IGroupManager $groupManager,
 	) {}
 
+	/** Admin toggle "Disable Nextcloud meeting invitations"; also gates the calendar reset. */
+	public function isSuppressionEnabled(): bool {
+		return $this->appConfig->getAppValue(
+			Constants::DISABLE_ITIP_IMIP_KEY,
+			Constants::DISABLE_ITIP_IMIP_DEFAULT
+		) === 'true';
+	}
+
 	/**
 	 * Group membership is the sole user gate — SyncUser status is NOT
 	 * consulted. Users in an active group always get suppression while
@@ -23,10 +31,7 @@ class SchedulingSuppressionService {
 	 * @param string $requestPath  not consulted (kept for call-site signature)
 	 */
 	public function shouldSuppress(?string $uid, string $requestPath): bool {
-		if ($this->appConfig->getAppValue(
-				Constants::DISABLE_ITIP_IMIP_KEY,
-				Constants::DISABLE_ITIP_IMIP_DEFAULT
-			) !== 'true') {
+		if (!$this->isSuppressionEnabled()) {
 			return false;
 		}
 
