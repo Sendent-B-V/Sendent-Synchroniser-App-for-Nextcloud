@@ -2,10 +2,10 @@
 	<div>
 		<div class="groups-management">
 			<div class="groups-management__panel">
-				<h3>Inactive Groups</h3>
+				<h3>{{ t('sendentsynchroniser', 'Inactive Groups') }}</h3>
 				<input v-model="ncFilter"
 					type="text"
-					placeholder="Filter groups..."
+					:placeholder="t('sendentsynchroniser', 'Filter groups …')"
 					class="groups-management__filter">
 				<div class="groups-management__list">
 					<div v-for="group in filteredNcGroups"
@@ -13,19 +13,19 @@
 						class="groups-management__item"
 						@click="onAddGroup(group.gid)">
 						<span>{{ group.displayName }}</span>
-						<span class="groups-management__add-icon" title="Add to active groups">&#x2192;</span>
+						<span class="groups-management__add-icon" :title="t('sendentsynchroniser', 'Add to active groups')">&#x2192;</span>
 					</div>
 					<div v-if="filteredNcGroups.length === 0" class="groups-management__empty">
-						No groups found
+						{{ t('sendentsynchroniser', 'No groups found') }}
 					</div>
 				</div>
 			</div>
 
 			<div class="groups-management__panel">
-				<h3>Active Groups</h3>
+				<h3>{{ t('sendentsynchroniser', 'Active Groups') }}</h3>
 				<input v-model="sendentFilter"
 					type="text"
-					placeholder="Filter groups..."
+					:placeholder="t('sendentsynchroniser', 'Filter groups …')"
 					class="groups-management__filter">
 				<div ref="sortableRef"
 					class="groups-management__list groups-management__list--sortable">
@@ -34,25 +34,25 @@
 						:data-gid="group.gid"
 						class="groups-management__item groups-management__item--sendent"
 						:class="{
-							'groups-management__item--deleted': group.displayName.includes('*** DELETED GROUP ***'),
+							'groups-management__item--deleted': group.deleted === true,
 						}">
-						<span class="groups-management__drag-handle" title="Drag to reorder">&#x2630;</span>
+						<span class="groups-management__drag-handle" :title="t('sendentsynchroniser', 'Drag to reorder')">&#x2630;</span>
 						<span class="groups-management__name">{{ group.displayName }}</span>
 						<button class="groups-management__remove"
-							title="Remove from active groups"
+							:title="t('sendentsynchroniser', 'Remove from active groups')"
 							@click.stop="onRemoveGroup(group.gid)">
 							&times;
 						</button>
 					</div>
 					<div v-if="filteredSendentGroups.length === 0" class="groups-management__empty">
-						No active groups
+						{{ t('sendentsynchroniser', 'No active groups') }}
 					</div>
 				</div>
 			</div>
 		</div>
 
 		<div class="groups-management__user-info">
-			<h3>User management</h3>
+			<h3>{{ t('sendentsynchroniser', 'User management') }}</h3>
 			<p>
 				{{ t('sendentsynchroniser', 'You have enabled Sendent Sync for {enabled} user(s), and it is currently used by {active} user(s).', { enabled: String(nbEnabledUsers), active: String(nbActiveUsers) }) }}
 			</p>
@@ -61,14 +61,14 @@
 			<div class="groups-management__actions">
 				<button :disabled="!notificationsAppInstalled"
 					@click="onRemindUsers">
-					Remind users
+					{{ t('sendentsynchroniser', 'Remind users') }}
 				</button>
 				<span v-if="!notificationsAppInstalled" class="groups-management__warning">
 					{{ t('sendentsynchroniser', "You don't have the notifications app installed") }}
 				</span>
 				<button class="groups-management__btn-danger"
 					@click="onClearTokens">
-					Clear tokens
+					{{ t('sendentsynchroniser', 'Clear tokens') }}
 				</button>
 			</div>
 		</div>
@@ -153,7 +153,7 @@ async function onRemindUsers() {
  *
  */
 async function onClearTokens() {
-	if (confirm('This will clear the synchronisation token of all sendent sync users. Are you sure?')) {
+	if (confirm(t('sendentsynchroniser', 'This will clear the synchronisation token of all sendent sync users. Are you sure?'))) {
 		const url = generateUrl('/apps/sendentsynchroniser/api/1.0/user/invalidateAll')
 		try {
 			await axios.post(url)

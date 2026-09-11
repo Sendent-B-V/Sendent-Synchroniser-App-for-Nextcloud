@@ -69,6 +69,8 @@ jobs:
             --exclude="./${APP_NAME}/.github" \
             --exclude="./${APP_NAME}/.gitignore" \
             --exclude="./${APP_NAME}/.gitattributes" \
+            --exclude="./${APP_NAME}/.l10nignore" \
+            --exclude="./${APP_NAME}/.tx" \
             --exclude="./${APP_NAME}/.yarnrc" \
             --exclude="./${APP_NAME}/.eslintrc.*" \
             --exclude="./${APP_NAME}/.php_cs*" \

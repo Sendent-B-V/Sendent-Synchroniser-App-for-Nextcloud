@@ -1,6 +1,6 @@
 <template>
 	<div id="sendentsynchroniser-user-settings">
-		<h2>Synchronizer</h2>
+		<h2>{{ t('sendentsynchroniser', 'Synchronizer') }}</h2>
 		<ConsentFlow :active-user="isActive"
 			@consent-changed="isActive = true" />
 		<RetractConsent v-if="isActive" />
@@ -9,6 +9,7 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { translate as t } from '@nextcloud/l10n'
 import ConsentFlow from './ConsentFlow.vue'
 import RetractConsent from './RetractConsent.vue'
 
