@@ -3,6 +3,7 @@
 namespace OCA\SendentSynchroniser\Controller;
 
 use OCP\AppFramework\ApiController;
+use OCP\AppFramework\Http\Attribute\NoAdminRequired;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\Services\IAppConfig;
 use OCP\IGroupManager;
@@ -70,7 +71,7 @@ class SettingsController extends ApiController {
 	 */
 	public function setSharedSecret($sharedSecret) {
 		$this->syncUserMapper->encryptAllUserstoken($sharedSecret);
-		return $this->appConfig->setAppValue('sharedSecret', $sharedSecret);
+		return $this->appConfig->setAppValueString('sharedSecret', $sharedSecret);
 	}
 
 	/**
@@ -81,7 +82,7 @@ class SettingsController extends ApiController {
 	 * 
 	 */
 	public function setReminderType($reminderType) {
-		return $this->appConfig->setAppValue('reminderType', $reminderType);
+		return $this->appConfig->setAppValueString('reminderType', $reminderType);
 	}
 
 	/**
@@ -92,7 +93,7 @@ class SettingsController extends ApiController {
 	 *
 	 */
 	public function getReminderType() {
-		return $this->appConfig->getAppValue('reminderType', Constants::REMINDER_DEFAULT_TYPE);
+		return $this->appConfig->getAppValueString('reminderType', Constants::REMINDER_DEFAULT_TYPE);
 	}
 
 	/**
@@ -103,7 +104,7 @@ class SettingsController extends ApiController {
 	 * 
 	 */
 	public function setNotificationMethod($notificationMethod) {
-		return $this->appConfig->setAppValue('notificationMethod', $notificationMethod);
+		return $this->appConfig->setAppValueString('notificationMethod', $notificationMethod);
 	}
 
 	/**
@@ -112,11 +113,10 @@ class SettingsController extends ApiController {
 	 *
 	 * @param string $notificationMethod
 	 *
-	 * @NoAdminRequired
-	 *
 	 */
+	#[NoAdminRequired]
 	public function getNotificationMethod() {
-		return $this->appConfig->getAppValue('notificationMethod', Constants::NOTIFICATIONMETHOD_MODAL_DEFAULT);
+		return $this->appConfig->getAppValueString('notificationMethod', Constants::NOTIFICATIONMETHOD_MODAL_DEFAULT);
 	}
 
 	/**
@@ -128,7 +128,7 @@ class SettingsController extends ApiController {
 	 */
 	public function setNotificationInterval($notificationInterval) {
 		if (ctype_digit($notificationInterval)) {
-			$this->appConfig->setAppValue('notificationInterval', $notificationInterval);
+			$this->appConfig->setAppValueString('notificationInterval', $notificationInterval);
 			return TRUE;
 		} else {
 			return FALSE;
@@ -143,7 +143,7 @@ class SettingsController extends ApiController {
 	 *
 	 */
 	public function setIMAPSync($IMAPSyncEnabled) {
-		return $this->appConfig->setAppValue('IMAPSyncEnabled', $IMAPSyncEnabled);
+		return $this->appConfig->setAppValueString('IMAPSyncEnabled', $IMAPSyncEnabled);
 	}
 
 	/**
@@ -156,7 +156,7 @@ class SettingsController extends ApiController {
 	 * @param string $graphApiMode 'true' or 'false'
 	 */
 	public function setGraphApiMode($graphApiMode) {
-		return $this->appConfig->setAppValue(
+		return $this->appConfig->setAppValueString(
 			Constants::DISABLE_ITIP_IMIP_KEY,
 			$graphApiMode
 		);
@@ -172,7 +172,7 @@ class SettingsController extends ApiController {
 	 * @param string $trashbinScrubEnabled 'true' or 'false'
 	 */
 	public function setTrashbinScrub($trashbinScrubEnabled) {
-		return $this->appConfig->setAppValue(
+		return $this->appConfig->setAppValueString(
 			Constants::TRASHBIN_SCRUB_KEY,
 			$trashbinScrubEnabled
 		);
@@ -186,7 +186,7 @@ class SettingsController extends ApiController {
 	 *
 	 */
 	public function setEmailDomain($emailDomain) {
-		return $this->appConfig->setAppValue('emailDomain', $emailDomain);
+		return $this->appConfig->setAppValueString('emailDomain', $emailDomain);
 	}
 
 	/**
@@ -199,7 +199,7 @@ class SettingsController extends ApiController {
 	 *
 	 */
 	public function setDefaultCalendar($defaultCalendar) {
-		return $this->appConfig->setAppValue('defaultCalendar', $defaultCalendar);
+		return $this->appConfig->setAppValueString('defaultCalendar', $defaultCalendar);
 	}
 
 	/**
@@ -210,7 +210,7 @@ class SettingsController extends ApiController {
 	 *
 	 */
 	public function setDefaultAddressbook($defaultAddressbook) {
-		return $this->appConfig->setAppValue('defaultAddressbook', $defaultAddressbook);
+		return $this->appConfig->setAppValueString('defaultAddressbook', $defaultAddressbook);
 	}
 
 	/**
@@ -223,7 +223,7 @@ class SettingsController extends ApiController {
 	public function setActiveGroups($newSendentGroups) {
 
 		// Finds deleted group, if any
-		$sendentGroups = $this->appConfig->getAppValue('activeGroups', '');
+		$sendentGroups = $this->appConfig->getAppValueString('activeGroups', '');
 		$sendentGroups = $sendentGroups !== '' ? json_decode($sendentGroups) : [];
 		$deletedGroup = array_diff($sendentGroups, $newSendentGroups);
 
@@ -257,7 +257,7 @@ class SettingsController extends ApiController {
 		}
 
 		// Saves new active groups list
-		return $this->appConfig->setAppValue('activeGroups', json_encode($newSendentGroups));
+		return $this->appConfig->setAppValueString('activeGroups', json_encode($newSendentGroups));
 	}
 
 	/**
@@ -274,20 +274,19 @@ class SettingsController extends ApiController {
 	 * 6- The user must be inactive, or active but needing re-consent (SyncUserService::needsReconsent()).
 	 *    Users that have retracted their consent are never shown the dialog.
 	 *
-	 * @NoAdminRequired
-	 *
 	 * @return JSONResponse
 	 *
 	 */
+	#[NoAdminRequired]
 	public function shouldShowDialog() {
 
 		// Is shared secret configured?
-		if (empty($this->appConfig->getAppValue('sharedSecret', ''))) {
+		if (empty($this->appConfig->getAppValueString('sharedSecret', ''))) {
 			return new JSONResponse(FALSE);
 		};
 
 		// Did administrators ask for the modal dialog to be shown?
-		if ($this->appConfig->getAppValue('reminderType', Constants::REMINDER_DEFAULT_TYPE) === Constants::REMINDER_NOTIFICATIONS) {
+		if ($this->appConfig->getAppValueString('reminderType', Constants::REMINDER_DEFAULT_TYPE) === Constants::REMINDER_NOTIFICATIONS) {
 			return new JSONResponse(FALSE);
 		};
 
@@ -300,7 +299,7 @@ class SettingsController extends ApiController {
 		// TODO: Verify license
 
 		// Checks if user is member of an active group
-		$activeGroups = $this->appConfig->getAppValue('activeGroups', '');
+		$activeGroups = $this->appConfig->getAppValueString('activeGroups', '');
 		$activeGroups = ($activeGroups !== '' && $activeGroups !== 'null') ? json_decode($activeGroups) : [];
 		foreach ($activeGroups  as $gid) {
 			if ($this->groupManager->isInGroup($this->userId, $gid)) {
@@ -335,7 +334,7 @@ class SettingsController extends ApiController {
 	public function sendReminder() {
 
 		// Is shared secret configured?
-		if (empty($this->appConfig->getAppValue('sharedSecret', ''))) {
+		if (empty($this->appConfig->getAppValueString('sharedSecret', ''))) {
 			$this->logger->info('Not sending notifications as sharedSecret is not configured');
 			return;
 		};

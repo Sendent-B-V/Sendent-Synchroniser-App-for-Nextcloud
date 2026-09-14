@@ -9,6 +9,7 @@ use OCP\AppFramework\Services\IInitialState;
 use OCP\IGroupManager;
 use OCP\IL10N;
 use OCP\Settings\ISettings;
+use OCP\Util;
 use OCA\SendentSynchroniser\Constants;
 use OCA\SendentSynchroniser\Service\SyncUserService;
 
@@ -54,7 +55,7 @@ class Admin implements ISettings {
 		$nbEnabledUsers = [];	// Users for which Sendent Synchroniser is enabled
 
 		// Gets groups used in the app
-		$sendentGroups = $this->appConfig->getAppValue('activeGroups', '');
+		$sendentGroups = $this->appConfig->getAppValueString('activeGroups', '');
 		$sendentGroups = ($sendentGroups !== '' && $sendentGroups !== 'null') ? json_decode($sendentGroups) : [];
 		$sendentGroups = array_map(function ($gid) {
 			$group = $this->groupManager->get($gid);
@@ -105,18 +106,18 @@ class Admin implements ISettings {
 		$params['nbEnabledUsers'] = $nbEnabledUsers;
 		$params['nbActiveUsers'] = count($this->syncUserService->getValidUsers());
 
-		$params['reminderType'] = $this->appConfig->getAppValue('reminderType', Constants::REMINDER_DEFAULT_TYPE);
-		$params['notificationInterval'] = $this->appConfig->getAppValue('notificationInterval', Constants::REMINDER_NOTIFICATIONS_DEFAULT_INTERVAL);
-		$params['notificationMethod'] = $this->appConfig->getAppValue('notificationMethod', Constants::NOTIFICATIONMETHOD_MODAL_DEFAULT);
-		$params['sharedSecret'] = $this->appConfig->getAppValue('sharedSecret', '');
-		$params['IMAPSyncEnabled'] = ($this->appConfig->getAppValue('IMAPSyncEnabled', 'false') === 'true');
-		$params['emailDomain'] = $this->appConfig->getAppValue('emailDomain', '') ;
+		$params['reminderType'] = $this->appConfig->getAppValueString('reminderType', Constants::REMINDER_DEFAULT_TYPE);
+		$params['notificationInterval'] = $this->appConfig->getAppValueString('notificationInterval', Constants::REMINDER_NOTIFICATIONS_DEFAULT_INTERVAL);
+		$params['notificationMethod'] = $this->appConfig->getAppValueString('notificationMethod', Constants::NOTIFICATIONMETHOD_MODAL_DEFAULT);
+		$params['sharedSecret'] = $this->appConfig->getAppValueString('sharedSecret', '');
+		$params['IMAPSyncEnabled'] = ($this->appConfig->getAppValueString('IMAPSyncEnabled', 'false') === 'true');
+		$params['emailDomain'] = $this->appConfig->getAppValueString('emailDomain', '') ;
 		$params['mailAppInstalled'] = $this->appManager->isInstalled('mail');
 		$params['notificationsAppInstalled'] = $this->appManager->isInstalled('notifications');
-		$params['defaultCalendar'] = $this->appConfig->getAppValue('defaultCalendar', '');
-		$params['defaultAddressbook'] = $this->appConfig->getAppValue('defaultAddressbook', '');
-		$params['graphApiMode'] = $this->appConfig->getAppValue(Constants::DISABLE_ITIP_IMIP_KEY, Constants::DISABLE_ITIP_IMIP_DEFAULT);
-		$params['trashbinScrubEnabled'] = $this->appConfig->getAppValue(Constants::TRASHBIN_SCRUB_KEY, Constants::TRASHBIN_SCRUB_DEFAULT);
+		$params['defaultCalendar'] = $this->appConfig->getAppValueString('defaultCalendar', '');
+		$params['defaultAddressbook'] = $this->appConfig->getAppValueString('defaultAddressbook', '');
+		$params['graphApiMode'] = $this->appConfig->getAppValueString(Constants::DISABLE_ITIP_IMIP_KEY, Constants::DISABLE_ITIP_IMIP_DEFAULT);
+		$params['trashbinScrubEnabled'] = $this->appConfig->getAppValueString(Constants::TRASHBIN_SCRUB_KEY, Constants::TRASHBIN_SCRUB_DEFAULT);
 
 		return $params;
 	}
@@ -127,6 +128,9 @@ class Admin implements ISettings {
 	public function getForm() {
 		$params = $this->getParams();
 		$this->initialState->provideInitialState('admin', $params);
+
+		Util::addScript('sendentsynchroniser', 'settings');
+		Util::addStyle('sendentsynchroniser', 'style');
 
 		return new TemplateResponse('sendentsynchroniser', 'indexAdmin');
 	}

@@ -92,7 +92,7 @@ class SyncUserMapper extends QBMapper {
 			$iv = substr($c, 0, $ivlen);
 			$hmac = substr($c, $ivlen, $sha2len=32);
 			$ciphertext_raw = substr($c, $ivlen+$sha2len);
-			$sharedSecret = $this->appConfig->getAppValue('sharedSecret', '');
+			$sharedSecret = $this->appConfig->getAppValueString('sharedSecret', '');
 			$key = hash('md5', $sharedSecret);
 			$token = openssl_decrypt($ciphertext_raw, $cipher, $key, $options=OPENSSL_RAW_DATA, $iv);
 

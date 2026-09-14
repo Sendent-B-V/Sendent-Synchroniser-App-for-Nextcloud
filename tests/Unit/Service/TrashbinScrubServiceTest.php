@@ -23,7 +23,7 @@ class TrashbinScrubServiceTest extends TestCase {
 	}
 
 	private function setToggle(string $value): void {
-		$this->appConfig->method('getAppValue')->willReturnCallback(
+		$this->appConfig->method('getAppValueString')->willReturnCallback(
 			function (string $key, $default = '') use ($value) {
 				if ($key === Constants::TRASHBIN_SCRUB_KEY) {
 					return $value;
@@ -53,7 +53,7 @@ class TrashbinScrubServiceTest extends TestCase {
 	}
 
 	public function testIsEnabledDefaultsToDisabled(): void {
-		$this->appConfig->method('getAppValue')->willReturnCallback(
+		$this->appConfig->method('getAppValueString')->willReturnCallback(
 			fn (string $key, $default = '') => $default
 		);
 		$this->assertFalse($this->service->isEnabled());

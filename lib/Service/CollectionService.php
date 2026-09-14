@@ -178,7 +178,7 @@ class CollectionService {
 	 * Returns the admin-configured default calendar URI, or the NC default.
 	 */
 	public function getDefaultCalendar(): string {
-		$uri = $this->appConfig->getAppValue('defaultCalendar', '');
+		$uri = $this->appConfig->getAppValueString('defaultCalendar', '');
 		return $uri !== '' ? $uri : self::DEFAULT_CALENDAR_URI;
 	}
 
@@ -186,7 +186,7 @@ class CollectionService {
 	 * Returns the admin-configured default addressbook URI, or the NC default.
 	 */
 	public function getDefaultAddressbook(): string {
-		$uri = $this->appConfig->getAppValue('defaultAddressbook', '');
+		$uri = $this->appConfig->getAppValueString('defaultAddressbook', '');
 		return $uri !== '' ? $uri : self::DEFAULT_ADDRESSBOOK_URI;
 	}
 

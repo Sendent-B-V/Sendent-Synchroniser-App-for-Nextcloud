@@ -4,7 +4,7 @@ declare(strict_types=1);
 namespace OCA\SendentSynchroniser\Tests\Unit\Service;
 
 use OC\Authentication\Token\IProvider;
-use OC\Authentication\Token\IToken;
+use OCP\Authentication\Token\IToken;
 use OCA\SendentSynchroniser\Constants;
 use OCA\SendentSynchroniser\Db\SyncUser;
 use OCA\SendentSynchroniser\Db\SyncUserMapper;

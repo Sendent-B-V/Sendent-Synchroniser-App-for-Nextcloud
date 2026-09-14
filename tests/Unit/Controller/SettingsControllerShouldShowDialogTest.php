@@ -45,10 +45,10 @@ class SettingsControllerShouldShowDialogTest extends TestCase {
 
 		// Baseline gating: secret set, modal reminders on, no timeout cookie,
 		// user in an active group.
-		// getAppValue() is declared `: string` and PHPUnit mocks are generated
+		// getAppValueString() is declared `: string` and PHPUnit mocks are generated
 		// with strict_types — every arm must return a string, or the mock
 		// throws a TypeError. App values are stored as strings in production.
-		$this->appConfig->method('getAppValue')->willReturnCallback(
+		$this->appConfig->method('getAppValueString')->willReturnCallback(
 			fn ($key, $default = '') => match ($key) {
 				'sharedSecret' => 'a-secret',
 				'reminderType' => (string)Constants::REMINDER_MODAL,

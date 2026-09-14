@@ -8,6 +8,7 @@ use OCP\AppFramework\Services\IAppConfig;
 use OCP\AppFramework\Services\IInitialState;
 use OCP\IGroupManager;
 use OCP\Settings\ISettings;
+use OCP\Util;
 use \Psr\Log\LoggerInterface;
 use OCA\SendentSynchroniser\Constants;
 use OCA\SendentSynchroniser\Db\SyncUserMapper;
@@ -66,6 +67,9 @@ class User implements ISettings {
 			'activeUser' => $activeUser,
 		]);
 
+		Util::addScript('sendentsynchroniser', 'settings');
+		Util::addStyle('sendentsynchroniser', 'style');
+
 		return new TemplateResponse('sendentsynchroniser', 'indexUser');
 	}
 
@@ -115,12 +119,12 @@ class User implements ISettings {
 	{
 
 		// Is shared secret configured?
-		if (empty($this->appConfig->getAppValue('sharedSecret', ''))) {
+		if (empty($this->appConfig->getAppValueString('sharedSecret', ''))) {
 			return false;
 		};
 
 		// Is user member of an active group?
-		$activeGroups = $this->appConfig->getAppValue('activeGroups');
+		$activeGroups = $this->appConfig->getAppValueString('activeGroups');
 		$activeGroups = ($activeGroups !== '' && $activeGroups !== 'null') ? json_decode($activeGroups) : [];
 
 		foreach($activeGroups as $gid)

@@ -6,7 +6,6 @@ declare(strict_types=1);
 return [
 	'routes' => [
 		['name' => 'page#health', 'url' => '/api/1.0/health', 'verb' => 'GET'],
-		['name' => 'page#getConsentFlowPage', 'url' => '/api/1.0/getConsentFlowPage', 'verb' => 'GET'],
 
 		['name' => 'user#activate', 'url' => '/api/1.0/user/activate', 'verb' => 'GET'],
 		['name' => 'user#activateMail', 'url' => '/api/1.0/user/activateMail', 'verb' => 'GET'],

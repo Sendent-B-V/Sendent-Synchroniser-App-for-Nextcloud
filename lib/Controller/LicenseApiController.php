@@ -6,6 +6,8 @@ use Exception;
 use OCP\IRequest;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\ApiController;
+use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Db\DoesNotExistException;
 use OCP\AppFramework\Db\MultipleObjectsReturnedException;
 use OCP\AppFramework\Services\IAppConfig;
@@ -58,13 +60,12 @@ class LicenseApiController extends ApiController {
 		}
 	}
 	/**
-	 * @NoAdminRequired
-	 * @NoCSRFRequired
-	 *
 	 * Returns license status for group $ncgroup
 	 *
 	 * @return DataResponse
 	 */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
 	public function show(): DataResponse {
 
 		$this->logger->info('Getting license information for default group');
@@ -183,14 +184,13 @@ class LicenseApiController extends ApiController {
 			return new DataResponse(new LicenseStatus($this->l->t("Cannot verify your license. Please make sure your licensekey and email address are correct before you try to 'Activate license'."), "fatal" ,"-", "-", "-", "-", "-"));
 		}
 	}
-/**
-	 * @NoAdminRequired
-	 * @NoCSRFRequired
-	 *
+	/**
 	 * Returns license status for group $ncgroup
 	 *
 	 * @return DataResponse
 	 */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
 	public function showInternal(): DataResponse {
 
 

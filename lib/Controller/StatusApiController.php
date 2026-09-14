@@ -5,6 +5,8 @@ namespace OCA\SendentSynchroniser\Controller;
 use OCP\IRequest;
 use OCP\AppFramework\Http\DataResponse;
 use OCP\AppFramework\ApiController;
+use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCA\SendentSynchroniser\Db\Status;
 use OCA\SendentSynchroniser\Service\LicenseManager;
 use OCA\SendentSynchroniser\Service\LicenseService;
@@ -34,13 +36,12 @@ class StatusApiController extends ApiController {
 		$this->licenseservice = $licenseservice;
 	}
 	/**
-	 * @NoAdminRequired
-	 * @NoCSRFRequired
-	 *
 	 * Get the status of the user's license
 	 *
 	 * @return DataResponse
 	 */
+	#[NoAdminRequired]
+	#[NoCSRFRequired]
 	public function index(): DataResponse {
 		$statusobj = new Status();
 		$statusobj->app = "sendentsynchroniser";

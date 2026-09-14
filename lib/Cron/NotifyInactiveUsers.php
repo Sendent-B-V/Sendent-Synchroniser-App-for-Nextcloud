@@ -33,7 +33,7 @@ class NotifyInactiveUsers extends TimedJob {
         $this->syncUserService = $syncUserService;
 
         // Sets the job to run at specified interval
-        $interval = $config->getAppValue('notificationInterval',  Constants::REMINDER_NOTIFICATIONS_DEFAULT_INTERVAL);
+        $interval = $config->getAppValueString('notificationInterval',  Constants::REMINDER_NOTIFICATIONS_DEFAULT_INTERVAL);
         $interval = intval($interval) * 24 * 3600;
         $this->setInterval($interval);
     }
@@ -41,7 +41,7 @@ class NotifyInactiveUsers extends TimedJob {
     protected function run($arguments) {
 
         // Is shared secret configured?
-          if (empty($this->config->getAppValue('sharedSecret', ''))) {
+          if (empty($this->config->getAppValueString('sharedSecret', ''))) {
             $this->logger->info('Not sending notifications as sharedSecret is not configured');
 			return;
 		};
@@ -49,7 +49,7 @@ class NotifyInactiveUsers extends TimedJob {
         // TODO: Check licensing?
 
         // Should we send notifications?
-        if ($this->config->getAppValue('reminderType', Constants::REMINDER_NOTIFICATIONS) === Constants::REMINDER_MODAL) {
+        if ($this->config->getAppValueString('reminderType', Constants::REMINDER_NOTIFICATIONS) === Constants::REMINDER_MODAL) {
             $this->logger->info('Not sending notifications as reminderType is set to Modal only');
             return;
         }

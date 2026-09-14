@@ -3,12 +3,13 @@
 namespace OCA\SendentSynchroniser\Controller;
 
 use OC\Authentication\Events\AppPasswordCreatedEvent;
-use OC\Authentication\Exceptions\InvalidTokenException;
 use OC\Authentication\Token\IProvider;
-use OC\Authentication\Token\IToken;
+use OCP\Authentication\Token\IToken;
 use OCP\App\IAppManager;
 use OCP\AppFramework\Controller;
 use OCP\AppFramework\Http;
+use OCP\AppFramework\Http\Attribute\NoAdminRequired;
+use OCP\AppFramework\Http\Attribute\NoCSRFRequired;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\OCS\OCSForbiddenException;
 use OCP\AppFramework\Services\IAppConfig;
@@ -103,11 +104,10 @@ class UserController extends Controller {
 	 *
 	 * This method activates a user for sendent synchroniser.
 	 *
-	 * @NoAdminRequired
-	 *
 	 * @return JSONResponse
 	 *
 	 */
+	#[NoAdminRequired]
 	public function activate() {
 		$this->logger->info('Permit function triggered');
 
@@ -147,7 +147,7 @@ class UserController extends Controller {
 
 		// Encrypt token using sendent sync shared secret
 		// TODO: This should not work when sharedSecret isn't set
-		$sharedSecret = $this->appConfig->getAppValue('sharedSecret', '');
+		$sharedSecret = $this->appConfig->getAppValueString('sharedSecret', '');
 		$key = hash('md5', $sharedSecret);
 		$ivlen = openssl_cipher_iv_length($cipher="AES-256-CBC");
 		$iv = openssl_random_pseudo_bytes($ivlen);
@@ -180,17 +180,13 @@ class UserController extends Controller {
 		$this->syncUserService->clearResetOffer($credentials->getUID());
 
 		return new JSONResponse([
-			'emailDomain' =>  '@' . $this->appConfig->getAppValue('emailDomain', ''),
-			'shouldAskMailSync' => ($this->appManager->isInstalled('mail') && ($this->appConfig->getAppValue('IMAPSyncEnabled', "false") === 'true')),
+			'emailDomain' =>  '@' . $this->appConfig->getAppValueString('emailDomain', ''),
+			'shouldAskMailSync' => ($this->appManager->isInstalled('mail') && ($this->appConfig->getAppValueString('IMAPSyncEnabled', "false") === 'true')),
 		]);
 
 	}
 
-	/**
-	 *
-	 * @NoAdminRequired
-	 *
-	 */
+	#[NoAdminRequired]
 	public function activateMail() {
 		return;
 	}
@@ -199,9 +195,8 @@ class UserController extends Controller {
 	 *
 	 * This method invalidates a user. It is used when a user clicks on the 'Retract consent' button
 	 *
-	 * @NoAdminRequired
-	 *
 	 */
+	#[NoAdminRequired]
 	public function invalidateSelf() {
 
 		$credentials = $this->credentialStore->getLoginCredentials();
@@ -215,9 +210,8 @@ class UserController extends Controller {
 	 * (external) service to trigger the display of the "synchronisation problem" warning
 	 * dialog to the user.
 	 *
-	 * @NoCSRFRequired
-	 *
 	 */
+	#[NoCSRFRequired]
 	public function invalidate(?string $userId = null, $retractConsent = Constants::USER_STATUS_INACTIVE) {
 		$uid = $this->request->getParam('userId', $userId);
 		if (!$uid) {
@@ -233,9 +227,8 @@ class UserController extends Controller {
 	 *
 	 * This method invalidates all users.
 	 *
-	 * @NoCSRFRequired
-	 *
 	 */
+	#[NoCSRFRequired]
 	public function invalidateAll($retractConsent = Constants::USER_STATUS_INACTIVE) {
 
 		$users = $this->syncUserService->getAllUsers();
@@ -254,9 +247,8 @@ class UserController extends Controller {
 	 * Users that have retracted their consent to synchronise their data don't count as active.
 	 * Supports pagination via `page` and `limit` query parameters.
 	 *
-	 * @NoCSRFRequired
-	 *
 	 */
+	#[NoCSRFRequired]
 	public function getActiveUsers(?int $page = null, int $limit = 100) {
 
 		$activeUsers = $this->syncUserService->getValidUsers();

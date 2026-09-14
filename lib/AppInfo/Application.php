@@ -5,7 +5,6 @@ namespace OCA\SendentSynchroniser\AppInfo;
 use OCA\Files\Event\LoadAdditionalScriptsEvent;
 use OCA\SendentSynchroniser\Listener\TokenInvalidInjector;
 use OCA\SendentSynchroniser\Notification\Notifier;
-use OCA\SendentSynchroniser\Service\InitialLoadManager;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
@@ -45,7 +44,6 @@ class Application extends App implements IBootstrap {
 	}
 
 	public function boot(IBootContext $context): void {
-		$context->getAppContainer()->query(InitialLoadManager::class);
 	}
 
 }

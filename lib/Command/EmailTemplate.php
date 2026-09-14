@@ -36,7 +36,7 @@ class EmailTemplate extends Command {
 
 		$template = $input->getArgument('template');
 		if ($template === null) {
-			$current = $this->appConfig->getAppValue('emailTemplate', '');
+			$current = $this->appConfig->getAppValueString('emailTemplate', '');
 			if ($current === '') {
 				$output->writeln('No email template configured (default email behaviour)');
 			} else {
@@ -51,7 +51,7 @@ class EmailTemplate extends Command {
 			return 1;
 		}
 
-		$this->appConfig->setAppValue('emailTemplate', $template);
+		$this->appConfig->setAppValueString('emailTemplate', $template);
 		$output->writeln('Email template set to "' . $template . '"');
 		return 0;
 	}

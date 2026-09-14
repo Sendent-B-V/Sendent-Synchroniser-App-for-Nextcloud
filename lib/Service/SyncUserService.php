@@ -145,7 +145,7 @@ class SyncUserService {
 	*/
 	public function getAllUsers() {
 		// Gets active groups
-		$activeGroups = $this->appConfig->getAppValue('activeGroups', '');
+		$activeGroups = $this->appConfig->getAppValueString('activeGroups', '');
 		$activeGroups = ($activeGroups !== '' && $activeGroups !== 'null') ? json_decode($activeGroups) : [];
 
 		// Gets all users in active groups
@@ -230,8 +230,8 @@ class SyncUserService {
 		$users = $this->getAllUsers();
 
 		// Load global default collection settings
-		$defaultCalendar = $this->appConfig->getAppValue('defaultCalendar', '') ?: 'personal';
-		$defaultAddressbook = $this->appConfig->getAppValue('defaultAddressbook', '') ?: 'contacts';
+		$defaultCalendar = $this->appConfig->getAppValueString('defaultCalendar', '') ?: 'personal';
+		$defaultAddressbook = $this->appConfig->getAppValueString('defaultAddressbook', '') ?: 'contacts';
 
 		// Gets all active sendent sync users
 		$index = 0;
@@ -253,13 +253,13 @@ class SyncUserService {
 						$user['uid'] = $NCUser->getUID();
 						// When an email template is configured (occ sendentsynchroniser:email-template),
 						// the email address is built from it and the account email addresses are ignored
-						$emailTemplate = $this->appConfig->getAppValue('emailTemplate', '');
+						$emailTemplate = $this->appConfig->getAppValueString('emailTemplate', '');
 						if ($emailTemplate !== '') {
 							$user['email'] = str_replace(['{userId}', '{username}'], [$NCUser->getUID(), $user['username']], $emailTemplate);
 						} else {
 							$user['email'] = $NCUser->getEmailAddress();
 							// Replaces email address by one of the user email addresses that matches the sync domain (if any)
-							$emailDomain = $this->appConfig->getAppValue('emailDomain', '');
+							$emailDomain = $this->appConfig->getAppValueString('emailDomain', '');
 							if ($emailDomain !== '') {
 								$account = $this->accountManager->getAccount($NCUser);
 								$email = $account->getProperty(IAccountManager::PROPERTY_EMAIL);

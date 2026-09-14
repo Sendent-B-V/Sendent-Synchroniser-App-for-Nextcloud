@@ -37,7 +37,7 @@ class SchedulingSuppressionServiceTest extends TestCase {
 	 * @param string $activeGroups    raw value to return for `activeGroups`
 	 */
 	private function setAppConfig(string $disableItipImip, string $activeGroups = ''): void {
-		$this->appConfig->method('getAppValue')->willReturnCallback(
+		$this->appConfig->method('getAppValueString')->willReturnCallback(
 			function (string $key, $default = '') use ($disableItipImip, $activeGroups) {
 				if ($key === Constants::DISABLE_ITIP_IMIP_KEY) {
 					return $disableItipImip;

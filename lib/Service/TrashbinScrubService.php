@@ -27,7 +27,7 @@ class TrashbinScrubService {
 	 * changes once an admin opts in.
 	 */
 	public function isEnabled(): bool {
-		return $this->appConfig->getAppValue(
+		return $this->appConfig->getAppValueString(
 			Constants::TRASHBIN_SCRUB_KEY,
 			Constants::TRASHBIN_SCRUB_DEFAULT
 		) === 'true';

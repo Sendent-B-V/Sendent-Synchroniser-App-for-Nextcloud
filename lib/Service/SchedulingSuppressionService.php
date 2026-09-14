@@ -16,7 +16,7 @@ class SchedulingSuppressionService {
 
 	/** Admin toggle "Disable Nextcloud meeting invitations"; also gates the calendar reset. */
 	public function isSuppressionEnabled(): bool {
-		return $this->appConfig->getAppValue(
+		return $this->appConfig->getAppValueString(
 			Constants::DISABLE_ITIP_IMIP_KEY,
 			Constants::DISABLE_ITIP_IMIP_DEFAULT
 		) === 'true';
@@ -55,7 +55,7 @@ class SchedulingSuppressionService {
 	 * @return string[]
 	 */
 	private function getActiveGroups(): array {
-		$raw = $this->appConfig->getAppValue('activeGroups', '');
+		$raw = $this->appConfig->getAppValueString('activeGroups', '');
 		if ($raw === '' || $raw === 'null') {
 			return [];
 		}

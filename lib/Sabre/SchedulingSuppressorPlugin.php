@@ -35,8 +35,10 @@ use Sabre\VObject\ITip\Message;
 class SchedulingSuppressorPlugin extends ServerPlugin {
 
 	/**
-	 * Priority must be lower (= called earlier) than IMipPlugin's. IMipPlugin
-	 * registers at priority 100 in NC 28-33.
+	 * Priority must be lower (= called earlier) than the handlers we suppress.
+	 * On NC 30-35 sabre's Schedule\Plugin delivers internally at the default
+	 * priority 100 and IMipPlugin (inherited from sabre's IMipPlugin) sends
+	 * mail at 120, so 50 runs before both.
 	 */
 	public const SCHEDULE_PRIORITY = 50;
 
