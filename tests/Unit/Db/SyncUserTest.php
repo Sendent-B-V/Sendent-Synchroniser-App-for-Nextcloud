@@ -34,4 +34,31 @@ class SyncUserTest extends TestCase {
 		$this->assertNull($syncUser->getCalendar());
 		$this->assertNull($syncUser->getAddressbook());
 	}
+
+	public function testResetOfferDefaultsToZero(): void {
+		$syncUser = new SyncUser();
+		$this->assertSame(0, $syncUser->getResetoffer());
+	}
+
+	public function testResetOfferIsCastToInt(): void {
+		// DB drivers may hand back '1' as a string; the entity type makes it an int
+		// so strict comparisons in services are safe.
+		$syncUser = new SyncUser();
+		$syncUser->setResetoffer('1');
+		$this->assertSame(1, $syncUser->getResetoffer());
+	}
+
+	public function testResetOfferIsNotExposedToTheConnector(): void {
+		// jsonSerialize() is what user/actives returns to the Exchange connector.
+		$syncUser = new SyncUser();
+		$syncUser->setResetoffer(1);
+		$this->assertArrayNotHasKey('resetoffer', $syncUser->jsonSerialize());
+	}
+
+	public function testClearingResetOfferMarksFieldForUpdate(): void {
+		$syncUser = SyncUser::fromRow(['resetoffer' => '1']);
+		$this->assertSame([], $syncUser->getUpdatedFields());
+		$syncUser->setResetoffer(0);
+		$this->assertArrayHasKey('resetoffer', $syncUser->getUpdatedFields());
+	}
 }

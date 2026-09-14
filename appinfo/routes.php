@@ -15,6 +15,9 @@ return [
 		['name' => 'user#invalidate', 'url' => '/api/1.0/user/invalidate', 'verb' => 'POST'],
 		['name' => 'user#invalidateAll', 'url' => '/api/1.0/user/invalidateAll', 'verb' => 'POST'],
 
+		['name' => 'calendar_reset#status',  'url' => '/api/1.0/user/calendarReset/status', 'verb' => 'GET'],
+		['name' => 'calendar_reset#execute', 'url' => '/api/1.0/user/calendarReset',        'verb' => 'POST'],
+
 		['name' => 'settings#setActiveGroups', 'url' => '/api/1.0/settings/activeGroups', 'verb' => 'POST'],
 		['name' => 'settings#setNotificationInterval', 'url' => '/api/1.0/settings/notificationInterval', 'verb' => 'POST'],
 		['name' => 'settings#getNotificationMethod', 'url' => '/api/1.0/settings/notificationMethod', 'verb' => 'GET'],

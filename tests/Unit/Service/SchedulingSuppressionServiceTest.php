@@ -147,4 +147,20 @@ class SchedulingSuppressionServiceTest extends TestCase {
 
 		$this->assertTrue($this->service->shouldSuppress('alice', 'calendars/alice/exchange/1.ics'));
 	}
+
+	public function testIsSuppressionEnabledTrueForStringTrue(): void {
+		$this->setAppConfig('true');
+		$this->assertTrue($this->service->isSuppressionEnabled());
+	}
+
+	public function testIsSuppressionEnabledFalseForStringFalse(): void {
+		$this->setAppConfig('false');
+		$this->assertFalse($this->service->isSuppressionEnabled());
+	}
+
+	public function testIsSuppressionEnabledFalseForAnyOtherValue(): void {
+		// Only the literal string 'true' enables it — '1', 'TRUE', '' do not.
+		$this->setAppConfig('1');
+		$this->assertFalse($this->service->isSuppressionEnabled());
+	}
 }
