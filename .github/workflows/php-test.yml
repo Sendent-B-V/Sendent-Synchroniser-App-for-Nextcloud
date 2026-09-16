@@ -41,6 +41,22 @@ jobs:
             nextcloud-versions: 'stable33'
           - php-versions: '8.4'
             nextcloud-versions: 'stable33'
+          # NC 34: PHP 8.2 - 8.5
+          - php-versions: '8.2'
+            nextcloud-versions: 'stable34'
+          - php-versions: '8.3'
+            nextcloud-versions: 'stable34'
+          - php-versions: '8.4'
+            nextcloud-versions: 'stable34'
+          - php-versions: '8.5'
+            nextcloud-versions: 'stable34'
+          # NC 35: PHP 8.3 - 8.5
+          - php-versions: '8.3'
+            nextcloud-versions: 'stable35'
+          - php-versions: '8.4'
+            nextcloud-versions: 'stable35'
+          - php-versions: '8.5'
+            nextcloud-versions: 'stable35'
 
     name: php${{ matrix.php-versions }} on ${{ matrix.nextcloud-versions }} unit tests
     env:
