@@ -5,7 +5,7 @@ on:
 
 env:
   APP_NAME: sendentsynchroniser
-  NEXTCLOUD_SERVER_MAJOR: '30'
+  NEXTCLOUD_SERVER_MAJOR: '34'
 
 jobs:
   release:
