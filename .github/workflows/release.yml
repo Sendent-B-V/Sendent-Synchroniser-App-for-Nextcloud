@@ -5,7 +5,7 @@ on:
 
 env:
   APP_NAME: sendentsynchroniser
-  NEXTCLOUD_SERVER_MAJOR: '30'
+  NEXTCLOUD_SERVER_MAJOR: '34'
 
 jobs:
   release:
@@ -69,6 +69,8 @@ jobs:
             --exclude="./${APP_NAME}/.github" \
             --exclude="./${APP_NAME}/.gitignore" \
             --exclude="./${APP_NAME}/.gitattributes" \
+            --exclude="./${APP_NAME}/.l10nignore" \
+            --exclude="./${APP_NAME}/.tx" \
             --exclude="./${APP_NAME}/.yarnrc" \
             --exclude="./${APP_NAME}/.eslintrc.*" \
             --exclude="./${APP_NAME}/.php_cs*" \

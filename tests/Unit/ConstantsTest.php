@@ -18,4 +18,9 @@ class ConstantsTest extends TestCase {
 		$this->assertEquals(Constants::REMINDER_NOTIFICATIONS, Constants::REMINDER_DEFAULT_TYPE);
 		$this->assertEquals(7, Constants::REMINDER_NOTIFICATIONS_DEFAULT_INTERVAL);
 	}
+
+	public function testTokenNames(): void {
+		$this->assertSame('sendent-synchronization', Constants::TOKEN_NAME);
+		$this->assertSame('sendentsynchroniser', Constants::TOKEN_NAME_LEGACY);
+	}
 }

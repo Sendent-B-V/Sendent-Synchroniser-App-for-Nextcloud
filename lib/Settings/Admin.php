@@ -7,6 +7,7 @@ use OCP\AppFramework\Http\TemplateResponse;
 use OCP\AppFramework\Services\IAppConfig;
 use OCP\AppFramework\Services\IInitialState;
 use OCP\IGroupManager;
+use OCP\IL10N;
 use OCP\Settings\ISettings;
 use OCA\SendentSynchroniser\Constants;
 use OCA\SendentSynchroniser\Service\SyncUserService;
@@ -28,18 +29,23 @@ class Admin implements ISettings {
 	/** @var SyncUserService */
 	private $syncUserService;
 
+	/** @var IL10N */
+	private $l;
+
 	public function __construct(
 		IAppManager $appManager,
 		IGroupManager $groupManager,
 		IInitialState $initialState,
 		IAppConfig $appConfig,
-		SyncUserService $syncUserService) {
+		SyncUserService $syncUserService,
+		IL10N $l) {
 
 		$this->appConfig = $appConfig;
 		$this->appManager = $appManager;
 		$this->groupManager = $groupManager;
 		$this->initialState = $initialState;
 		$this->syncUserService = $syncUserService;
+		$this->l = $l;
 
 	}
 
@@ -59,8 +65,9 @@ class Admin implements ISettings {
 				);
 			} else {
 				return array(
-					"displayName" => $gid . ' *** DELETED GROUP ***',
-					"gid" => $gid
+					"displayName" => $this->l->t('%s *** DELETED GROUP ***', [$gid]),
+					"gid" => $gid,
+					"deleted" => true
 				);
 			}
 		}, $sendentGroups);

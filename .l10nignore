@@ -1,0 +1,6 @@
+# Files and directories the Nextcloud translation tool must not scan for t()/n() calls.
+# Compiled bundles and third-party code produce false-positive source strings.
+js/
+vendor/
+node_modules/
+tests/

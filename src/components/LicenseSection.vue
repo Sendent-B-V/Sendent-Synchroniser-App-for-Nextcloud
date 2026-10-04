@@ -3,11 +3,12 @@
 		<h3>License</h3>
 		<div v-if="licenseStore.loading" class="license-section__loading">
 			<span class="icon-loading" />
-			Loading license status...
+			{{ t('sendentsynchroniser', 'Loading license status …') }}
 		</div>
 		<template v-else>
 			<div class="license-section__info">
-				<p>Find out how to configure your license <a href="https://help.sendent.com/nextcloud-exchange-connector/how-to-configure-your-license">here</a>.</p>
+				<!-- eslint-disable-next-line vue/no-v-html -- translated first-party sentence with a fixed documentation link, not user input -->
+				<p v-html="licenseHelpSentence" />
 				<p>{{ t('sendentsynchroniser', "You only need a license key if you are using one of the paid plans of Sendent. If you don't have a valid license key anymore, you will automatically be downgraded to Sendent Free.") }}</p>
 			</div>
 
@@ -16,13 +17,13 @@
 					<label>{{ t('sendentsynchroniser', 'Email address') }}</label>
 					<input v-model="licenseStore.email"
 						type="email"
-						placeholder="Enter email address">
+						:placeholder="t('sendentsynchroniser', 'Enter email address')">
 				</div>
 				<div class="license-section__field">
 					<label>{{ t('sendentsynchroniser', 'License key') }}</label>
 					<input v-model="licenseStore.licenseKey"
 						type="text"
-						placeholder="Enter license key">
+						:placeholder="t('sendentsynchroniser', 'Enter license key')">
 				</div>
 				<div class="license-section__actions">
 					<button class="primary"
@@ -51,6 +52,21 @@ import { useLicenseStore } from '../stores/license'
 import LicenseStatusDisplay from './LicenseStatusDisplay.vue'
 
 const licenseStore = useLicenseStore()
+
+/**
+ * Sentence with an embedded link, rendered via v-html. The markup is a fixed
+ * first-party link, so placeholder escaping and sanitizing are disabled.
+ */
+const licenseHelpSentence = t(
+	'sendentsynchroniser',
+	'Find out how to configure your license {linkstart}here{linkend}.',
+	{
+		linkstart: '<a href="https://help.sendent.com/nextcloud-exchange-connector/how-to-configure-your-license">',
+		linkend: '</a>',
+	},
+	undefined,
+	{ escape: false, sanitize: false },
+)
 
 /**
  *

@@ -7,6 +7,8 @@ import axios from '@nextcloud/axios'
 export interface GroupItem {
 	displayName: string
 	gid: string
+	/** Set by the backend when the Nextcloud group no longer exists */
+	deleted?: boolean
 }
 
 export const useGroupsStore = defineStore('groups', () => {
@@ -53,7 +55,7 @@ export const useGroupsStore = defineStore('groups', () => {
 		const index = sendentGroups.value.findIndex(g => g.gid === gid)
 		if (index === -1) return
 		const [group] = sendentGroups.value.splice(index, 1)
-		if (!group.displayName.includes('*** DELETED GROUP ***')) {
+		if (!group.deleted) {
 			ncGroups.value.push(group)
 			ncGroups.value.sort((a, b) => a.gid.localeCompare(b.gid))
 		}

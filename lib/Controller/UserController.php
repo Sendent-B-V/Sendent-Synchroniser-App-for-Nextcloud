@@ -135,7 +135,7 @@ class UserController extends Controller {
 			$credentials->getUID(),
 			$credentials->getLoginName(),
 			null,
-			$this->appName,
+			Constants::TOKEN_NAME,
 			IToken::PERMANENT_TOKEN,
 			IToken::DO_NOT_REMEMBER
 		);
@@ -175,6 +175,9 @@ class UserController extends Controller {
 			$this->syncUserMapper->update($syncUsers[0]);
 			$this->logger->info('Updated Sendentsync user "' . $credentials->getUID() . '"');
 		}
+
+		// Accepting and declining the calendar clean-up both end here.
+		$this->syncUserService->clearResetOffer($credentials->getUID());
 
 		return new JSONResponse([
 			'emailDomain' =>  '@' . $this->appConfig->getAppValue('emailDomain', ''),

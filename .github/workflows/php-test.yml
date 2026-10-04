@@ -34,12 +34,14 @@ jobs:
             nextcloud-versions: 'stable32'
           - php-versions: '8.4'
             nextcloud-versions: 'stable32'
-          # NC 33: PHP 8.2 - 8.4
+          # NC 33: PHP 8.2 - 8.5
           - php-versions: '8.2'
             nextcloud-versions: 'stable33'
           - php-versions: '8.3'
             nextcloud-versions: 'stable33'
           - php-versions: '8.4'
+            nextcloud-versions: 'stable33'
+          - php-versions: '8.5'
             nextcloud-versions: 'stable33'
           # NC 34: PHP 8.2 - 8.5
           - php-versions: '8.2'

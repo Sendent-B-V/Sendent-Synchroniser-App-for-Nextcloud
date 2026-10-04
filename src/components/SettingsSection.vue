@@ -2,7 +2,7 @@
 	<div class="settings-section">
 		<h3>{{ t('sendentsynchroniser', 'Settings') }}</h3>
 		<p class="settings-section__subtitle">
-			Changes are saved automatically
+			{{ t('sendentsynchroniser', 'Changes are saved automatically') }}
 		</p>
 
 		<!-- Shared secret -->
@@ -68,7 +68,7 @@
 				<div class="settings-section__input-row">
 					<input v-model="defaultCalendar"
 						class="settings-section__input"
-						placeholder="e.g. exchange"
+						:placeholder="t('sendentsynchroniser', 'e.g. exchange')"
 						@keyup="debounceSaveDefaultCalendar">
 					<span v-if="saved.defaultCalendar" class="settings-section__saved">&#x2713;</span>
 				</div>
@@ -80,7 +80,7 @@
 				<div class="settings-section__input-row">
 					<input v-model="defaultAddressbook"
 						class="settings-section__input"
-						placeholder="e.g. exchange-contacts"
+						:placeholder="t('sendentsynchroniser', 'e.g. exchange-contacts')"
 						@keyup="debounceSaveDefaultAddressbook">
 					<span v-if="saved.defaultAddressbook" class="settings-section__saved">&#x2713;</span>
 				</div>
@@ -97,13 +97,13 @@
 					class="settings-section__input"
 					@change="saveReminderType">
 					<option value="1">
-						Modal dialog
+						{{ t('sendentsynchroniser', 'Modal dialog') }}
 					</option>
 					<option value="2" :disabled="!notificationsAppInstalled">
-						Standard notifications
+						{{ t('sendentsynchroniser', 'Standard notifications') }}
 					</option>
 					<option value="3" :disabled="!notificationsAppInstalled">
-						Modal dialog and standard notifications
+						{{ t('sendentsynchroniser', 'Modal dialog and standard notifications') }}
 					</option>
 				</select>
 				<span v-if="!notificationsAppInstalled" class="settings-section__warning">
@@ -121,13 +121,13 @@
 					class="settings-section__input"
 					@change="saveNotificationMethod">
 					<option value="1">
-						Show in Mail, Calendar, Contacts, and Tasks
+						{{ t('sendentsynchroniser', 'Show in Mail, Calendar, Contacts, and Tasks') }}
 					</option>
 					<option value="2">
-						Show in Files
+						{{ t('sendentsynchroniser', 'Show in Files') }}
 					</option>
 					<option value="3">
-						Show everywhere (options 1 and 2 combined)
+						{{ t('sendentsynchroniser', 'Show everywhere (options 1 and 2 combined)') }}
 					</option>
 				</select>
 				<span v-if="saved.notificationMethod" class="settings-section__saved">&#x2713;</span>
