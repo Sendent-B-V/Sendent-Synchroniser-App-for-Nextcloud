@@ -3,34 +3,31 @@ declare(strict_types=1);
 
 namespace OCA\SendentSynchroniser\Command;
 
-use OCA\SendentSynchroniser\Service\ChangeNotification\ConnectorSetupCheck;
+use OCA\SendentSynchroniser\Service\ChangeNotification\SetupCheck;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 
 /**
- * occ sendentsynchroniser:cn-check — the settings page's setup check for
- * terminals and scripts. Exit code reflects notify_push health (pinned-to-
- * polling counts as healthy); network-touching, so it's separate from
- * cn-status rather than a line in it.
+ * occ sendentsynchroniser:cn-check — the settings page's "Run test", with an
+ * exit code for monitoring and post-deploy gates (0 = usable).
  */
 class ChangeNotificationCheck extends Command {
 
 	public function __construct(
-		private ConnectorSetupCheck $setupCheck,
+		private SetupCheck $setupCheck,
 	) {
 		parent::__construct();
 	}
 
 	protected function configure(): void {
 		$this->setName('sendentsynchroniser:cn-check')
-			->setDescription('Check notify_push availability and whether the Exchange Connector is reading the feed');
+			->setDescription('Check that this server has the change events and whether notify_push is usable');
 	}
 
 	protected function execute(InputInterface $input, OutputInterface $output): int {
 		$result = $this->setupCheck->run();
 		$np = $result['notify_push'];
-		$conn = $result['connector'];
 
 		$mark = static fn (bool $ok): string => $ok ? 'OK ' : 'FAIL';
 
@@ -38,17 +35,12 @@ class ChangeNotificationCheck extends Command {
 			. ($result['server_supported']
 				? ' Nextcloud 32+ change events available'
 				: ' this Nextcloud is older than 32 — change notifications require NC 32 or later'));
-		$output->writeln('Layer 1 - notify_push: ' . $mark($np['ok']) . ' ' . $np['message']);
+		$output->writeln('notify_push: ' . $mark($np['ok']) . ' ' . $np['message']);
 		$output->writeln('  app_enabled: ' . $mark($np['app_enabled']));
 		$output->writeln('  queue_available: ' . $mark($np['queue_available']));
 		$output->writeln('  daemon: ' . $mark($np['daemon']['ok']) . ' ' . $np['daemon']['message']);
 		$output->writeln('  websocket: ' . ($np['ws_url'] ?? '(none)') . ($np['websocket_secure'] ? ' (wss OK)' : ' (not wss)'));
 		$output->writeln('  effective_transport: ' . $np['effective_transport']);
-
-		$output->writeln('Connector (informational): ' . $conn['message']);
-		if ($conn['url'] !== '') {
-			$output->writeln('  configured address: ' . $conn['url']);
-		}
 
 		return $result['ok'] ? 0 : 1;
 	}

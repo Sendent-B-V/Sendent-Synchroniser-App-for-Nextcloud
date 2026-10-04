@@ -36,12 +36,11 @@ class Constants {
 	public const TRASHBIN_SCRUB_DEFAULT = 'false';
 	public const SENDENT_PROPERTY_PREFIX = 'X-SENDENT';
 
-	// Wire-format version of the signal payload. Bump only on a breaking change.
-	public const CN_SIGNAL_VERSION = 1;
+	// Wire-format version of the /changes payload. Bump only on a breaking change.
+	public const CN_FEED_VERSION = 1;
 
-	// notify_push message name; the Connector filters incoming frames on it.
+	// notify_push message name of the body-less hint; the Connector filters incoming frames on it.
 	public const CN_MESSAGE_NAME = 'sendent_sync';
-	public const CN_PING_MESSAGE_NAME = 'sendent_sync_ping';
 	public const CN_NOTIFY_PUSH_APPID = 'notify_push';
 
 	public const COLLECTION_TYPE_CALDAV = 'caldav';
@@ -50,47 +49,27 @@ class Constants {
 	public const TRANSPORT_NOTIFY_PUSH = 'notify_push';
 	public const TRANSPORT_POLLING = 'polling';
 
-	// 'auto' prefers notify_push and falls back; the other two pin a transport.
+	// 'auto' offers notify_push whenever it is configured; 'polling' never does.
 	public const CN_TRANSPORT_MODE_KEY = 'cnTransportMode';
 	public const CN_TRANSPORT_MODE_DEFAULT = 'auto';
-	public const CN_TRANSPORT_MODES = ['auto', self::TRANSPORT_NOTIFY_PUSH, self::TRANSPORT_POLLING];
+	public const CN_TRANSPORT_MODES = ['auto', self::TRANSPORT_POLLING];
 
 	public const CN_BOT_USER_KEY = 'cnBotUser';
 
-	// Informational: where the Exchange Connector runs. Nextcloud never calls
-	// this URL (the Connector connects inbound; the optional webhook has its
-	// own URL) — it is shown in diagnostics so support can find the peer.
-	public const CN_CONNECTOR_URL_KEY = 'cnConnectorUrl';
-
-	public const CN_BATCH_WINDOW_KEY = 'cnBatchWindow';
-	public const CN_BATCH_WINDOW_DEFAULT = 2;
-	public const CN_BATCH_WINDOW_MIN = 0;
-	public const CN_BATCH_WINDOW_MAX = 10;
-
-	public const CN_MAX_REFS_KEY = 'cnMaxRefsPerSignal';
-	public const CN_MAX_REFS_DEFAULT = 500;
-	public const CN_MAX_REFS_MIN = 1;
-	public const CN_MAX_REFS_MAX = 5000;
-
+	// How often the Connector checks the feed while notify_push is unavailable;
+	// the desktop client's equivalent is 30 s.
 	public const CN_POLL_INTERVAL_KEY = 'cnPollInterval';
 	public const CN_POLL_INTERVAL_DEFAULT = 30;
 	public const CN_POLL_INTERVAL_MIN = 5;
 	public const CN_POLL_INTERVAL_MAX = 300;
 
-	// How far back the Connector re-reads /changes to absorb late-committing rows.
-	public const CN_REREAD_OVERLAP_KEY = 'cnRereadOverlap';
-	public const CN_REREAD_OVERLAP_DEFAULT = 100;
+	// How far back the Connector re-reads /changes at the start of a check,
+	// to absorb late-committing rows where no fence protects them.
+	public const CN_REREAD_OVERLAP = 100;
 
 	// Hard cap on ?limit= for /changes.
 	public const CN_CHANGES_LIMIT_MAX = 1000;
 	public const CN_CHANGES_LIMIT_DEFAULT = 500;
-
-	// Where the next flush starts reading the ledger. It never passes a sequence
-	// number that might still be uncommitted, so it can trail the published cursor.
-	public const CN_FLUSHED_SEQ_KEY = 'cnFlushedSeq';
-
-	// The cursor the last live signal carried: the next signal's `prev`.
-	public const CN_PUBLISHED_SEQ_KEY = 'cnPublishedSeq';
 
 	// Durable lower bound for the cache counter: every value it legitimately
 	// hands out is above this. A counter value at or below it means the counter
@@ -99,22 +78,4 @@ class Constants {
 
 	// Offset added to sndntsync_seq ids when there is no distributed cache.
 	public const CN_SEQ_OFFSET_KEY = 'cnSeqOffset';
-
-	// Cached daemon reachability probe: {"ok":bool,"at":int,"message":string}
-	public const CN_DAEMON_CHECK_KEY = 'cnDaemonCheck';
-	public const CN_DAEMON_CHECK_TTL = 300;
-
-	// Browser round-trip result: {"ok":bool,"at":int,"ms":int}
-	public const CN_ROUND_TRIP_KEY = 'cnRoundTrip';
-
-	public const CN_ACK_CURSOR_KEY = 'cnAckCursor';
-	public const CN_ACK_AT_KEY = 'cnAckAt';
-	public const CN_LAST_SIGNAL_AT_KEY = 'cnLastSignalAt';
-
-	public const CN_WEBHOOK_ENABLED_KEY = 'cnWebhookEnabled';
-	public const CN_WEBHOOK_URL_KEY = 'cnWebhookUrl';
-	public const CN_WEBHOOK_SECRET_KEY = 'cnWebhookSecret';
-
-	public const CN_ALLOWLIST_ENABLED_KEY = 'cnAllowListEnabled';
-	public const CN_ALLOWLIST_KEY = 'cnAllowList';
 }

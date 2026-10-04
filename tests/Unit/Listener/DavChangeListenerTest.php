@@ -11,6 +11,7 @@ use OCA\SendentSynchroniser\Listener\DavChangeListener;
 use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeLedgerService;
 use OCA\SendentSynchroniser\Service\ChangeNotification\DavEventReferenceExtractor;
 use OCA\SendentSynchroniser\Service\ChangeNotification\PostCommitQueue;
+use OCA\SendentSynchroniser\Service\ChangeNotification\SyncScope;
 use OCP\EventDispatcher\Event;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -43,7 +44,7 @@ class DavChangeListenerTest extends TestCase {
 	private $ledger;
 
 	/** @var PostCommitQueue&MockObject */
-	private $publisher;
+	private $postCommit;
 
 	private DavChangeListener $listener;
 
@@ -53,11 +54,20 @@ class DavChangeListenerTest extends TestCase {
 			$this->markTestSkipped('Change notifications require Nextcloud 32+');
 		}
 		$this->ledger = $this->createMock(ChangeLedgerService::class);
-		$this->publisher = $this->createMock(PostCommitQueue::class);
-		$this->listener = new DavChangeListener(
+		$this->postCommit = $this->createMock(PostCommitQueue::class);
+		$this->listener = $this->listenerWithScope(static fn (): bool => true);
+	}
+
+	/** @param callable(CollectionReference): bool $includes */
+	private function listenerWithScope(callable $includes): DavChangeListener {
+		$scope = $this->createMock(SyncScope::class);
+		$scope->method('includes')->willReturnCallback($includes);
+
+		return new DavChangeListener(
 			$this->ledger,
-			$this->publisher,
+			$this->postCommit,
 			new DavEventReferenceExtractor(),
+			$scope,
 			new NullLogger(),
 		);
 	}
@@ -162,22 +172,56 @@ class DavChangeListenerTest extends TestCase {
 		$this->assertSame(['contacts', 'work-contacts'], $uris);
 	}
 
+	public function testChangesOfUsersWhoDoNotSyncAreNeverRecorded(): void {
+		$listener = $this->listenerWithScope(static fn (): bool => false);
+		$this->ledger->expects($this->never())->method('record');
+		$this->postCommit->expects($this->never())->method('add');
+
+		$listener->handle($this->calendarObjectCreatedEvent(42, self::CALENDAR, [], ['uri' => 'a.ics']));
+	}
+
+	public function testOnlyTheSyncedSideOfAMoveIsRecorded(): void {
+		$this->listener = $this->listenerWithScope(
+			static fn (CollectionReference $ref): bool => $ref->collectionUri === 'work'
+		);
+
+		$refs = $this->captureRecordedRefs($this->calendarObjectMovedEvent(
+			42,
+			self::CALENDAR,
+			43,
+			self::OTHER_CALENDAR,
+			[],
+			[],
+			['uri' => 'a.ics']
+		));
+
+		$this->assertSame(['work'], array_map(static fn (CollectionReference $r) => $r->collectionUri, $refs));
+	}
+
+	public function testAPublicLinkToggleIsNotAChange(): void {
+		// Publishing a calendar changes nothing the Connector mirrors.
+		$this->ledger->expects($this->never())->method('record');
+
+		$this->listener->handle(new \OCA\DAV\Events\CalendarPublishedEvent(42, self::CALENDAR, 'https://cloud.example.com/p/abc'));
+		$this->listener->handle(new \OCA\DAV\Events\CalendarUnpublishedEvent(42, self::CALENDAR));
+	}
+
 	public function testUnrelatedEventsAreIgnored(): void {
 		$this->ledger->expects($this->never())->method('record');
-		$this->publisher->expects($this->never())->method('add');
+		$this->postCommit->expects($this->never())->method('add');
 
 		$this->listener->handle(new class extends Event {
 		});
 	}
 
-	public function testTheStampsGoToThePostCommitQueueNotStraightToAFlush(): void {
-		// The listener runs inside the DAV transaction. Flushing here would
-		// signal the Connector before the change is visible, so the stamps
-		// wait in the queue until the write has committed.
-		$ref = new CollectionReference('principals/users/alice', 'caldav', 'personal', 9651, false);
+	public function testTheStampsWaitInThePostCommitQueue(): void {
+		// The listener runs inside the DAV transaction. A hint sent from here
+		// would reach the Connector before the change is visible, so the
+		// stamps wait in the queue until the write has committed.
+		$ref = new CollectionReference('principals/users/alice', 'caldav', 'personal', false);
 		$stamps = [['ref' => $ref, 'seq' => 17]];
 		$this->ledger->method('record')->willReturn($stamps);
-		$this->publisher->expects($this->once())->method('add')->with($stamps);
+		$this->postCommit->expects($this->once())->method('add')->with($stamps);
 
 		$this->listener->handle($this->calendarObjectCreatedEvent(42, self::CALENDAR, [], ['uri' => 'a.ics']));
 	}
@@ -186,14 +230,14 @@ class DavChangeListenerTest extends TestCase {
 		// The listener runs inside CalDavBackend's still-open transaction; a
 		// throw here would roll back the user's own calendar write.
 		$this->ledger->method('record')->willThrowException(new \RuntimeException('db down'));
-		$this->publisher->expects($this->never())->method('add');
+		$this->postCommit->expects($this->never())->method('add');
 
 		$this->listener->handle($this->calendarObjectCreatedEvent(42, self::CALENDAR, [], ['uri' => 'a.ics']));
 	}
 
 	public function testAFailingQueueNeverBreaksTheDavWrite(): void {
 		$this->ledger->method('record')->willReturn([]);
-		$this->publisher->method('add')->willThrowException(new \RuntimeException('redis down'));
+		$this->postCommit->method('add')->willThrowException(new \RuntimeException('redis down'));
 
 		$this->listener->handle($this->calendarObjectCreatedEvent(42, self::CALENDAR, [], ['uri' => 'a.ics']));
 

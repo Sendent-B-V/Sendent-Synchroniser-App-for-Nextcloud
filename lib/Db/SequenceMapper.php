@@ -13,9 +13,9 @@ use OCP\IDBConnection;
  * a row, read the autoincrement id — works identically on MySQL, PostgreSQL
  * and SQLite, with no row lock on the DAV write path.
  *
- * A configured offset is added to every id so the sequence can be lifted
- * above the ledger's high-water mark after a permanent cache loss
- * (`occ sendentsynchroniser:cn-setup --reseed`).
+ * A configured offset is added to every id so CursorService can lift the
+ * sequence above the ledger's high-water mark, e.g. after an instance that
+ * used a cache counter loses its cache for good.
  */
 class SequenceMapper {
 
@@ -53,7 +53,7 @@ class SequenceMapper {
 		}
 	}
 
-	/** Keeps the table from growing without bound. Called by the flush sweeper. */
+	/** Keeps the table from growing without bound. Called by the maintenance job. */
 	public function prune(int $keep = 1000): int {
 		$keep = max(0, $keep);
 		$qb = $this->db->getQueryBuilder();

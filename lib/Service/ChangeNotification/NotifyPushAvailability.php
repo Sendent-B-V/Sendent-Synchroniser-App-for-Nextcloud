@@ -5,17 +5,18 @@ namespace OCA\SendentSynchroniser\Service\ChangeNotification;
 
 use OCA\SendentSynchroniser\Constants;
 use OCP\App\IAppManager;
-use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\Http\Client\IClientService;
 use OCP\IConfig;
 use Psr\Container\ContainerInterface;
 
 /**
- * Decides whether transport A (notify_push) is usable, and resolves its
- * queue. Checks, in order of cost: app enabled; IQueue resolves to a real
- * queue (NullQueue means Redis isn't the distributed cache); the daemon
- * answers /test/cookie (cached for CN_DAEMON_CHECK_TTL so the DAV write path
- * never blocks on HTTP).
+ * Whether notify_push is offered to the Connector, and its queue.
+ *
+ * Like Nextcloud's own advertisement to its clients, this is about
+ * configuration, not health: offered when the app is enabled, its queue is
+ * real (NullQueue means no Redis) and its endpoint is set up. A Connector that
+ * cannot connect polls until it can. probeDaemon() checks the daemon on
+ * demand for the setup check; nothing on the DAV write path calls it.
  *
  * notify_push is optional: every reference to its classes is by string
  * through the container, inside try/catch.
@@ -31,7 +32,6 @@ class NotifyPushAvailability {
 		private IClientService $clientService,
 		private IConfig $serverConfig,
 		private ChangeNotificationConfig $config,
-		private ITimeFactory $time,
 	) {}
 
 	public function isAppEnabled(): bool {
@@ -56,80 +56,48 @@ class NotifyPushAvailability {
 		return $queue;
 	}
 
-	public function isActive(): bool {
-		$mode = $this->config->transportMode();
-		if ($mode === Constants::TRANSPORT_POLLING) {
-			return false;
-		}
-
-		$queue = $this->queue();
-
-		// Force-notify_push publishes even while unhealthy: the admin pinned
-		// it, and the settings page shows a persistent warning either way.
-		if ($mode === Constants::TRANSPORT_NOTIFY_PUSH) {
-			return $queue !== null;
-		}
-
-		return $queue !== null && $this->cachedDaemonCheck()['ok'];
-	}
-
 	public function effectiveTransport(): string {
-		return $this->isActive() ? Constants::TRANSPORT_NOTIFY_PUSH : Constants::TRANSPORT_POLLING;
+		if ($this->config->transportMode() === Constants::TRANSPORT_POLLING) {
+			return Constants::TRANSPORT_POLLING;
+		}
+
+		return $this->queue() !== null && $this->websocketUrl() !== null
+			? Constants::TRANSPORT_NOTIFY_PUSH
+			: Constants::TRANSPORT_POLLING;
 	}
 
-	/**
-	 * However stale — better a possibly-outdated push than an HTTP probe per DAV write.
-	 * @return array{ok: bool, at: int, message: string}
-	 */
-	public function cachedDaemonCheck(): array {
-		return $this->config->daemonCheck();
-	}
-
-	/** Called from the settings controller and the self-test TimedJob — never the DAV write path. */
-	public function refreshDaemonCheck(): array {
-		$now = $this->time->getTime();
-
+	/** @return array{ok: bool, message: string} */
+	public function probeDaemon(): array {
 		$base = $this->baseEndpoint();
 		if ($base === null) {
-			$result = ['ok' => false, 'at' => $now, 'message' => 'notify_push app or its endpoint not available'];
-			$this->config->setDaemonCheck(false, $now, $result['message']);
-			return $result;
+			return ['ok' => false, 'message' => 'notify_push app or its endpoint not available'];
 		}
 
 		try {
-			$client = $this->clientService->newClient();
 			// http_errors=false: notify_push guards /test/* with a per-run token,
 			// so an unauthenticated probe legitimately gets 4xx (Guzzle would
 			// otherwise throw) — a POSITIVE liveness signal. 5xx means a dead
 			// backend behind a proxy; deep health is `occ notify_push:self-test`'s job.
-			$response = $client->get($base . '/test/cookie', [
+			$response = $this->clientService->newClient()->get($base . '/test/cookie', [
 				'timeout' => 5,
 				'http_errors' => false,
 				'nextcloud' => ['allow_local_address' => true],
 			]);
 			$status = $response->getStatusCode();
-			$ok = $status < 500;
-			$message = $ok
-				? ('daemon reachable (HTTP ' . $status . ')')
-				: ('gateway reports backend down (HTTP ' . $status . ')');
 		} catch (\Throwable $e) {
-			$ok = false;
-			$message = 'daemon unreachable: ' . substr($e->getMessage(), 0, 500);
+			return ['ok' => false, 'message' => 'daemon unreachable: ' . substr($e->getMessage(), 0, 500)];
 		}
 
-		$this->config->setDaemonCheck($ok, $now, $message);
-
-		return ['ok' => $ok, 'at' => $now, 'message' => $message];
+		return $status < 500
+			? ['ok' => true, 'message' => 'daemon reachable (HTTP ' . $status . ')']
+			: ['ok' => false, 'message' => 'gateway reports backend down (HTTP ' . $status . ')'];
 	}
 
-	/** wss:// URL the Connector should open, advertised via /config. */
+	/** ws:// or wss:// URL the Connector should open, advertised via /config. */
 	public function websocketUrl(): ?string {
 		$base = $this->baseEndpoint();
-		if ($base === null) {
-			return null;
-		}
-		if (!str_starts_with($base, 'http')) {
-			return null; // malformed base_endpoint; better no ws_url than a nonsensical one
+		if ($base === null || !str_starts_with($base, 'http')) {
+			return null; // no endpoint, or a malformed one: better no ws_url than a nonsensical one
 		}
 
 		return preg_replace('/^http/', 'ws', $base) . '/ws';

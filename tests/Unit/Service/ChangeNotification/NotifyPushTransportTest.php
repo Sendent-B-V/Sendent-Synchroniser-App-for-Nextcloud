@@ -27,32 +27,29 @@ class NotifyPushTransportTest extends TestCase {
 		$this->transport = new NotifyPushTransport($this->availability, $this->config, new NullLogger());
 	}
 
-	/**
-	 * Pins the queue-message contract verified against notify_push's source:
-	 * channel 'notify_custom'; fields user/message/body, where user is the
-	 * RECIPIENT (bot) and the changed users ride inside body.refs.
-	 */
-	public function testPublishPushesTheVerifiedNotifyCustomShape(): void {
-		$this->config->method('transportMode')->willReturn('auto');
-		$this->config->method('botUser')->willReturn('sendent-sync');
-
-		$captured = null;
-		$queue = new class {
+	private function recordingQueue(): object {
+		return new class {
 			public array $pushed = [];
 			public function push(string $channel, array $message): void {
 				$this->pushed[] = [$channel, $message];
 			}
 		};
+	}
+
+	/**
+	 * Pins the queue-message contract verified against notify_push's source:
+	 * channel 'notify_custom', 'user' is the RECIPIENT (the bot). Without a
+	 * 'body' the daemon sends the bare text frame "sendent_sync", like the
+	 * body-less notify_file hint desktop clients get.
+	 */
+	public function testAHintIsABareNotifyCustomMessageToTheBot(): void {
+		$this->config->method('transportMode')->willReturn('auto');
+		$this->config->method('botUser')->willReturn('sendent-sync');
+		$queue = $this->recordingQueue();
 		$this->availability->method('queue')->willReturn($queue);
 
-		$this->assertTrue($this->transport->publish(['v' => 1, 'refs' => []]));
-		$this->assertCount(1, $queue->pushed);
-		[$channel, $message] = $queue->pushed[0];
-		$this->assertSame('notify_custom', $channel);
-		$this->assertSame(['user', 'message', 'body'], array_keys($message));
-		$this->assertSame('sendent-sync', $message['user']);
-		$this->assertSame('sendent_sync', $message['message']);
-		$this->assertSame(['v' => 1, 'refs' => []], $message['body']);
+		$this->assertTrue($this->transport->publishHint());
+		$this->assertSame([['notify_custom', ['user' => 'sendent-sync', 'message' => 'sendent_sync']]], $queue->pushed);
 	}
 
 	public function testPinnedPollingModePublishesNothing(): void {
@@ -60,14 +57,14 @@ class NotifyPushTransportTest extends TestCase {
 		$this->config->method('botUser')->willReturn('sendent-sync');
 		$this->availability->expects($this->never())->method('queue');
 
-		$this->assertFalse($this->transport->publish(['v' => 1]));
+		$this->assertFalse($this->transport->publishHint());
 	}
 
 	public function testAnUnsetBotUserPublishesNothing(): void {
 		$this->config->method('transportMode')->willReturn('auto');
 		$this->config->method('botUser')->willReturn('');
 
-		$this->assertFalse($this->transport->publish(['v' => 1]));
+		$this->assertFalse($this->transport->publishHint());
 	}
 
 	public function testAMissingQueuePublishesNothing(): void {
@@ -75,7 +72,7 @@ class NotifyPushTransportTest extends TestCase {
 		$this->config->method('botUser')->willReturn('sendent-sync');
 		$this->availability->method('queue')->willReturn(null);
 
-		$this->assertFalse($this->transport->publish(['v' => 1]));
+		$this->assertFalse($this->transport->publishHint());
 	}
 
 	public function testAThrowingQueueNeverEscapes(): void {
@@ -88,6 +85,6 @@ class NotifyPushTransportTest extends TestCase {
 		};
 		$this->availability->method('queue')->willReturn($queue);
 
-		$this->assertFalse($this->transport->publish(['v' => 1]));
+		$this->assertFalse($this->transport->publishHint());
 	}
 }

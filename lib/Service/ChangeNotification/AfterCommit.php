@@ -13,8 +13,8 @@ use Psr\Log\LoggerInterface;
  * DAV change events fire inside the backend's atomic() transaction. Two kinds
  * of follow-up work must not happen there:
  *
- *  - Publishing a signal: it would reach the Connector before the change it
- *    announces is visible.
+ *  - Sending the hint: the Connector would check before the change is
+ *    visible.
  *  - Writing app config: the row lock would be held until the user's write
  *    commits, stalling every other DAV writer that touches the same key, and
  *    a concurrent first insert of the key fails on PostgreSQL.
@@ -25,8 +25,8 @@ use Psr\Log\LoggerInterface;
  *
  * Long-running processes (occ, cron) that write calendars in per-item
  * transactions therefore run the queued work once, when they finish. Their
- * ledger rows are committed and visible all along, so the sweeper still
- * publishes them on its own schedule.
+ * ledger rows are committed and visible all along, and the hint every cron
+ * run sends (ChangeNotificationMaintenance) makes the Connector read them.
  */
 class AfterCommit {
 

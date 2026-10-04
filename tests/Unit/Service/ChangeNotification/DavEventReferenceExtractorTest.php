@@ -27,7 +27,6 @@ class DavEventReferenceExtractorTest extends TestCase {
 		$this->assertSame('principals/users/alice', $ref->principalUri);
 		$this->assertSame('caldav', $ref->collectionType);
 		$this->assertSame('personal', $ref->collectionUri);
-		$this->assertSame(9651, $ref->syncToken);
 		$this->assertFalse($ref->collectionChanged);
 	}
 
@@ -42,50 +41,7 @@ class DavEventReferenceExtractorTest extends TestCase {
 		$this->assertNotNull($ref);
 		$this->assertSame('carddav', $ref->collectionType);
 		$this->assertSame('contacts', $ref->collectionUri);
-		$this->assertSame(312, $ref->syncToken);
 		$this->assertTrue($ref->collectionChanged);
-	}
-
-	public function testSyncTokenIsReadFromTheSabreDavNamespacedKey(): void {
-		$ref = $this->extractor->fromCalendarRow([
-			'uri' => 'personal',
-			'principaluri' => 'principals/users/alice',
-			'{http://sabredav.org/ns}sync-token' => '77',
-		], false);
-
-		$this->assertSame(77, $ref->syncToken);
-	}
-
-	// Defensive coverage: shape not produced by current OCA\DAV backends.
-	public function testSyncTokenStripsTheSabreSyncUrlPrefix(): void {
-		$ref = $this->extractor->fromCalendarRow([
-			'uri' => 'personal',
-			'principaluri' => 'principals/users/alice',
-			'{http://sabredav.org/ns}sync-token' => 'http://sabre.io/ns/sync/1234',
-		], false);
-
-		$this->assertSame(1234, $ref->syncToken);
-	}
-
-	// Defensive coverage: shape not produced by current OCA\DAV backends.
-	public function testRawColumnWinsOverTheNamespacedKey(): void {
-		$ref = $this->extractor->fromCalendarRow([
-			'uri' => 'personal',
-			'principaluri' => 'principals/users/alice',
-			'synctoken' => 5,
-			'{http://sabredav.org/ns}sync-token' => '9',
-		], false);
-
-		$this->assertSame(5, $ref->syncToken);
-	}
-
-	public function testMissingSyncTokenBecomesZero(): void {
-		$ref = $this->extractor->fromCalendarRow([
-			'uri' => 'personal',
-			'principaluri' => 'principals/users/alice',
-		], false);
-
-		$this->assertSame(0, $ref->syncToken);
 	}
 
 	public function testNullRowYieldsNull(): void {

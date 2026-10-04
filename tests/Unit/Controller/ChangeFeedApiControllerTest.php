@@ -4,15 +4,13 @@ declare(strict_types=1);
 namespace OCA\SendentSynchroniser\Tests\Unit\Controller;
 
 use OCA\SendentSynchroniser\Controller\ChangeFeedApiController;
+use OCA\SendentSynchroniser\Db\DirtyCollection;
 use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeFeedGuard;
 use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeLedgerService;
 use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeNotificationConfig;
 use OCA\SendentSynchroniser\Service\ChangeNotification\CursorService;
 use OCA\SendentSynchroniser\Service\ChangeNotification\NotifyPushAvailability;
-use OCA\SendentSynchroniser\Service\ChangeNotification\PrincipalAllowList;
-use OCA\SendentSynchroniser\Service\ChangeNotification\SignalMetrics;
 use OCP\AppFramework\Http;
-use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IConfig;
 use OCP\IRequest;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -35,12 +33,6 @@ class ChangeFeedApiControllerTest extends TestCase {
 	/** @var NotifyPushAvailability&MockObject */
 	private $availability;
 
-	/** @var \OCA\SendentSynchroniser\Service\ChangeNotification\SignalMetrics&MockObject */
-	private $metrics;
-
-	/** @var PrincipalAllowList&MockObject */
-	private $allowList;
-
 	private ChangeFeedApiController $controller;
 
 	protected function setUp(): void {
@@ -50,18 +42,9 @@ class ChangeFeedApiControllerTest extends TestCase {
 		$this->config = $this->createMock(ChangeNotificationConfig::class);
 		$this->cursor = $this->createMock(CursorService::class);
 		$this->availability = $this->createMock(NotifyPushAvailability::class);
-		$this->metrics = $this->createMock(SignalMetrics::class);
-		$this->allowList = $this->createMock(PrincipalAllowList::class);
-		$this->allowList->method('isAllowed')->willReturn(true);
 
 		$serverConfig = $this->createMock(IConfig::class);
 		$serverConfig->method('getSystemValueString')->with('instanceid')->willReturn('inst');
-
-		$time = $this->createMock(ITimeFactory::class);
-		$time->method('getTime')->willReturn(1755676800);
-
-		$appManager = $this->createMock(\OCP\App\IAppManager::class);
-		$appManager->method('getAppVersion')->willReturn('2.1.0');
 
 		$this->controller = new ChangeFeedApiController(
 			'sendentsynchroniser',
@@ -71,11 +54,7 @@ class ChangeFeedApiControllerTest extends TestCase {
 			$this->config,
 			$this->cursor,
 			$this->availability,
-			$this->metrics,
-			$this->allowList,
 			$serverConfig,
-			$time,
-			$appManager,
 		);
 	}
 
@@ -83,13 +62,22 @@ class ChangeFeedApiControllerTest extends TestCase {
 		$this->guard->method('isAllowed')->willReturn(true);
 	}
 
+	private function row(string $uri, int $seq): DirtyCollection {
+		$row = new DirtyCollection();
+		$row->setPrincipalUri('principals/users/alice');
+		$row->setCollectionType('caldav');
+		$row->setCollectionUri($uri);
+		$row->setChangeSeq($seq);
+		$row->setStructuralSeq(0);
+		$row->setUpdatedAt(1);
+		return $row;
+	}
+
 	public function testEveryEndpointRejectsNonBotNonAdminWith403(): void {
 		$this->guard->method('isAllowed')->willReturn(false);
 
 		$this->assertSame(Http::STATUS_FORBIDDEN, $this->controller->config()->getStatus());
 		$this->assertSame(Http::STATUS_FORBIDDEN, $this->controller->changes(0, 10)->getStatus());
-		$this->assertSame(Http::STATUS_FORBIDDEN, $this->controller->ack(1)->getStatus());
-		$this->assertSame(Http::STATUS_FORBIDDEN, $this->controller->health()->getStatus());
 	}
 
 	public function testConfigDescribesTheTransportContract(): void {
@@ -97,52 +85,92 @@ class ChangeFeedApiControllerTest extends TestCase {
 		$this->availability->method('effectiveTransport')->willReturn('notify_push');
 		$this->availability->method('websocketUrl')->willReturn('wss://cloud.example.com/push/ws');
 		$this->config->method('pollInterval')->willReturn(30);
-		$this->config->method('batchWindow')->willReturn(2);
-		$this->config->method('rereadOverlap')->willReturn(100);
-		$this->config->method('botUser')->willReturn('sendent-sync');
-		$this->cursor->method('current')->willReturn(1849233);
 
 		$data = $this->controller->config()->getData();
 
-		$this->assertSame('notify_push', $data['transport']);
-		$this->assertSame('wss://cloud.example.com/push/ws', $data['ws_url']);
-		$this->assertSame(30, $data['poll_interval']);
-		$this->assertSame(2, $data['batch_window']);
-		$this->assertSame(100, $data['reread_overlap']);
-		$this->assertSame(1849233, $data['cursor']);
-		$this->assertSame('sendent-sync', $data['bot_user']);
-		$this->assertSame('inst', $data['instance']);
-		$this->assertSame('sendent_sync', $data['message_name']);
+		// Only what the Connector acts on: the instance keys its stored cursor.
+		$this->assertSame([
+			'transport' => 'notify_push',
+			'ws_url' => 'wss://cloud.example.com/push/ws',
+			'message_name' => 'sendent_sync',
+			'poll_interval' => 30,
+			'reread_overlap' => 100,
+			'instance' => 'inst',
+		], $data);
 	}
 
 	public function testChangesReturnsAPageWithCursorAndHasMore(): void {
 		$this->allow();
-		$row = new \OCA\SendentSynchroniser\Db\DirtyCollection();
-		$row->setPrincipalUri('principals/users/alice');
-		$row->setCollectionType('caldav');
-		$row->setCollectionUri('personal');
-		$row->setSyncToken(9651);
-		$row->setChangeSeq(600);
-		$row->setStructuralSeq(0);
-		$row->setUpdatedAt(1);
-
+		$this->cursor->method('current')->willReturn(1000);
 		// limit 1 requested; two rows fetched (limit+1) signals has_more.
-		$second = clone $row;
-		$second->setChangeSeq(601);
-		$this->ledger->method('rows')->with(500, 2)->willReturn([$row, $second]);
+		$this->ledger->method('rows')->with(500, 2)->willReturn([$this->row('personal', 600), $this->row('work', 601)]);
 
 		$data = $this->controller->changes(500, 1)->getData();
 
 		$this->assertSame(1, $data['v']);
 		$this->assertSame('inst', $data['instance']);
 		$this->assertCount(1, $data['refs']);
+		$this->assertSame('personal', $data['refs'][0]['u']);
 		$this->assertSame(600, $data['cursor']);
 		$this->assertTrue($data['has_more']);
-		$this->assertSame('personal', $data['refs'][0]['u']);
+	}
+
+	public function testEachRefCarriesItsSequenceSoOverlapReReadsCanBeSkipped(): void {
+		// Every check re-reads an overlap. Without the row's sequence the
+		// Connector cannot tell "read again" from "changed again".
+		$this->allow();
+		$this->cursor->method('current')->willReturn(1000);
+		$this->ledger->method('rows')->willReturn([$this->row('personal', 600)]);
+
+		$data = $this->controller->changes(500, 10)->getData();
+
+		$this->assertSame(
+			['p' => 'principals/users/alice', 't' => 'caldav', 'u' => 'personal', 'c' => false, 'q' => 600],
+			$data['refs'][0]
+		);
+	}
+
+	public function testTheFenceIsRaisedToTheCounterBeforeTheLedgerIsRead(): void {
+		// A writer still committing a number at or below the fence sees it
+		// after its commit and re-stamps its row above everything read here.
+		$this->allow();
+		$order = [];
+		$this->cursor->method('current')->willReturnCallback(function () use (&$order): int {
+			$order[] = 'current';
+			return 700;
+		});
+		$this->cursor->expects($this->once())->method('raiseFence')->with(700)
+			->willReturnCallback(function () use (&$order): void {
+				$order[] = 'fence';
+			});
+		$this->ledger->method('rows')->willReturnCallback(function () use (&$order): array {
+			$order[] = 'read';
+			return [];
+		});
+
+		$this->controller->changes(500, 10);
+
+		$this->assertSame(['current', 'fence', 'read'], $order);
+	}
+
+	public function testTheCursorNeverPassesTheFence(): void {
+		// 702 was handed out after the fence was raised and committed before
+		// the read. 701, handed out just before it, may still be uncommitted —
+		// and its writer will not re-stamp, because 701 is above the fence.
+		// Returning 702 would put 701 below the Connector's cursor.
+		$this->allow();
+		$this->cursor->method('current')->willReturn(700);
+		$this->ledger->method('rows')->willReturn([$this->row('personal', 650), $this->row('work', 702)]);
+
+		$data = $this->controller->changes(500, 10)->getData();
+
+		$this->assertCount(2, $data['refs']);
+		$this->assertSame(700, $data['cursor']);
 	}
 
 	public function testChangesOnAnEmptyLedgerEchoesSince(): void {
 		$this->allow();
+		$this->cursor->method('current')->willReturn(1849300);
 		$this->ledger->method('rows')->willReturn([]);
 
 		$data = $this->controller->changes(1849233, 100)->getData();
@@ -165,78 +193,5 @@ class ChangeFeedApiControllerTest extends TestCase {
 		$this->ledger->expects($this->once())->method('rows')->with(0, 501)->willReturn([]);
 
 		$this->controller->changes(-5, 500);
-	}
-
-	public function testAckStoresCursorAndTimestamp(): void {
-		$this->allow();
-		$this->config->expects($this->once())->method('setAck')->with(1849190, 1755676800);
-
-		$response = $this->controller->ack(1849190);
-
-		$this->assertSame(Http::STATUS_NO_CONTENT, $response->getStatus());
-	}
-
-	public function testHealthReportsTransportAndLag(): void {
-		$this->allow();
-		$this->availability->method('effectiveTransport')->willReturn('polling');
-		$this->availability->method('cachedDaemonCheck')->willReturn(['ok' => false, 'at' => 0, 'message' => 'x']);
-		$this->config->method('lastSignalAt')->willReturn(1755676700);
-		$this->config->method('ackCursor')->willReturn(1849190);
-		$this->config->method('ackAt')->willReturn(1755676798);
-		$this->cursor->method('current')->willReturn(1849233);
-		$this->ledger->method('countCollections')->willReturn(1240118);
-		$this->metrics->method('lastHour')
-			->willReturn(['flushes' => 3412, 'refs' => 63463, 'truncated' => 2, 'max_refs' => 500]);
-
-		$data = $this->controller->health()->getData();
-
-		$this->assertSame('polling', $data['transport']);
-		$this->assertFalse($data['notify_push_ok']);
-		$this->assertSame(1755676700, $data['last_signal_at']);
-		$this->assertSame(1240118, $data['ledger_rows']);
-		$this->assertSame(43, $data['connector_lag']);
-		$this->assertSame(3412, $data['signals_last_hour']['flushes']);
-	}
-
-	public function testChangesFiltersDisallowedPrincipalsButStillAdvancesTheCursor(): void {
-		$this->allow();
-		$blocked = $this->createMock(\OCA\SendentSynchroniser\Service\ChangeNotification\PrincipalAllowList::class);
-		$blocked->method('isAllowed')->willReturn(false);
-		// rebuild the controller with the blocking allow-list
-		$serverConfig = $this->createMock(IConfig::class);
-		$serverConfig->method('getSystemValueString')->with('instanceid')->willReturn('inst');
-		$time = $this->createMock(ITimeFactory::class);
-		$time->method('getTime')->willReturn(1755676800);
-		$appManager = $this->createMock(\OCP\App\IAppManager::class);
-		$appManager->method('getAppVersion')->willReturn('2.1.0');
-		$controller = new ChangeFeedApiController(
-			'sendentsynchroniser',
-			$this->createMock(IRequest::class),
-			$this->guard,
-			$this->ledger,
-			$this->config,
-			$this->cursor,
-			$this->availability,
-			$this->metrics,
-			$blocked,
-			$serverConfig,
-			$time,
-			$appManager,
-		);
-
-		$row = new \OCA\SendentSynchroniser\Db\DirtyCollection();
-		$row->setPrincipalUri('principals/users/alice');
-		$row->setCollectionType('caldav');
-		$row->setCollectionUri('personal');
-		$row->setSyncToken(1);
-		$row->setChangeSeq(600);
-		$row->setStructuralSeq(0);
-		$row->setUpdatedAt(1);
-		$this->ledger->method('rows')->willReturn([$row]);
-
-		$data = $controller->changes(500, 10)->getData();
-
-		$this->assertSame([], $data['refs']);
-		$this->assertSame(600, $data['cursor']);
 	}
 }

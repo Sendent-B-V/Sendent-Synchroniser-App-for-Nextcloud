@@ -20,15 +20,12 @@
     </dependencies>
     <background-jobs>
         <job>OCA\SendentSynchroniser\Cron\NotifyInactiveUsers</job>
-        <job>OCA\SendentSynchroniser\Cron\FlushSignalBatch</job>
-        <job>OCA\SendentSynchroniser\Cron\NotifyPushSelfTest</job>
+        <job>OCA\SendentSynchroniser\Cron\ChangeNotificationMaintenance</job>
     </background-jobs>
     <commands>
         <command>OCA\SendentSynchroniser\Command\EmailTemplate</command>
         <command>OCA\SendentSynchroniser\Command\ChangeNotificationStatus</command>
-        <command>OCA\SendentSynchroniser\Command\ChangeNotificationFlush</command>
         <command>OCA\SendentSynchroniser\Command\ChangeNotificationSetup</command>
-        <command>OCA\SendentSynchroniser\Command\ChangeNotificationLoadTest</command>
         <command>OCA\SendentSynchroniser\Command\ChangeNotificationCheck</command>
     </commands>
     <settings>

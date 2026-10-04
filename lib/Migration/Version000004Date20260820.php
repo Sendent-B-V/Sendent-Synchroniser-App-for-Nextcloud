@@ -51,11 +51,6 @@ class Version000004Date20260820 extends SimpleMigrationStep {
 				'notnull' => true,
 				'length' => 255,
 			]);
-			$table->addColumn('sync_token', Types::BIGINT, [
-				'notnull' => true,
-				'default' => 0,
-				'length' => 20,
-			]);
 			$table->addColumn('change_seq', Types::BIGINT, [
 				'notnull' => true,
 				'default' => 0,

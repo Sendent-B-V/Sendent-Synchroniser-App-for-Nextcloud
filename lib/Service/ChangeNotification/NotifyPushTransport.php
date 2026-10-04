@@ -7,12 +7,14 @@ use OCA\SendentSynchroniser\Constants;
 use Psr\Log\LoggerInterface;
 
 /**
- * Publishes one signal as a notify_push custom message to the bot account.
- * 'user' is the RECIPIENT (whose websockets get the frame); changed users
- * ride inside body.refs. Wire format: `sendent_sync {json}`.
+ * Sends the Connector a hint as a notify_push custom message to the bot
+ * account ('user' is the RECIPIENT). The hint has no body, so the frame is
+ * the bare text `sendent_sync` — the same pattern as the body-less
+ * notify_file hint desktop clients get: it only says "check now", and the
+ * Connector checks by reading /notify/changes from its own cursor.
  *
- * Fire-and-forget: false means "not delivered to the queue", so callers leave
- * the watermark untouched and the refs surface again.
+ * Fire-and-forget (Redis PUBLISH): a lost hint costs nothing, because any
+ * later hint triggers the same full check.
  */
 class NotifyPushTransport {
 
@@ -22,18 +24,7 @@ class NotifyPushTransport {
 		private LoggerInterface $logger,
 	) {}
 
-	/** @param array<string, mixed> $signal */
-	public function publish(array $signal): bool {
-		return $this->push(Constants::CN_MESSAGE_NAME, $signal);
-	}
-
-	/** Settings-page publish-test probe. */
-	public function publishPing(array $body): bool {
-		return $this->push(Constants::CN_PING_MESSAGE_NAME, $body);
-	}
-
-	/** @param array<string, mixed> $body */
-	private function push(string $message, array $body): bool {
+	public function publishHint(): bool {
 		if ($this->config->transportMode() === Constants::TRANSPORT_POLLING) {
 			// Polling pinned: nobody listens for frames, so don't spend a Redis publish.
 			return false;
@@ -50,11 +41,7 @@ class NotifyPushTransport {
 		}
 
 		try {
-			$queue->push('notify_custom', [
-				'user' => $botUser,
-				'message' => $message,
-				'body' => $body,
-			]);
+			$queue->push('notify_custom', ['user' => $botUser, 'message' => Constants::CN_MESSAGE_NAME]);
 			return true;
 		} catch (\Throwable $e) {
 			$this->logger->warning('notify_push publish failed: ' . $e->getMessage(), [

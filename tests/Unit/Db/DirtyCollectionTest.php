@@ -13,7 +13,6 @@ class DirtyCollectionTest extends TestCase {
 		$entity->setPrincipalUri('principals/users/alice');
 		$entity->setCollectionType('caldav');
 		$entity->setCollectionUri('personal');
-		$entity->setSyncToken(9651);
 		$entity->setChangeSeq(1849233);
 		$entity->setStructuralSeq($structuralSeq);
 		$entity->setUpdatedAt(1755676800);
@@ -26,7 +25,6 @@ class DirtyCollectionTest extends TestCase {
 		$this->assertSame('principals/users/alice', $ref->principalUri);
 		$this->assertSame('caldav', $ref->collectionType);
 		$this->assertSame('personal', $ref->collectionUri);
-		$this->assertSame(9651, $ref->syncToken);
 	}
 
 	public function testCollectionChangedIsTrueWhenTheStructuralChangeIsNewerThanSince(): void {

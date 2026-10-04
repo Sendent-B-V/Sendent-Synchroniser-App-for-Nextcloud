@@ -17,8 +17,6 @@ use OCP\AppFramework\Db\Entity;
  * @method void setCollectionType(string $collectionType)
  * @method string getCollectionUri()
  * @method void setCollectionUri(string $collectionUri)
- * @method int getSyncToken()
- * @method void setSyncToken(int $syncToken)
  * @method int getChangeSeq()
  * @method void setChangeSeq(int $changeSeq)
  * @method int getStructuralSeq()
@@ -31,13 +29,11 @@ class DirtyCollection extends Entity {
 	protected $principalUri;
 	protected $collectionType;
 	protected $collectionUri;
-	protected $syncToken;
 	protected $changeSeq;
 	protected $structuralSeq;
 	protected $updatedAt;
 
 	public function __construct() {
-		$this->addType('syncToken', 'integer');
 		$this->addType('changeSeq', 'integer');
 		$this->addType('structuralSeq', 'integer');
 		$this->addType('updatedAt', 'integer');
@@ -53,7 +49,6 @@ class DirtyCollection extends Entity {
 			(string)$this->getPrincipalUri(),
 			(string)$this->getCollectionType(),
 			(string)$this->getCollectionUri(),
-			(int)$this->getSyncToken(),
 			(int)$this->getStructuralSeq() > $since
 		);
 	}

@@ -65,18 +65,54 @@ class CursorServiceTest extends TestCase {
 		);
 	}
 
-	private function givenFloors(int $seqFloor, int $flushedSeq): void {
+	private function givenFloor(int $seqFloor): void {
 		$this->config->method('seqFloor')->willReturn($seqFloor);
-		$this->config->method('flushedSeq')->willReturn($flushedSeq);
 	}
 
 	public function testNextUsesTheDistributedCacheCounter(): void {
-		$this->givenFloors(1000, 0);
+		$this->givenFloor(1000);
+		$this->ledger->method('maxSeq')->willReturn(1041);
 		$this->memcache->method('inc')->willReturn(1042);
 		$this->sequence->expects($this->never())->method('next');
-		$this->ledger->expects($this->never())->method('maxSeq');
+		$this->memcache->expects($this->never())->method('cas');
 
 		$this->assertSame(1042, $this->service()->next());
+	}
+
+	public function testAFasterConcurrentWriterIsNotMistakenForARolledBackCounter(): void {
+		// We get 101; before we look at the ledger, another request gets 102
+		// and commits. Checking the ledger after the increment would see 102
+		// and reseed for nothing. Every row visible before the increment was
+		// stamped by an earlier increment, so that is when to look.
+		$this->givenFloor(1000);
+		$incremented = false;
+		$this->memcache->method('inc')->willReturnCallback(function () use (&$incremented): int {
+			$incremented = true;
+			return 101 + 1000;
+		});
+		$this->ledger->method('maxSeq')->willReturnCallback(
+			function () use (&$incremented): int {
+				return $incremented ? 102 + 1000 : 100 + 1000;
+			}
+		);
+		$this->memcache->expects($this->never())->method('cas');
+
+		$this->assertSame(101 + 1000, $this->service()->next());
+	}
+
+	public function testACounterRolledBackBelowTheLedgerIsReseeded(): void {
+		// Redis restarted from an hour-old RDB snapshot: the counter is back
+		// at 40,000, above the floor set when it was first seeded, while the
+		// ledger — and therefore every cursor the Connector was ever given —
+		// is already at 50,000. Handing out 40,001 would stamp a row below
+		// the Connector's cursor for good.
+		$this->givenFloor(1000);
+		$this->ledger->method('maxSeq')->willReturn(50000);
+		$seed = 50000 + self::GAP;
+		$this->memcache->method('inc')->willReturnOnConsecutiveCalls(40001, $seed + 2);
+		$this->memcache->expects($this->once())->method('cas')->with($this->anything(), 40001, $seed + 1)->willReturn(true);
+
+		$this->assertSame($seed + 2, $this->service()->next());
 	}
 
 	public function testNextFallsBackToTheDatabaseWithoutAConfiguredDistributedCache(): void {
@@ -84,14 +120,14 @@ class CursorServiceTest extends TestCase {
 		// LOCAL cache, whose counter is per-process (php-fpm workers and the
 		// cron CLI each see their own). Explicit memcache.distributed config
 		// is the only reliable signal the counter is actually shared.
-		$this->givenFloors(0, 0);
+		$this->givenFloor(0);
 		$this->sequence->method('next')->willReturn(7);
 
 		$this->assertSame(7, $this->service(false)->next());
 	}
 
 	public function testACacheLessInstanceChecksTheLedgerOncePerProcess(): void {
-		$this->givenFloors(0, 0);
+		$this->givenFloor(0);
 		$this->ledger->expects($this->once())->method('maxSeq')->willReturn(0);
 		$this->sequence->method('next')->willReturnOnConsecutiveCalls(7, 8, 9);
 		$service = $this->service(false);
@@ -104,7 +140,7 @@ class CursorServiceTest extends TestCase {
 	public function testACacheLessInstanceThatOnceUsedACacheIsLiftedAboveTheLedger(): void {
 		// Redis was removed from config.php. The DB sequence never saw the
 		// cache's numbers, so its next id (7) is far below the ledger.
-		$this->givenFloors(0, 0);
+		$this->givenFloor(0);
 		$this->ledger->method('maxSeq')->willReturn(50000);
 		$this->sequence->method('next')->willReturnOnConsecutiveCalls(7, 50001);
 		$this->sequence->expects($this->once())->method('reseedAbove')->with(50000);
@@ -116,7 +152,7 @@ class CursorServiceTest extends TestCase {
 		// Review scenario: increment() returns false during a brief Memcached
 		// outage. The DB sequence would answer 3 while the ledger is in the
 		// millions; that row would sit below every Connector's cursor.
-		$this->givenFloors(1000, 1500000);
+		$this->givenFloor(1000);
 		$this->memcache->method('inc')->willReturn(false);
 		$this->ledger->method('maxSeq')->willReturn(1849233);
 		$this->sequence->method('next')->willReturnOnConsecutiveCalls(3, 1849234);
@@ -130,7 +166,7 @@ class CursorServiceTest extends TestCase {
 	public function testARedisConnectionErrorFallsBackToTheDatabaseInsteadOfThrowing(): void {
 		// Redis signals a dropped connection by throwing, not by returning
 		// false. Letting it escape would lose the ledger row for this change.
-		$this->givenFloors(1000, 0);
+		$this->givenFloor(1000);
 		$this->memcache->method('inc')->willThrowException(new \RuntimeException('read error on connection to redis:6379'));
 		$this->ledger->method('maxSeq')->willReturn(70000);
 		$this->sequence->method('next')->willReturnOnConsecutiveCalls(12, 70001);
@@ -142,7 +178,7 @@ class CursorServiceTest extends TestCase {
 		// The cache was evicted: inc() recreates the key at 1. Handing out 1
 		// would stamp a row below every reader's `since`, so the counter is
 		// lifted a full gap above the ledger.
-		$this->givenFloors(1000, 5000);
+		$this->givenFloor(1000);
 		$this->ledger->method('maxSeq')->willReturn(5000);
 		$seed = 5000 + self::GAP;
 		$this->memcache->method('inc')->willReturnOnConsecutiveCalls(1, $seed + 2);
@@ -156,12 +192,10 @@ class CursorServiceTest extends TestCase {
 	}
 
 	public function testEveryValueFromARestartedCounterIsCaughtNotOnlyTheFirst(): void {
-		// Review scenario: polling-only instance, so the flushed watermark
-		// never moved (0), and 50,000 ledger rows. After an eviction request A
-		// gets 1 and starts reseeding; request B gets 2 meanwhile. The old
-		// check only caught 1 (or values <= flushedSeq) and returned 2. The
-		// durable floor (>= the gap since the counter was first seeded) catches 2.
-		$this->givenFloors(48000, 0);
+		// 50,000 ledger rows. After an eviction request A gets 1 and starts
+		// reseeding; request B gets 2 meanwhile. A check that only caught the
+		// first value would have returned 2.
+		$this->givenFloor(48000);
 		$this->ledger->method('maxSeq')->willReturn(50000);
 		$seed = 50000 + self::GAP;
 		$this->memcache->method('inc')->willReturnOnConsecutiveCalls(2, $seed + 5);
@@ -174,7 +208,7 @@ class CursorServiceTest extends TestCase {
 		// Our first cas loses to a concurrent writer, the re-inc lands at 3
 		// (still below the seed), the second cas wins. A single-attempt reseed
 		// would have returned 3.
-		$this->givenFloors(1000, 5000);
+		$this->givenFloor(1000);
 		$this->ledger->method('maxSeq')->willReturn(5000);
 		$seed = 5000 + self::GAP;
 		$this->memcache->method('inc')->willReturnOnConsecutiveCalls(2, 3, $seed + 2);
@@ -184,7 +218,7 @@ class CursorServiceTest extends TestCase {
 	}
 
 	public function testAnExhaustedReseedFallsBackToAReseededDbSequence(): void {
-		$this->givenFloors(1000, 5000);
+		$this->givenFloor(1000);
 		$this->ledger->method('maxSeq')->willReturn(5000);
 		$seed = 5000 + self::GAP;
 		$this->memcache->method('inc')->willReturn(1);
@@ -199,7 +233,7 @@ class CursorServiceTest extends TestCase {
 		// Fresh install, or an upgrade from a version without the floor. The
 		// counter's 1 cannot be told apart from a lost counter, so the
 		// sequence jumps a full gap ahead. Forward jumps are always harmless.
-		$this->givenFloors(0, 0);
+		$this->givenFloor(0);
 		$this->ledger->method('maxSeq')->willReturn(0);
 		$this->memcache->method('inc')->willReturnOnConsecutiveCalls(1, self::GAP + 2);
 		$this->memcache->method('cas')->with($this->anything(), 1, self::GAP + 2)->willReturn(true);
@@ -210,7 +244,7 @@ class CursorServiceTest extends TestCase {
 
 	public function testEstablishingAFloorNeverMovesAHealthyCounterBackwards(): void {
 		// Upgrade with a live counter at 90,000 while the ledger is at 89,990.
-		$this->givenFloors(0, 0);
+		$this->givenFloor(0);
 		$this->ledger->method('maxSeq')->willReturn(89990);
 		$seed = 90000 + self::GAP;
 		$this->memcache->method('inc')->willReturnOnConsecutiveCalls(90000, $seed + 2);
@@ -222,7 +256,7 @@ class CursorServiceTest extends TestCase {
 	public function testTheFloorIsNotWrittenInsideTheDavTransaction(): void {
 		// Writing app config inside the user's transaction would hold its row
 		// lock until that write commits and stall other writers.
-		$this->givenFloors(1000, 5000);
+		$this->givenFloor(1000);
 		$this->ledger->method('maxSeq')->willReturn(5000);
 		$this->memcache->method('inc')->willReturnOnConsecutiveCalls(1, 6002);
 		$this->memcache->method('cas')->willReturn(true);
@@ -266,8 +300,8 @@ class CursorServiceTest extends TestCase {
 		// A cron job writes many events inside one transaction. The durable
 		// floor is only written after commit and config is cached for the
 		// process, so the service must remember the floor it just raised.
-		$this->givenFloors(0, 0);
-		$this->ledger->expects($this->once())->method('maxSeq')->willReturn(0);
+		$this->givenFloor(0);
+		$this->ledger->method('maxSeq')->willReturn(0);
 		$this->memcache->method('inc')->willReturnOnConsecutiveCalls(1, self::GAP + 2, self::GAP + 3, self::GAP + 4);
 		$this->memcache->expects($this->once())->method('cas')->willReturn(true);
 		$this->serverConfig->method('getSystemValue')->willReturn('\\OC\\Memcache\\Redis');

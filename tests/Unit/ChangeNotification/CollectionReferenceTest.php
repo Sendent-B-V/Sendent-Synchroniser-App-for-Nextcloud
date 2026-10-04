@@ -14,42 +14,33 @@ class CollectionReferenceTest extends TestCase {
 			'principals/users/alice',
 			Constants::COLLECTION_TYPE_CALDAV,
 			'personal',
-			9651,
 			false
 		);
 
 		$this->assertSame("principals/users/alice\x00caldav\x00personal", $ref->key());
 	}
 
-	public function testKeyIgnoresSyncTokenAndFlag(): void {
-		$a = new CollectionReference('principals/users/alice', 'caldav', 'personal', 1, false);
-		$b = new CollectionReference('principals/users/alice', 'caldav', 'personal', 2, true);
+	public function testKeyIgnoresTheStructuralFlag(): void {
+		$a = new CollectionReference('principals/users/alice', 'caldav', 'personal', false);
+		$b = new CollectionReference('principals/users/alice', 'caldav', 'personal', true);
 
 		$this->assertSame($a->key(), $b->key());
 	}
 
 	public function testKeyIsUnambiguousWhenAUriContainsThePipeCharacter(): void {
-		$a = new CollectionReference('principals/users/x', 'caldav', 'y|caldav|z', 1, false);
-		$b = new CollectionReference('principals/users/x|caldav|y', 'caldav', 'z', 1, false);
+		$a = new CollectionReference('principals/users/x', 'caldav', 'y|caldav|z', false);
+		$b = new CollectionReference('principals/users/x|caldav|y', 'caldav', 'z', false);
 
 		$this->assertNotSame($a->key(), $b->key());
 	}
 
 	public function testJsonSerializeUsesTheShortWireFieldNames(): void {
-		$ref = new CollectionReference('principals/users/bob', 'carddav', 'contacts', 312, true);
+		// No sync token: the Connector always syncs with the token it stored.
+		$ref = new CollectionReference('principals/users/bob', 'carddav', 'contacts', true);
 
 		$this->assertSame(
-			['p' => 'principals/users/bob', 't' => 'carddav', 'u' => 'contacts', 's' => 312, 'c' => true],
+			['p' => 'principals/users/bob', 't' => 'carddav', 'u' => 'contacts', 'c' => true],
 			$ref->jsonSerialize()
 		);
-	}
-
-	public function testWithCollectionChangedReturnsANewInstance(): void {
-		$ref = new CollectionReference('principals/users/bob', 'carddav', 'contacts', 312, false);
-		$flagged = $ref->withCollectionChanged(true);
-
-		$this->assertFalse($ref->collectionChanged);
-		$this->assertTrue($flagged->collectionChanged);
-		$this->assertSame($ref->key(), $flagged->key());
 	}
 }

@@ -7,6 +7,7 @@ use OCA\SendentSynchroniser\ChangeNotification\CollectionReference;
 use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeLedgerService;
 use OCA\SendentSynchroniser\Service\ChangeNotification\DavEventReferenceExtractor;
 use OCA\SendentSynchroniser\Service\ChangeNotification\PostCommitQueue;
+use OCA\SendentSynchroniser\Service\ChangeNotification\SyncScope;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
 use Psr\Log\LoggerInterface;
@@ -18,9 +19,12 @@ use Psr\Log\LoggerInterface;
  *
  * Only the ledger write happens here, inside a savepoint, so it commits or
  * rolls back together with the user's change. Confirming the stamps and
- * offering a flush wait until that commit (PostCommitQueue): a signal sent
- * from inside the transaction reaches the Connector before the change is
- * visible to it.
+ * sending the hint wait until that commit (PostCommitQueue): a hint sent from
+ * inside the transaction reaches the Connector before the change is visible
+ * to it.
+ *
+ * Collections of users the Connector does not sync are never recorded
+ * (SyncScope).
  *
  * Change notifications require Nextcloud 32+: object-level events are matched
  * only in their OCP\Calendar\Events form (@since 32.0.0). On older servers
@@ -37,12 +41,13 @@ class DavChangeListener implements IEventListener {
 		private ChangeLedgerService $ledger,
 		private PostCommitQueue $afterCommit,
 		private DavEventReferenceExtractor $extractor,
+		private SyncScope $scope,
 		private LoggerInterface $logger,
 	) {}
 
 	public function handle(Event $event): void {
 		try {
-			$refs = $this->references($event);
+			$refs = array_values(array_filter($this->references($event), $this->scope->includes(...)));
 			if ($refs === []) {
 				return;
 			}
@@ -92,9 +97,7 @@ class DavChangeListener implements IEventListener {
 			|| $event instanceof \OCA\DAV\Events\CalendarDeletedEvent
 			|| $event instanceof \OCA\DAV\Events\CalendarMovedToTrashEvent
 			|| $event instanceof \OCA\DAV\Events\CalendarRestoredEvent
-			|| $event instanceof \OCA\DAV\Events\CalendarShareUpdatedEvent
-			|| $event instanceof \OCA\DAV\Events\CalendarPublishedEvent
-			|| $event instanceof \OCA\DAV\Events\CalendarUnpublishedEvent) {
+			|| $event instanceof \OCA\DAV\Events\CalendarShareUpdatedEvent) {
 			return $this->one($this->extractor->fromCalendarRow($event->getCalendarData(), true));
 		}
 

@@ -10,9 +10,9 @@ use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IDBConnection;
 
 /**
- * The durable half of the design: every change lands here before any
- * transport is considered, so a lost or duplicated signal only ever costs a
- * reader one extra idempotent read. Cost: one cursor op plus one upsert per
+ * The change feed's write side: every change lands here, and the Connector
+ * reads it from its own cursor, so a lost or duplicated hint only ever costs
+ * one extra idempotent check. Cost: one cursor op plus one upsert per
  * collection reference (a DAV event yields one ref, or two for a
  * cross-calendar move).
  *
@@ -39,10 +39,9 @@ class ChangeLedgerService {
 	 * backend's commit then rolls back the user's calendar or contact write.
 	 *
 	 * @param CollectionReference[] $refs
-	 * @return list<Stamp> one per distinct collection, with the sequence it got
+	 * @return list<Stamp> one per reference, with the sequence it got
 	 */
 	public function record(array $refs): array {
-		$refs = $this->dedupe($refs);
 		if ($refs === []) {
 			return [];
 		}
@@ -69,15 +68,15 @@ class ChangeLedgerService {
 	/**
 	 * Must run after the transaction that recorded $stamps has committed.
 	 *
-	 * A flush raises the fence to the counter's value before it reads the
-	 * ledger, then never advances its watermark past the fence. A row stamped
-	 * at or below the fence that was still uncommitted when the flush read
-	 * would therefore end up below the watermark, invisible to every later
-	 * flush. Its writer can tell: after its own commit it sees the fence at or
+	 * A /changes read raises the fence to the counter's value before it reads
+	 * the ledger, then never returns a cursor past the fence. A row stamped at
+	 * or below the fence that was still uncommitted during that read would
+	 * therefore end up below the Connector's cursor, invisible to every later
+	 * read. Its writer can tell: after its own commit it sees the fence at or
 	 * above its stamp. It then stamps the row again with a fresh number, which
-	 * is above the fence and so above any watermark that flush could set.
+	 * is above the fence and so above any cursor that read could return.
 	 *
-	 * A re-stamp can be unnecessary (the flush did see the row): that costs a
+	 * A re-stamp can be unnecessary (the read did see the row): that costs a
 	 * duplicate ref, which readers absorb by design.
 	 *
 	 * @param list<Stamp> $stamps
@@ -108,40 +107,7 @@ class ChangeLedgerService {
 		return $this->mapper->page($since, $limit);
 	}
 
-	/** @param DirtyCollection[] $rows */
-	public function highestSeqOf(array $rows): int {
-		$highest = 0;
-		foreach ($rows as $row) {
-			$highest = max($highest, (int)$row->getChangeSeq());
-		}
-
-		return $highest;
-	}
-
-	public function highWaterMark(): int {
-		return $this->mapper->maxSeq();
-	}
-
 	public function countCollections(): int {
 		return $this->mapper->countAll();
-	}
-
-	/**
-	 * Collapses references to the same collection, keeping the last sync token and OR-ing the structural flag.
-	 * @param CollectionReference[] $refs
-	 * @return CollectionReference[]
-	 */
-	private function dedupe(array $refs): array {
-		/** @var array<string, CollectionReference> $byKey */
-		$byKey = [];
-
-		foreach ($refs as $ref) {
-			$key = $ref->key();
-			$structural = $ref->collectionChanged
-				|| (isset($byKey[$key]) && $byKey[$key]->collectionChanged);
-			$byKey[$key] = $ref->withCollectionChanged($structural);
-		}
-
-		return array_values($byKey);
 	}
 }

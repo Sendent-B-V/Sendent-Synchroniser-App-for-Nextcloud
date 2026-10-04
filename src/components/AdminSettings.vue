@@ -79,13 +79,8 @@
 
 			<ChangeNotificationsSection :initial-transport-mode="cnTransportMode"
 				:initial-bot-user="cnBotUser"
-				:initial-connector-url="cnConnectorUrl"
-				:initial-batch-window="cnBatchWindow"
-				:initial-max-refs-per-signal="cnMaxRefsPerSignal"
 				:initial-poll-interval="cnPollInterval"
-				:notify-push-installed="cnNotifyPushInstalled"
-				:initial-webhook-url="cnWebhookUrl"
-				:initial-webhook-enabled="cnWebhookEnabled" />
+				:notify-push-installed="cnNotifyPushInstalled" />
 		</section>
 	</div>
 </template>
@@ -116,13 +111,8 @@ defineProps<{
 	notificationsAppInstalled: boolean
 	cnTransportMode: string
 	cnBotUser: string
-	cnConnectorUrl: string
-	cnBatchWindow: string
-	cnMaxRefsPerSignal: string
 	cnPollInterval: string
 	cnNotifyPushInstalled: boolean
-	cnWebhookUrl: string
-	cnWebhookEnabled: string
 }>()
 
 const tab = ref<'general' | 'sync'>('general')

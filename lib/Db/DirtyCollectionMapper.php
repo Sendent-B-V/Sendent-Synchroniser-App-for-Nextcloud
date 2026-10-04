@@ -68,9 +68,7 @@ class DirtyCollectionMapper extends QBMapper {
 	 * @return int number of rows updated (0 when the collection is new)
 	 *
 	 * change_seq/structural_seq clamp with GREATEST so a slow writer can never
-	 * regress the row below an already-published watermark. sync_token clamps
-	 * too: DAV sync tokens only ever rise per collection, and a late writer or
-	 * a post-commit re-stamp must not replace a newer token with an older one.
+	 * move the row back below a cursor a reader already holds.
 	 *
 	 * MySQL note: updated_at always changes, so this returns >= 1 for an
 	 * existing row except a rare same-second lower-seq call, which returns 0
@@ -79,7 +77,6 @@ class DirtyCollectionMapper extends QBMapper {
 	private function touch(CollectionReference $ref, int $seq, int $now): int {
 		$qb = $this->db->getQueryBuilder();
 		$qb->update(self::TABLE)
-			->set('sync_token', $qb->func()->greatest('sync_token', $qb->expr()->literal($ref->syncToken, IQueryBuilder::PARAM_INT)))
 			->set('change_seq', $qb->func()->greatest('change_seq', $qb->expr()->literal($seq, IQueryBuilder::PARAM_INT)))
 			->set('updated_at', $qb->createNamedParameter($now, IQueryBuilder::PARAM_INT));
 
@@ -100,7 +97,6 @@ class DirtyCollectionMapper extends QBMapper {
 			'principal_uri' => $qb->createNamedParameter($ref->principalUri),
 			'collection_type' => $qb->createNamedParameter($ref->collectionType),
 			'collection_uri' => $qb->createNamedParameter($ref->collectionUri),
-			'sync_token' => $qb->createNamedParameter($ref->syncToken, IQueryBuilder::PARAM_INT),
 			'change_seq' => $qb->createNamedParameter($seq, IQueryBuilder::PARAM_INT),
 			'structural_seq' => $qb->createNamedParameter($ref->collectionChanged ? $seq : 0, IQueryBuilder::PARAM_INT),
 			'updated_at' => $qb->createNamedParameter($now, IQueryBuilder::PARAM_INT),
@@ -115,7 +111,9 @@ class DirtyCollectionMapper extends QBMapper {
 	 */
 	public function page(int $since, int $limit): array {
 		$qb = $this->db->getQueryBuilder();
-		$qb->select('*')
+		// Explicit columns: an entity cannot map a column it does not declare,
+		// such as sync_token on instances that ran an earlier 2.2.0 build.
+		$qb->select('id', 'principal_uri', 'collection_type', 'collection_uri', 'change_seq', 'structural_seq', 'updated_at')
 			->from(self::TABLE)
 			->where($qb->expr()->gt('change_seq', $qb->createNamedParameter($since, IQueryBuilder::PARAM_INT)))
 			->orderBy('change_seq', 'ASC')

@@ -59,8 +59,6 @@ class Application extends App implements IBootstrap {
 			\OCA\DAV\Events\CalendarMovedToTrashEvent::class,
 			\OCA\DAV\Events\CalendarRestoredEvent::class,
 			\OCA\DAV\Events\CalendarShareUpdatedEvent::class,
-			\OCA\DAV\Events\CalendarPublishedEvent::class,
-			\OCA\DAV\Events\CalendarUnpublishedEvent::class,
 			\OCA\DAV\Events\CardCreatedEvent::class,
 			\OCA\DAV\Events\CardUpdatedEvent::class,
 			\OCA\DAV\Events\CardDeletedEvent::class,

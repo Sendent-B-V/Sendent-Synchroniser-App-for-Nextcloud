@@ -2,7 +2,7 @@
 	<div class="settings-section">
 		<h3>{{ t('sendentsynchroniser', 'Change notifications') }}</h3>
 		<p class="settings-section__hint">
-			{{ t('sendentsynchroniser', 'How the Exchange Connector learns that a calendar or address book changed. Signals carry only collection references, never event or contact data.') }}
+			{{ t('sendentsynchroniser', 'How the Exchange Connector learns that a calendar or address book changed. Nextcloud only tells the Connector to check; the Connector then reads which collections changed. No event or contact data is sent.') }}
 		</p>
 		<p v-if="saveError" class="settings-section__hint settings-section__hint--warning">
 			{{ saveError }}
@@ -15,60 +15,44 @@
 					class="settings-section__input"
 					@change="saveTransportMode">
 					<option value="auto">
-						{{ t('sendentsynchroniser', 'Automatic (prefer notify_push)') }}
-					</option>
-					<option value="notify_push">
-						{{ t('sendentsynchroniser', 'Force notify_push') }}
+						{{ t('sendentsynchroniser', 'notify_push when available, otherwise polling') }}
 					</option>
 					<option value="polling">
-						{{ t('sendentsynchroniser', 'Force polling') }}
+						{{ t('sendentsynchroniser', 'Polling only') }}
 					</option>
 				</select>
 				<span v-if="saved.transportMode" class="settings-section__saved">&#x2713;</span>
 			</div>
-			<!-- Persistent while forced-but-unhealthy — including when the app
-				 is not installed at all (testResult never loads then). -->
-			<p v-if="transportMode === 'notify_push' && ((testResult && !testResult.daemon.ok) || !notifyPushInstalled)"
-				class="settings-section__hint settings-section__hint--warning">
-				{{ t('sendentsynchroniser', 'notify_push is forced but unhealthy. Signals may not be delivered; the Connector will fall back to reading the change feed.') }}
-			</p>
 		</div>
 
 		<div class="settings-section__field">
-			<label>{{ t('sendentsynchroniser', 'notify_push status') }}</label>
-			<div v-if="testResult" class="cn-status">
-				<div :class="['cn-status__line', testResult.app_enabled ? 'cn-status__line--ok' : 'cn-status__line--fail']">
-					{{ testResult.app_enabled
+			<label>{{ t('sendentsynchroniser', 'Setup check') }}</label>
+			<div v-if="check" class="cn-status">
+				<div v-if="!check.server_supported" class="cn-status__line cn-status__line--fail">
+					{{ t('sendentsynchroniser', 'This Nextcloud is older than 32 — change notifications require Nextcloud 32 or later.') }}
+				</div>
+				<div :class="['cn-status__line', check.notify_push.app_enabled ? 'cn-status__line--ok' : 'cn-status__line--fail']">
+					{{ check.notify_push.app_enabled
 						? t('sendentsynchroniser', 'notify_push app: enabled ✓')
 						: t('sendentsynchroniser', 'notify_push app: not installed ✗ — in Nextcloud AIO it ships enabled; on other installs, install the "Client Push" app and run occ notify_push:setup') }}
 				</div>
-				<div :class="['cn-status__line', testResult.queue_available ? 'cn-status__line--ok' : 'cn-status__line--fail']">
-					{{ testResult.queue_available
+				<div :class="['cn-status__line', check.notify_push.queue_available ? 'cn-status__line--ok' : 'cn-status__line--fail']">
+					{{ check.notify_push.queue_available
 						? t('sendentsynchroniser', 'Redis queue: available ✓')
 						: t('sendentsynchroniser', 'Redis queue: unavailable ✗ — configure Redis as the distributed cache') }}
 				</div>
-				<div :class="['cn-status__line', testResult.daemon.ok ? 'cn-status__line--ok' : 'cn-status__line--fail']">
-					{{ testResult.daemon.ok
+				<div :class="['cn-status__line', check.notify_push.daemon.ok ? 'cn-status__line--ok' : 'cn-status__line--fail']">
+					{{ check.notify_push.daemon.ok
 						? t('sendentsynchroniser', 'Push daemon: reachable ✓')
-						: t('sendentsynchroniser', 'Push daemon: unreachable ✗ — {message}', { message: testResult.daemon.message }) }}
+						: t('sendentsynchroniser', 'Push daemon: {message} ✗', { message: check.notify_push.daemon.message }) }}
 				</div>
-				<div class="cn-status__line">
-					{{ t('sendentsynchroniser', 'Active transport: {transport}', { transport: testResult.effective_transport }) }}
-				</div>
-				<div v-if="roundTrip" :class="['cn-status__line', roundTrip.ok ? 'cn-status__line--ok' : 'cn-status__line--fail']">
-					{{ roundTrip.ok
-						? t('sendentsynchroniser', 'Publish test: {ms} ms ✓', { ms: String(roundTrip.ms) })
-						: t('sendentsynchroniser', 'Publish test failed ✗') }}
-				</div>
-			</div>
-			<div v-else-if="!notifyPushInstalled" class="cn-status">
-				<div class="cn-status__line cn-status__line--fail">
-					{{ t('sendentsynchroniser', 'notify_push app: not installed ✗') }}
+				<div :class="['cn-status__line', check.notify_push.ok ? 'cn-status__line--ok' : 'cn-status__line--fail']">
+					{{ check.notify_push.message }}
 				</div>
 			</div>
 			<div class="settings-section__input-row">
-				<button type="button" :disabled="testing" @click="runTest">
-					{{ testing ? t('sendentsynchroniser', 'Testing…') : t('sendentsynchroniser', 'Run test') }}
+				<button type="button" :disabled="checking" @click="runCheck">
+					{{ checking ? t('sendentsynchroniser', 'Testing…') : t('sendentsynchroniser', 'Run test') }}
 				</button>
 			</div>
 		</div>
@@ -84,136 +68,23 @@
 				<span v-if="saved.botUser" class="settings-section__saved">&#x2713;</span>
 			</div>
 			<p class="settings-section__hint">
-				{{ t('sendentsynchroniser', 'This account receives change signals and reads the change feed only; it needs no group memberships, quota or calendars. Create it first (Users administration or occ user:add), then generate an app password for it under its own Settings → Security and store that password in the Connector.') }}
+				{{ t('sendentsynchroniser', 'This account receives change hints and reads the change feed only; it needs no group memberships, quota or calendars. Create it and an app password for the Connector with occ user:add and occ user:auth-tokens:add; occ user:auth-tokens:list shows when the Connector last used it.') }}
 			</p>
 		</div>
 
 		<div class="settings-section__field">
-			<label>{{ t('sendentsynchroniser', 'Exchange Connector address') }}</label>
+			<label>{{ t('sendentsynchroniser', 'Poll interval (s)') }}</label>
 			<div class="settings-section__input-row">
-				<input v-model="connectorUrl"
-					type="url"
-					class="settings-section__input"
-					:placeholder="t('sendentsynchroniser', 'https://connector.example.com')"
-					@change="saveConnectorUrlAndCheck">
-				<span v-if="saved.connectorUrl" class="settings-section__saved">&#x2713;</span>
-			</div>
-			<div class="settings-section__input-row">
-				<button type="button" :disabled="checkingSetup" @click="runConnectorCheck">
-					{{ checkingSetup ? t('sendentsynchroniser', 'Checking…') : t('sendentsynchroniser', 'Check setup') }}
-				</button>
-			</div>
-			<div v-if="setupCheck" class="cn-status">
-				<div v-if="!setupCheck.server_supported" class="cn-status__line cn-status__line--fail">
-					{{ t('sendentsynchroniser', 'This Nextcloud is older than 32 — change notifications require Nextcloud 32 or later.') }}
-				</div>
-				<div :class="['cn-status__line', setupCheck.notify_push.ok ? 'cn-status__line--ok' : 'cn-status__line--fail']">
-					{{ t('sendentsynchroniser', 'notify_push: {message}', { message: setupCheck.notify_push.message }) }}
-				</div>
-				<div :class="['cn-status__line', setupCheck.connector.seen_recently ? 'cn-status__line--ok' : '']">
-					{{ t('sendentsynchroniser', 'Connector: {message}', { message: setupCheck.connector.message }) }}
-				</div>
+				<input v-model="pollInterval"
+					type="number"
+					min="5"
+					max="300"
+					@change="savePollInterval">
+				<span v-if="saved.pollInterval" class="settings-section__saved">&#x2713;</span>
 			</div>
 			<p class="settings-section__hint">
-				{{ t('sendentsynchroniser', 'Where your Exchange Connector runs. Informational — the Connector connects to Nextcloud, not the other way around; shown here and in diagnostics so support can find the peer. The optional outbound webhook below has its own URL.') }}
+				{{ t('sendentsynchroniser', 'How often the Connector checks for changes while notify_push is unavailable. With notify_push it checks on every hint instead.') }}
 			</p>
-		</div>
-
-		<div class="settings-section__field">
-			<label>{{ t('sendentsynchroniser', 'Batching') }}</label>
-			<div class="settings-section__input-row">
-				<label class="cn-inline-label">{{ t('sendentsynchroniser', 'Batch window (s)') }}
-					<input v-model="batchWindow"
-						type="number"
-						min="0"
-						max="10"
-						@change="saveBatching">
-				</label>
-				<label class="cn-inline-label">{{ t('sendentsynchroniser', 'Max references per signal') }}
-					<input v-model="maxRefsPerSignal"
-						type="number"
-						min="1"
-						max="5000"
-						@change="saveBatching">
-				</label>
-				<label class="cn-inline-label">{{ t('sendentsynchroniser', 'Poll interval (s)') }}
-					<input v-model="pollInterval"
-						type="number"
-						min="5"
-						max="300"
-						@change="saveBatching">
-				</label>
-				<span v-if="saved.batching" class="settings-section__saved">&#x2713;</span>
-			</div>
-		</div>
-
-		<div class="settings-section__field">
-			<label>{{ t('sendentsynchroniser', 'Outbound webhook (optional)') }}</label>
-			<div class="settings-section__input-row">
-				<input v-model="webhookUrl"
-					type="url"
-					class="settings-section__input"
-					:placeholder="t('sendentsynchroniser', 'https://connector.example.com/signals')"
-					@change="saveWebhook">
-				<input v-model="webhookSecret"
-					type="password"
-					class="settings-section__input"
-					:placeholder="t('sendentsynchroniser', 'Shared secret (leave empty to keep current)')"
-					@change="saveWebhook">
-				<select v-model="webhookEnabled" @change="saveWebhook">
-					<option value="true">
-						{{ t('sendentsynchroniser', 'Enabled') }}
-					</option>
-					<option value="false">
-						{{ t('sendentsynchroniser', 'Disabled') }}
-					</option>
-				</select>
-				<button type="button"
-					:disabled="webhookEnabled !== 'true'"
-					@click="sendTestWebhook">
-					{{ t('sendentsynchroniser', 'Send test') }}
-				</button>
-				<span v-if="saved.webhook" class="settings-section__saved">&#x2713;</span>
-			</div>
-			<p class="settings-section__hint">
-				{{ t('sendentsynchroniser', 'Additionally POST each signal to this URL, signed with HMAC-SHA256. A hint only — the Connector still reads the change feed. Requires Nextcloud to reach the Connector.') }}
-			</p>
-		</div>
-
-		<div class="settings-section__field">
-			<label>{{ t('sendentsynchroniser', 'Diagnostics') }}</label>
-			<div v-if="health" class="cn-status">
-				<div class="cn-status__line">
-					{{ t('sendentsynchroniser', 'Collections tracked: {n}', { n: String(health.ledger_rows) }) }}
-				</div>
-				<div class="cn-status__line">
-					{{ t('sendentsynchroniser', 'Current cursor: {n}', { n: String(health.cursor) }) }}
-				</div>
-				<div class="cn-status__line">
-					{{ health.ack_at > 0
-						? t('sendentsynchroniser', 'Connector acknowledged cursor {ack} (lag {lag})', { ack: String(health.ack_cursor), lag: String(health.connector_lag) })
-						: t('sendentsynchroniser', 'Connector has not acknowledged yet') }}
-				</div>
-				<div v-if="health.signals_last_hour" class="cn-status__line">
-					{{ t('sendentsynchroniser', 'Signals last hour: {n} flushes · avg {avg} refs/signal · max {max} (truncated ×{tr})', {
-						n: String(health.signals_last_hour.flushes),
-						avg: health.signals_last_hour.flushes > 0
-							? (health.signals_last_hour.refs / health.signals_last_hour.flushes).toFixed(1)
-							: '0',
-						max: String(health.signals_last_hour.max_refs),
-						tr: String(health.signals_last_hour.truncated),
-					}) }}
-				</div>
-			</div>
-			<div class="settings-section__input-row">
-				<button type="button" @click="refreshHealth">
-					{{ t('sendentsynchroniser', 'Refresh') }}
-				</button>
-				<button type="button" :disabled="flushing" @click="flushNow">
-					{{ flushing ? t('sendentsynchroniser', 'Flushing…') : t('sendentsynchroniser', 'Flush now') }}
-				</button>
-				<span v-if="saved.flush" class="settings-section__saved">&#x2713;</span>
-			</div>
 		</div>
 	</div>
 </template>
@@ -224,13 +95,6 @@ import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
 
-interface TestResult {
-	app_enabled: boolean
-	queue_available: boolean
-	daemon: { ok: boolean, at: number, message: string }
-	effective_transport: string
-}
-
 interface SetupCheck {
 	ok: boolean
 	server_supported: boolean
@@ -238,65 +102,29 @@ interface SetupCheck {
 		ok: boolean
 		app_enabled: boolean
 		queue_available: boolean
-		daemon: { ok: boolean, at: number, message: string }
+		daemon: { ok: boolean, message: string }
 		ws_url: string | null
 		websocket_secure: boolean
 		effective_transport: string
 		message: string
 	}
-	connector: {
-		url: string
-		last_ack_cursor: number
-		last_ack_at: number
-		seen_recently: boolean
-		message: string
-	}
-}
-
-interface Health {
-	transport: string
-	notify_push_ok: boolean
-	last_signal_at: number
-	ledger_rows: number
-	cursor: number
-	ack_cursor: number
-	ack_at: number
-	connector_lag: number
-	signals_last_hour?: { flushes: number, refs: number, truncated: number, max_refs: number }
 }
 
 const props = defineProps<{
 	initialTransportMode: string
 	initialBotUser: string
-	initialConnectorUrl: string
-	initialBatchWindow: string
-	initialMaxRefsPerSignal: string
 	initialPollInterval: string
 	notifyPushInstalled: boolean
-	initialWebhookUrl: string
-	initialWebhookEnabled: string
 }>()
 
-const transportMode = ref(props.initialTransportMode)
+// A retired 'notify_push' (forced) value reads as 'auto' on the server too.
+const transportMode = ref(props.initialTransportMode === 'polling' ? 'polling' : 'auto')
 const botUser = ref(props.initialBotUser)
-const connectorUrl = ref(props.initialConnectorUrl)
-const batchWindow = ref(props.initialBatchWindow)
-const maxRefsPerSignal = ref(props.initialMaxRefsPerSignal)
 const pollInterval = ref(props.initialPollInterval)
-const webhookUrl = ref(props.initialWebhookUrl)
-const webhookSecret = ref('')
-const webhookEnabled = ref(props.initialWebhookEnabled === 'true' ? 'true' : 'false')
 
-const testing = ref(false)
-const flushing = ref(false)
-const testResult = ref<TestResult | null>(null)
-const health = ref<Health | null>(null)
-const roundTrip = ref<{ ok: boolean, ms: number } | null>(null)
+const checking = ref(false)
+const check = ref<SetupCheck | null>(null)
 const saveError = ref<string | null>(null)
-const setupCheck = ref<SetupCheck | null>(null)
-const checkingSetup = ref(false)
-
-const notifyPushInstalled = props.notifyPushInstalled
 
 const saved = reactive<Record<string, boolean>>({})
 
@@ -329,123 +157,24 @@ function saveTransportMode() { saveSetting('cnTransportMode', { mode: transportM
 /** */
 function saveBotUser() { saveSetting('cnBotUser', { uid: botUser.value }, 'botUser') }
 /** */
-async function runConnectorCheck() {
-	checkingSetup.value = true
+function savePollInterval() { saveSetting('cnPollInterval', { pollInterval: Number(pollInterval.value) }, 'pollInterval') }
+
+/** The same check as occ sendentsynchroniser:cn-check; probes the push daemon. */
+async function runCheck() {
+	checking.value = true
 	try {
-		const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/cnConnectorCheck')
-		setupCheck.value = (await axios.post(url)).data as SetupCheck
+		const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/cnCheck')
+		check.value = (await axios.post(url)).data as SetupCheck
 	} catch {
-		console.error('Connector setup check failed')
+		console.error('Change-notification setup check failed')
 	} finally {
-		checkingSetup.value = false
-	}
-}
-
-/** */
-async function saveConnectorUrlAndCheck() {
-	await saveSetting('cnConnectorUrl', { url: connectorUrl.value }, 'connectorUrl')
-	await runConnectorCheck()
-}
-
-/** */
-function saveBatching() {
-	saveSetting('cnBatching', {
-		batchWindow: Number(batchWindow.value),
-		maxRefsPerSignal: Number(maxRefsPerSignal.value),
-		pollInterval: Number(pollInterval.value),
-	}, 'batching')
-}
-
-/** */
-async function saveWebhook() {
-	const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/cnWebhook')
-	try {
-		await axios.post(url, {
-			url: webhookUrl.value,
-			secret: webhookSecret.value,
-			enabled: webhookEnabled.value === 'true' ? 1 : 0,
-		})
-		saveError.value = null
-		showSaved('webhook')
-	} catch (e) {
-		const message = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
-		saveError.value = message || t('sendentsynchroniser', 'Saving failed')
-		webhookEnabled.value = 'false' // server rejected the enable; keep the UI honest
-	}
-}
-
-/** */
-async function sendTestWebhook() {
-	try {
-		const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/cnWebhookTest')
-		await axios.post(url)
-		showSaved('webhook')
-	} catch {
-		saveError.value = t('sendentsynchroniser', 'Webhook test failed — is the webhook enabled and saved?')
-		console.error('Webhook test failed')
-	}
-}
-
-/** */
-async function runTest() {
-	testing.value = true
-	try {
-		const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/cnRunTest')
-		testResult.value = (await axios.post(url)).data as TestResult
-		if (testResult.value?.daemon.ok) {
-			await runRoundTrip()
-		}
-	} catch {
-		console.error('notify_push test failed')
-	} finally {
-		testing.value = false
-	}
-}
-
-/** Admin session can't see bot-addressed frames, so this times the publish side only — not end-to-end delivery. */
-async function runRoundTrip() {
-	const started = Date.now()
-	try {
-		const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/cnSendPing')
-		const { data } = await axios.post(url)
-		const ms = Date.now() - started
-		roundTrip.value = { ok: Boolean(data.published), ms }
-		const report = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/cnReportPing')
-		await axios.post(report, { ok: Boolean(data.published), ms })
-	} catch {
-		roundTrip.value = { ok: false, ms: 0 }
-	}
-}
-
-/** */
-async function refreshHealth() {
-	try {
-		const url = generateUrl('/apps/sendentsynchroniser/api/1.0/notify/health')
-		health.value = (await axios.get(url)).data as Health
-	} catch {
-		console.error('Failed to load change-notification health')
-	}
-}
-
-/** */
-async function flushNow() {
-	flushing.value = true
-	try {
-		const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/cnFlushNow')
-		await axios.post(url)
-		showSaved('flush')
-		await refreshHealth()
-	} catch {
-		console.error('Flush failed')
-	} finally {
-		flushing.value = false
+		checking.value = false
 	}
 }
 
 onMounted(() => {
-	refreshHealth()
 	if (props.notifyPushInstalled) {
-		runTest()
+		runCheck()
 	}
 })
 </script>
@@ -507,17 +236,6 @@ onMounted(() => {
 		&--fail {
 			color: var(--color-error, #d91f2d);
 		}
-	}
-}
-
-.cn-inline-label {
-	display: inline-flex;
-	flex-direction: column;
-	margin-right: 12px;
-	font-size: 0.85em;
-
-	input {
-		width: 90px;
 	}
 }
 </style>

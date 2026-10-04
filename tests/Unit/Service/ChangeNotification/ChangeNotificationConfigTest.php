@@ -29,27 +29,27 @@ class ChangeNotificationConfigTest extends TestCase {
 				$this->values[$key] = $value;
 			}
 		);
-		// flushState()/recordFlush() query the database directly; they are
-		// exercised against real MariaDB and PostgreSQL, not mocked here.
-		$this->config = new ChangeNotificationConfig($this->appConfig, $this->createMock(\OCP\IDBConnection::class));
+		$this->config = new ChangeNotificationConfig($this->appConfig);
 	}
 
 	public function testDefaults(): void {
 		$this->assertSame('auto', $this->config->transportMode());
 		$this->assertSame('', $this->config->botUser());
-		$this->assertSame(2, $this->config->batchWindow());
-		$this->assertSame(500, $this->config->maxRefsPerSignal());
 		$this->assertSame(30, $this->config->pollInterval());
-		$this->assertSame(100, $this->config->rereadOverlap());
-		$this->assertSame(0, $this->config->flushedSeq());
 	}
 
-	public function testBatchWindowIsClamped(): void {
-		$this->values['cnBatchWindow'] = '-4';
-		$this->assertSame(0, $this->config->batchWindow());
+	public function testTheRetiredForceNotifyPushModeReadsAsAuto(): void {
+		// notify_push is offered whenever it is configured; there is nothing
+		// left to force.
+		$this->values['cnTransportMode'] = 'notify_push';
 
-		$this->values['cnBatchWindow'] = '99';
-		$this->assertSame(10, $this->config->batchWindow());
+		$this->assertSame('auto', $this->config->transportMode());
+	}
+
+	public function testTheRetiredForceNotifyPushModeCannotBeSet(): void {
+		$this->expectException(\InvalidArgumentException::class);
+
+		$this->config->setTransportMode('notify_push');
 	}
 
 	public function testPollIntervalIsClamped(): void {
@@ -60,12 +60,9 @@ class ChangeNotificationConfigTest extends TestCase {
 		$this->assertSame(300, $this->config->pollInterval());
 	}
 
-	public function testMaxRefsIsClamped(): void {
-		$this->values['cnMaxRefsPerSignal'] = '0';
-		$this->assertSame(1, $this->config->maxRefsPerSignal());
-
-		$this->values['cnMaxRefsPerSignal'] = '100000';
-		$this->assertSame(5000, $this->config->maxRefsPerSignal());
+	public function testSetPollIntervalClampsOnWrite(): void {
+		$this->config->setPollInterval(1);
+		$this->assertSame('5', $this->values['cnPollInterval']);
 	}
 
 	public function testTransportModeFallsBackToAutoOnGarbage(): void {
@@ -76,14 +73,9 @@ class ChangeNotificationConfigTest extends TestCase {
 		$this->assertSame('polling', $this->config->transportMode());
 	}
 
-	public function testFlushedSeqRoundTrips(): void {
-		$this->config->setFlushedSeq(1234);
-		$this->assertSame(1234, $this->config->flushedSeq());
-	}
-
-	public function testFlushedSeqNeverGoesBackwards(): void {
-		$this->config->setFlushedSeq(1234);
-		$this->config->setFlushedSeq(12);
-		$this->assertSame(1234, $this->config->flushedSeq());
+	public function testTheSequenceFloorOnlyRises(): void {
+		$this->config->raiseSeqFloor(1234);
+		$this->config->raiseSeqFloor(12);
+		$this->assertSame(1234, $this->config->seqFloor());
 	}
 }

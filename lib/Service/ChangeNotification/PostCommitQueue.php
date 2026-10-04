@@ -7,12 +7,11 @@ use Psr\Log\LoggerInterface;
 
 /**
  * Holds this request's ledger stamps until the DAV write that produced them
- * has committed (see AfterCommit), then confirms them and offers a flush.
+ * has committed (see AfterCommit), then confirms them and sends the hint.
  *
- * Publishing from inside the DAV transaction would send the signal before the
- * change is visible: a Connector that reacts within milliseconds runs
- * sync-collection, sees nothing new, and only catches up on its slow overlap
- * timer.
+ * A hint sent from inside the DAV transaction would arrive before the change
+ * is visible: a Connector that reacts within milliseconds reads the feed,
+ * finds nothing new, and waits for the next hint.
  *
  * @psalm-import-type Stamp from ChangeLedgerService
  */
@@ -26,7 +25,7 @@ class PostCommitQueue {
 	public function __construct(
 		private AfterCommit $afterCommit,
 		private ChangeLedgerService $ledger,
-		private SignalPublisher $publisher,
+		private NotifyPushTransport $transport,
 		private LoggerInterface $logger,
 	) {}
 
@@ -35,7 +34,7 @@ class PostCommitQueue {
 		foreach ($stamps as $stamp) {
 			$key = $stamp['ref']->key();
 			// The row ends up at the highest stamp this request gave it, so
-			// that is the one a flush could have read past.
+			// that is the one a reader could have read past.
 			if (!isset($this->stamps[$key]) || $stamp['seq'] > $this->stamps[$key]['seq']) {
 				$this->stamps[$key] = $stamp;
 			}
@@ -60,7 +59,7 @@ class PostCommitQueue {
 			return;
 		}
 
-		// Re-stamps must land before the flush reads the ledger.
+		// Re-stamps must land before the hint makes the Connector read the feed.
 		try {
 			$this->ledger->confirm($stamps);
 		} catch (\Throwable $e) {
@@ -71,9 +70,9 @@ class PostCommitQueue {
 		}
 
 		try {
-			$this->publisher->flushIfDue();
+			$this->transport->publishHint();
 		} catch (\Throwable $e) {
-			$this->logger->error('Failed to publish a change signal: ' . $e->getMessage(), [
+			$this->logger->error('Failed to send a change hint: ' . $e->getMessage(), [
 				'exception' => $e,
 				'app' => 'sendentsynchroniser',
 			]);
