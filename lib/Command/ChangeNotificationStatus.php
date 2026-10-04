@@ -51,7 +51,9 @@ class ChangeNotificationStatus extends Command {
 		$output->writeln('max_refs_per_signal: ' . $this->config->maxRefsPerSignal());
 		$output->writeln('ledger_collections: ' . $this->ledger->countCollections());
 		$output->writeln('cursor: ' . $current);
-		$output->writeln('flushed_seq: ' . $this->config->flushedSeq());
+		$flushState = $this->config->flushState();
+		$output->writeln('flushed_seq: ' . $flushState['flushed']);
+		$output->writeln('published_seq: ' . $flushState['published']);
 		$output->writeln('ack_cursor: ' . $ack);
 		$output->writeln('connector_lag: ' . max(0, $current - $ack));
 		$output->writeln('last_signal_at: ' . $this->config->lastSignalAt());

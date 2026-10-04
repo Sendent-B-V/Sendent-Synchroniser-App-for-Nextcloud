@@ -7,6 +7,7 @@ use OCA\SendentSynchroniser\Db\DirtyCollection;
 use OCA\SendentSynchroniser\Service\ChangeNotification\BatchWindowService;
 use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeLedgerService;
 use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeNotificationConfig;
+use OCA\SendentSynchroniser\Service\ChangeNotification\CursorService;
 use OCA\SendentSynchroniser\Service\ChangeNotification\NotifyPushTransport;
 use OCA\SendentSynchroniser\Service\ChangeNotification\SignalBuilder;
 use OCA\SendentSynchroniser\Service\ChangeNotification\SignalPublisher;
@@ -36,6 +37,12 @@ class SignalPublisherTest extends TestCase {
 	/** @var \OCP\BackgroundJob\IJobList&MockObject */
 	private $jobList;
 
+	/** @var CursorService&MockObject */
+	private $cursor;
+
+	/** What the mocked counter reports as handed out so far. */
+	private int $counter = 1000000;
+
 	private SignalPublisher $publisher;
 
 	protected function setUp(): void {
@@ -62,7 +69,11 @@ class SignalPublisherTest extends TestCase {
 		$this->serverConfig = $this->createMock(IConfig::class);
 		$this->serverConfig->method('getSystemValueString')->willReturn('inst');
 		$this->jobList = $this->createMock(\OCP\BackgroundJob\IJobList::class);
-		$metrics = $this->createMock(\OCA\SendentSynchroniser\Service\ChangeNotification\SignalMetrics::class);
+		$this->cursor = $this->createMock(CursorService::class);
+		// Default: the counter is well ahead of every row, so the fence never
+		// caps the watermark unless a test says otherwise.
+		$this->cursor->method('current')->willReturnCallback(fn (): int => $this->counter);
+		$metrics =$this->createMock(\OCA\SendentSynchroniser\Service\ChangeNotification\SignalMetrics::class);
 
 		$this->publisher = new SignalPublisher(
 			$this->window,
@@ -74,6 +85,7 @@ class SignalPublisherTest extends TestCase {
 			$metrics,
 			$this->jobList,
 			new NullLogger(),
+			$this->cursor,
 		);
 	}
 
@@ -86,9 +98,9 @@ class SignalPublisherTest extends TestCase {
 	private function configWithWebhook(): ChangeNotificationConfig {
 		$config = $this->createMock(ChangeNotificationConfig::class);
 		$config->method('maxRefsPerSignal')->willReturn(3);
-		$config->method('flushedSeq')->willReturn(500);
+		$config->method('flushState')->willReturn(['flushed' => 500, 'published' => 500]);
 		$config->method('webhookEnabled')->willReturn(true);
-		$config->expects($this->once())->method('setFlushedSeq')->with(501);
+		$config->expects($this->once())->method('recordFlush')->with(501, 501);
 		return $config;
 	}
 
@@ -119,13 +131,13 @@ class SignalPublisherTest extends TestCase {
 
 	public function testFlushPublishesEverythingAboveTheWatermarkAndAdvancesIt(): void {
 		$this->window->method('tryOpenWindow')->willReturn(true);
-		$this->config->method('flushedSeq')->willReturn(500);
+		$this->config->method('flushState')->willReturn(['flushed' => 500, 'published' => 500]);
 		$this->ledger->method('rows')->with(500, 4)->willReturn([
 			$this->row('personal', 501),
 			$this->row('work', 502),
 		]);
 		$this->transport->method('publish')->willReturn(true);
-		$this->config->expects($this->once())->method('setFlushedSeq')->with(502);
+		$this->config->expects($this->once())->method('recordFlush')->with(502, 502);
 
 		$signal = $this->publisher->flushIfDue();
 
@@ -138,10 +150,10 @@ class SignalPublisherTest extends TestCase {
 
 	public function testFlushWithNothingNewPublishesNothing(): void {
 		$this->window->method('tryOpenWindow')->willReturn(true);
-		$this->config->method('flushedSeq')->willReturn(500);
+		$this->config->method('flushState')->willReturn(['flushed' => 500, 'published' => 500]);
 		$this->ledger->method('rows')->willReturn([]);
 		$this->transport->expects($this->never())->method('publish');
-		$this->config->expects($this->never())->method('setFlushedSeq');
+		$this->config->expects($this->never())->method('recordFlush');
 
 		$this->assertNull($this->publisher->flushIfDue());
 	}
@@ -152,7 +164,7 @@ class SignalPublisherTest extends TestCase {
 		// not in the signal at all, and the cursor points at the ledger's
 		// true position.
 		$this->window->method('tryOpenWindow')->willReturn(true);
-		$this->config->method('flushedSeq')->willReturn(0);
+		$this->config->method('flushState')->willReturn(['flushed' => 0, 'published' => 0]);
 		$this->ledger->method('rows')->with(0, 4)->willReturn([
 			$this->row('a', 1),
 			$this->row('b', 2),
@@ -160,7 +172,7 @@ class SignalPublisherTest extends TestCase {
 			$this->row('d', 4),
 		]);
 		$this->transport->method('publish')->willReturn(true);
-		$this->config->expects($this->once())->method('setFlushedSeq')->with(4);
+		$this->config->expects($this->once())->method('recordFlush')->with(4, 4);
 
 		$signal = $this->publisher->flushIfDue();
 
@@ -173,17 +185,17 @@ class SignalPublisherTest extends TestCase {
 		// A failed publish leaves the refs above the watermark so the sweeper
 		// republishes them. Polling readers never notice either way.
 		$this->window->method('tryOpenWindow')->willReturn(true);
-		$this->config->method('flushedSeq')->willReturn(500);
+		$this->config->method('flushState')->willReturn(['flushed' => 500, 'published' => 500]);
 		$this->ledger->method('rows')->willReturn([$this->row('personal', 501)]);
 		$this->transport->method('publish')->willReturn(false);
-		$this->config->expects($this->never())->method('setFlushedSeq');
+		$this->config->expects($this->never())->method('recordFlush');
 
 		$this->assertNull($this->publisher->flushIfDue());
 	}
 
 	public function testForcedFlushSkipsTheWindow(): void {
 		$this->window->expects($this->never())->method('tryOpenWindow');
-		$this->config->method('flushedSeq')->willReturn(500);
+		$this->config->method('flushState')->willReturn(['flushed' => 500, 'published' => 500]);
 		$this->ledger->method('rows')->willReturn([$this->row('personal', 501)]);
 		$this->transport->method('publish')->willReturn(true);
 
@@ -195,7 +207,7 @@ class SignalPublisherTest extends TestCase {
 		// enabled: the signal is queued for webhook delivery and the watermark
 		// advances — otherwise the sweeper would re-deliver forever.
 		$this->window->method('tryOpenWindow')->willReturn(true);
-		$this->config->method('flushedSeq')->willReturn(500);
+		$this->config->method('flushState')->willReturn(['flushed' => 500, 'published' => 500]);
 		$this->ledger->method('rows')->willReturn([$this->row('personal', 501)]);
 		$this->transport->method('publish')->willReturn(false);
 
@@ -209,6 +221,7 @@ class SignalPublisherTest extends TestCase {
 			$this->createMock(\OCA\SendentSynchroniser\Service\ChangeNotification\SignalMetrics::class),
 			$this->webhookJobList(),
 			new NullLogger(),
+			$this->cursor,
 		);
 
 		$this->assertNotNull($publisher->flushIfDue());
@@ -236,7 +249,7 @@ class SignalPublisherTest extends TestCase {
 
 		$config = $this->createMock(ChangeNotificationConfig::class);
 		$config->method('maxRefsPerSignal')->willReturn(500);
-		$config->method('flushedSeq')->willReturn(500);
+		$config->method('flushState')->willReturn(['flushed' => 500, 'published' => 500]);
 		$config->method('webhookEnabled')->willReturn(true);
 
 		$publisher = new SignalPublisher(
@@ -249,6 +262,7 @@ class SignalPublisherTest extends TestCase {
 			$this->createMock(\OCA\SendentSynchroniser\Service\ChangeNotification\SignalMetrics::class),
 			$jobList,
 			new NullLogger(),
+			$this->cursor,
 		);
 
 		$signal = $publisher->flushIfDue();
@@ -258,6 +272,82 @@ class SignalPublisherTest extends TestCase {
 		$this->assertNotNull($captured);
 		$this->assertTrue($captured['signal']['truncated']);
 		$this->assertSame([], $captured['signal']['refs']);
+	}
+
+	public function testTheFenceIsRaisedBeforeTheLedgerIsRead(): void {
+		// Order matters: a writer that commits after the read must already see
+		// the raised fence, or it cannot know it was read past.
+		$this->counter = 777;
+		$this->config->method('flushState')->willReturn(['flushed' => 500, 'published' => 500]);
+		$calls = [];
+		$this->cursor->method('raiseFence')->willReturnCallback(
+			function (int $seq) use (&$calls): void {
+				$calls[] = 'fence:' . $seq;
+			}
+		);
+		$this->ledger->method('rows')->willReturnCallback(
+			function () use (&$calls): array {
+				$calls[] = 'read';
+				return [];
+			}
+		);
+
+		$this->publisher->flush();
+
+		$this->assertSame(['fence:777', 'read'], $calls);
+	}
+
+	public function testTheWatermarkStopsAtTheFence(): void {
+		// The counter stood at 501 when the flush began. Row 503 was handed out
+		// and committed in the moment between fence and read; row 502 was
+		// handed out then too but is still uncommitted. Moving the watermark to
+		// 503 would bury 502 below it for good, so it stops at 501. The signal
+		// still carries everything it read, with the true cursor.
+		$this->counter = 501;
+		$this->window->method('tryOpenWindow')->willReturn(true);
+		$this->config->method('flushState')->willReturn(['flushed' => 500, 'published' => 500]);
+		$this->ledger->method('rows')->willReturn([
+			$this->row('personal', 501),
+			$this->row('work', 503),
+		]);
+		$this->transport->method('publish')->willReturn(true);
+		$this->config->expects($this->once())->method('recordFlush')->with(501, 503);
+
+		$signal = $this->publisher->flushIfDue();
+
+		$this->assertSame(503, $signal['cursor']);
+		$this->assertCount(2, $signal['refs']);
+	}
+
+	public function testPrevIsThePreviousSignalsCursorNotTheWatermark(): void {
+		// The last signal carried cursor 503 while the watermark stayed at 501.
+		// The next signal must report prev 503: a Connector that saw 503 has
+		// missed nothing. Reporting 501 would also hide a genuinely missed
+		// frame, because prev would never rise above the reader's cursor.
+		$this->window->method('tryOpenWindow')->willReturn(true);
+		$this->config->method('flushState')->willReturn(['flushed' => 501, 'published' => 503]);
+		$this->ledger->method('rows')->with(501, 4)->willReturn([
+			$this->row('work', 503),
+			$this->row('personal', 504),
+		]);
+		$this->transport->method('publish')->willReturn(true);
+
+		$signal = $this->publisher->flushIfDue();
+
+		$this->assertSame(503, $signal['prev']);
+		$this->assertSame(504, $signal['cursor']);
+	}
+
+	public function testARereadOfAlreadySignalledRowsNeverMovesTheCursorBack(): void {
+		$this->window->method('tryOpenWindow')->willReturn(true);
+		$this->config->method('flushState')->willReturn(['flushed' => 501, 'published' => 510]);
+		$this->ledger->method('rows')->willReturn([$this->row('work', 503)]);
+		$this->transport->method('publish')->willReturn(true);
+
+		$signal = $this->publisher->flushIfDue();
+
+		$this->assertSame(510, $signal['prev']);
+		$this->assertSame(510, $signal['cursor']);
 	}
 
 	public function testPinnedPollingWithoutWebhookSkipsTheWindowEntirely(): void {

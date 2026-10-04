@@ -29,7 +29,9 @@ class ChangeNotificationConfigTest extends TestCase {
 				$this->values[$key] = $value;
 			}
 		);
-		$this->config = new ChangeNotificationConfig($this->appConfig);
+		// flushState()/recordFlush() query the database directly; they are
+		// exercised against real MariaDB and PostgreSQL, not mocked here.
+		$this->config = new ChangeNotificationConfig($this->appConfig, $this->createMock(\OCP\IDBConnection::class));
 	}
 
 	public function testDefaults(): void {

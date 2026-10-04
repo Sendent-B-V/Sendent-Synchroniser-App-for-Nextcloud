@@ -85,8 +85,17 @@ class Constants {
 	public const CN_CHANGES_LIMIT_MAX = 1000;
 	public const CN_CHANGES_LIMIT_DEFAULT = 500;
 
-	// Watermark of the last sequence number a live signal carried.
+	// Where the next flush starts reading the ledger. It never passes a sequence
+	// number that might still be uncommitted, so it can trail the published cursor.
 	public const CN_FLUSHED_SEQ_KEY = 'cnFlushedSeq';
+
+	// The cursor the last live signal carried: the next signal's `prev`.
+	public const CN_PUBLISHED_SEQ_KEY = 'cnPublishedSeq';
+
+	// Durable lower bound for the cache counter: every value it legitimately
+	// hands out is above this. A counter value at or below it means the counter
+	// was lost (cache restart/eviction) or fell behind the DB fallback.
+	public const CN_SEQ_FLOOR_KEY = 'cnSeqFloor';
 
 	// Offset added to sndntsync_seq ids when there is no distributed cache.
 	public const CN_SEQ_OFFSET_KEY = 'cnSeqOffset';

@@ -61,7 +61,10 @@ class ChangeNotificationLoadTest extends Command {
 				);
 
 				$t0 = microtime(true);
-				$this->ledger->record([$ref]);
+				// No surrounding transaction here, so each record() has already
+				// committed and can be confirmed straight away, as a DAV request
+				// does after its own commit.
+				$this->ledger->confirm($this->ledger->record([$ref]));
 				$this->publisher->flushIfDue();
 				$latencies[] = (microtime(true) - $t0) * 1000;
 				$total++;

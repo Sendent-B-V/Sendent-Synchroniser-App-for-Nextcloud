@@ -29,15 +29,28 @@ class DirtyCollectionMapper extends QBMapper {
 	 * (insertOrUpdate() keys on the primary key, which we do not know here), so
 	 * the unique index is the arbiter and a concurrent insert is caught and
 	 * retried as an update.
+	 *
+	 * The insert runs in its own nested transaction, which Nextcloud turns into
+	 * a SAVEPOINT when a transaction is already open (the DAV backend's). On
+	 * PostgreSQL any failed statement aborts the enclosing transaction until a
+	 * rollback; rolling back to the savepoint keeps both the retry below and
+	 * the user's own calendar or contact write alive. MySQL/MariaDB and SQLite
+	 * only fail the statement, so there the savepoint is merely cheap.
 	 */
 	public function record(CollectionReference $ref, int $seq, int $now): void {
 		if ($this->touch($ref, $seq, $now) > 0) {
 			return;
 		}
 
+		$this->db->beginTransaction();
 		try {
 			$this->insertRow($ref, $seq, $now);
-		} catch (Exception $e) {
+			$this->db->commit();
+		} catch (\Throwable $e) {
+			$this->db->rollBack();
+			if (!$e instanceof Exception) {
+				throw $e;
+			}
 			// Accept both the specific and the generic constraint reason:
 			// which one a duplicate key maps to differs per DB driver.
 			$reason = $e->getReason();
@@ -55,7 +68,9 @@ class DirtyCollectionMapper extends QBMapper {
 	 * @return int number of rows updated (0 when the collection is new)
 	 *
 	 * change_seq/structural_seq clamp with GREATEST so a slow writer can never
-	 * regress the row below an already-published watermark.
+	 * regress the row below an already-published watermark. sync_token clamps
+	 * too: DAV sync tokens only ever rise per collection, and a late writer or
+	 * a post-commit re-stamp must not replace a newer token with an older one.
 	 *
 	 * MySQL note: updated_at always changes, so this returns >= 1 for an
 	 * existing row except a rare same-second lower-seq call, which returns 0
@@ -64,7 +79,7 @@ class DirtyCollectionMapper extends QBMapper {
 	private function touch(CollectionReference $ref, int $seq, int $now): int {
 		$qb = $this->db->getQueryBuilder();
 		$qb->update(self::TABLE)
-			->set('sync_token', $qb->createNamedParameter($ref->syncToken, IQueryBuilder::PARAM_INT))
+			->set('sync_token', $qb->func()->greatest('sync_token', $qb->expr()->literal($ref->syncToken, IQueryBuilder::PARAM_INT)))
 			->set('change_seq', $qb->func()->greatest('change_seq', $qb->expr()->literal($seq, IQueryBuilder::PARAM_INT)))
 			->set('updated_at', $qb->createNamedParameter($now, IQueryBuilder::PARAM_INT));
 

@@ -6,7 +6,7 @@ namespace OCA\SendentSynchroniser\Listener;
 use OCA\SendentSynchroniser\ChangeNotification\CollectionReference;
 use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeLedgerService;
 use OCA\SendentSynchroniser\Service\ChangeNotification\DavEventReferenceExtractor;
-use OCA\SendentSynchroniser\Service\ChangeNotification\SignalPublisher;
+use OCA\SendentSynchroniser\Service\ChangeNotification\PostCommitQueue;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
 use Psr\Log\LoggerInterface;
@@ -15,6 +15,12 @@ use Psr\Log\LoggerInterface;
  * Runs in-request, inside the DAV backend's still-open atomic() transaction,
  * so it must never throw: a throw here rolls back the user's own calendar or
  * contact write. Every failure is caught and logged.
+ *
+ * Only the ledger write happens here, inside a savepoint, so it commits or
+ * rolls back together with the user's change. Confirming the stamps and
+ * offering a flush wait until that commit (PostCommitQueue): a signal sent
+ * from inside the transaction reaches the Connector before the change is
+ * visible to it.
  *
  * Change notifications require Nextcloud 32+: object-level events are matched
  * only in their OCP\Calendar\Events form (@since 32.0.0). On older servers
@@ -29,7 +35,7 @@ class DavChangeListener implements IEventListener {
 
 	public function __construct(
 		private ChangeLedgerService $ledger,
-		private SignalPublisher $publisher,
+		private PostCommitQueue $afterCommit,
 		private DavEventReferenceExtractor $extractor,
 		private LoggerInterface $logger,
 	) {}
@@ -41,8 +47,7 @@ class DavChangeListener implements IEventListener {
 				return;
 			}
 
-			$this->ledger->record($refs);
-			$this->publisher->flushIfDue();
+			$this->afterCommit->add($this->ledger->record($refs));
 		} catch (\Throwable $e) {
 			// Log the first failure per request at ERROR with the trace; any
 			// further events in the same request degrade to a terse warning so

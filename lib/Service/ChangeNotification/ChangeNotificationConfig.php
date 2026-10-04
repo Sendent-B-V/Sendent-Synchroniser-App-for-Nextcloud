@@ -3,8 +3,11 @@ declare(strict_types=1);
 
 namespace OCA\SendentSynchroniser\Service\ChangeNotification;
 
+use OCA\SendentSynchroniser\AppInfo\Application;
 use OCA\SendentSynchroniser\Constants;
 use OCP\AppFramework\Services\IAppConfig;
+use OCP\DB\QueryBuilder\IQueryBuilder;
+use OCP\IDBConnection;
 
 /**
  * Typed, clamped read/write access to every change-notification app-config key.
@@ -14,6 +17,7 @@ class ChangeNotificationConfig {
 
 	public function __construct(
 		private IAppConfig $appConfig,
+		private IDBConnection $db,
 	) {}
 
 	public function transportMode(): string {
@@ -102,6 +106,72 @@ class ChangeNotificationConfig {
 			return;
 		}
 		$this->appConfig->setAppValue(Constants::CN_FLUSHED_SEQ_KEY, (string)$seq);
+	}
+
+	/**
+	 * Where the next flush starts reading, and the cursor the last signal
+	 * carried, read straight from the database.
+	 *
+	 * App config is cached for the life of the process, and Nextcloud 32+ also
+	 * shares it between requests through the local cache for a few seconds.
+	 * A flush now runs at the end of its request, often seconds after that
+	 * request loaded config, while other requests have flushed in between.
+	 * With cached values it would re-read rows it need not, report a stale
+	 * `prev` that can hide a missed frame from the Connector's gap check,
+	 * and write the watermark backwards. One small query per flush avoids all three.
+	 *
+	 * @return array{flushed: int, published: int}
+	 */
+	public function flushState(): array {
+		$qb = $this->db->getQueryBuilder();
+		$qb->select('configkey', 'configvalue')
+			->from('appconfig')
+			->where($qb->expr()->eq('appid', $qb->createNamedParameter(Application::APPID)))
+			->andWhere($qb->expr()->in('configkey', $qb->createNamedParameter(
+				[Constants::CN_FLUSHED_SEQ_KEY, Constants::CN_PUBLISHED_SEQ_KEY],
+				IQueryBuilder::PARAM_STR_ARRAY
+			)));
+		$result = $qb->executeQuery();
+		$values = [];
+		while (($row = $result->fetch()) !== false) {
+			$values[(string)$row['configkey']] = (string)$row['configvalue'];
+		}
+		$result->closeCursor();
+
+		$flushed = max(0, (int)($values[Constants::CN_FLUSHED_SEQ_KEY] ?? 0));
+		// Installs that predate the separate key published up to the watermark.
+		$published = isset($values[Constants::CN_PUBLISHED_SEQ_KEY]) && is_numeric($values[Constants::CN_PUBLISHED_SEQ_KEY])
+			? max(0, (int)$values[Constants::CN_PUBLISHED_SEQ_KEY])
+			: $flushed;
+
+		return ['flushed' => $flushed, 'published' => $published];
+	}
+
+	/**
+	 * Stores a successful flush. Both values only ever rise, judged against a
+	 * fresh read, so a slower concurrent flusher cannot drag either backwards.
+	 */
+	public function recordFlush(int $flushed, int $published): void {
+		$state = $this->flushState();
+		if ($flushed > $state['flushed']) {
+			$this->appConfig->setAppValue(Constants::CN_FLUSHED_SEQ_KEY, (string)$flushed);
+		}
+		if ($published > $state['published']) {
+			$this->appConfig->setAppValue(Constants::CN_PUBLISHED_SEQ_KEY, (string)$published);
+		}
+	}
+
+	/** 0 means no floor was ever established on this instance. */
+	public function seqFloor(): int {
+		return max(0, (int)$this->appConfig->getAppValue(Constants::CN_SEQ_FLOOR_KEY, '0'));
+	}
+
+	/** Monotonic: the floor only ever rises. */
+	public function raiseSeqFloor(int $floor): void {
+		if ($floor <= $this->seqFloor()) {
+			return;
+		}
+		$this->appConfig->setAppValue(Constants::CN_SEQ_FLOOR_KEY, (string)$floor);
 	}
 
 	public function seqOffset(): int {

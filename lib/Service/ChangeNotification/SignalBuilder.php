@@ -19,8 +19,8 @@ class SignalBuilder {
 	) {}
 
 	/**
-	 * @param int $prev the feed position BEFORE this signal (the watermark the
-	 *                  flush started from). Sequence numbers count events while
+	 * @param int $prev the feed position BEFORE this signal (the cursor of the
+	 *                  previous signal). Sequence numbers count events while
 	 *                  refs are deduped per collection, so `cursor - len(refs)`
 	 *                  tells a reader nothing; `prev` makes gap detection exact:
 	 *                  a reader whose last_cursor < prev has missed a frame.
