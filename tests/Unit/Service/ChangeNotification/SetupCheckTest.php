@@ -75,22 +75,26 @@ class SetupCheckTest extends TestCase {
 		$this->assertFalse($result['server_supported']);
 	}
 
-	public function testADeadDaemonFailsTheCheck(): void {
+	public function testADeadDaemonIsFlaggedButTheFeedStaysUsable(): void {
+		// The Connector polls until the daemon is back, as the message says.
 		$this->notifyPush(false);
 
 		$result = $this->check()->run();
 
-		$this->assertFalse($result['ok']);
+		$this->assertTrue($result['ok']);
+		$this->assertFalse($result['notify_push']['ok']);
 		$this->assertStringContainsString('unreachable', $result['notify_push']['message']);
 	}
 
-	public function testAMissingNotifyPushFailsInAutoMode(): void {
+	public function testAMissingNotifyPushIsFlaggedButTheFeedStaysUsableInAutoMode(): void {
+		// Polling without push is how Nextcloud's own clients work too.
 		$this->noNotifyPush('auto');
 
 		$result = $this->check()->run();
 
 		$this->assertFalse($result['notify_push']['ok']);
-		$this->assertFalse($result['ok']);
+		$this->assertTrue($result['ok']);
+		$this->assertStringContainsString('will poll', $result['notify_push']['message']);
 	}
 
 	public function testAPollingPinnedInstancePassesWithoutNotifyPush(): void {

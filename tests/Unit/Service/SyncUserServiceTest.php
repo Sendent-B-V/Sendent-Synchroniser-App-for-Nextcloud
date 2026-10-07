@@ -23,17 +23,21 @@ class SyncUserServiceTest extends TestCase {
 	private IProvider&MockObject $tokenProvider;
 	private SyncUserMapper&MockObject $mapper;
 	private SchedulingSuppressionService&MockObject $suppression;
+	private IAppConfig&MockObject $appConfig;
+	private IGroupManager&MockObject $groupManager;
 	private SyncUserService $svc;
 
 	protected function setUp(): void {
 		$this->tokenProvider = $this->createMock(IProvider::class);
 		$this->mapper = $this->createMock(SyncUserMapper::class);
 		$this->suppression = $this->createMock(SchedulingSuppressionService::class);
+		$this->appConfig = $this->createMock(IAppConfig::class);
+		$this->groupManager = $this->createMock(IGroupManager::class);
 		$this->svc = new SyncUserService(
 			$this->createMock(IAccountManager::class),
 			'sendentsynchroniser',
-			$this->createMock(IAppConfig::class),
-			$this->createMock(IGroupManager::class),
+			$this->appConfig,
+			$this->groupManager,
 			new NullLogger(),
 			$this->tokenProvider,
 			$this->createMock(IUserManager::class),
@@ -211,5 +215,66 @@ class SyncUserServiceTest extends TestCase {
 		$this->mapper->expects($this->never())->method('update');
 
 		$this->svc->clearResetOffer('alice');
+	}
+
+	private function activeGroups(string $json): void {
+		$this->appConfig->method('getAppValue')->willReturnMap([
+			['activeGroups', '', $json],
+		]);
+	}
+
+	private function syncUserWithStatus(int|string $status): SyncUser {
+		$user = new SyncUser();
+		$user->setActive($status);
+		return $user;
+	}
+
+	public function testAnActivatedUserInAnActiveGroupIsValid(): void {
+		$this->activeGroups('["sync"]');
+		$this->mapper->method('findByUid')->with('alice')->willReturn([$this->syncUserWithStatus(Constants::USER_STATUS_ACTIVE)]);
+		$this->groupManager->method('isInGroup')->with('alice', 'sync')->willReturn(true);
+
+		$this->assertTrue($this->svc->isValidUser('alice'));
+	}
+
+	public function testAUserWhoNeverActivatedIsNotValid(): void {
+		$this->activeGroups('["sync"]');
+		$this->mapper->method('findByUid')->willReturn([]);
+		$this->groupManager->method('isInGroup')->willReturn(true);
+
+		$this->assertFalse($this->svc->isValidUser('alice'));
+	}
+
+	public function testAUserWhoRetractedConsentIsNotValid(): void {
+		$this->activeGroups('["sync"]');
+		$this->mapper->method('findByUid')->willReturn([$this->syncUserWithStatus(Constants::USER_STATUS_NOCONSENT)]);
+		$this->groupManager->method('isInGroup')->willReturn(true);
+
+		$this->assertFalse($this->svc->isValidUser('alice'));
+	}
+
+	public function testAnActivatedUserOutsideEveryActiveGroupIsNotValid(): void {
+		$this->activeGroups('["sync"]');
+		$this->mapper->method('findByUid')->willReturn([$this->syncUserWithStatus(Constants::USER_STATUS_ACTIVE)]);
+		$this->groupManager->method('isInGroup')->willReturn(false);
+
+		$this->assertFalse($this->svc->isValidUser('alice'));
+	}
+
+	public function testAStatusReadBackAsAStringStillCounts(): void {
+		// Depending on the driver, the integer column can come back as "1".
+		$this->activeGroups('["sync"]');
+		$this->mapper->method('findByUid')->willReturn([$this->syncUserWithStatus('1')]);
+		$this->groupManager->method('isInGroup')->willReturn(true);
+
+		$this->assertTrue($this->svc->isValidUser('alice'));
+	}
+
+	public function testMalformedActiveGroupsMakeNobodyValid(): void {
+		$this->activeGroups('not json');
+		$this->mapper->method('findByUid')->willReturn([$this->syncUserWithStatus(Constants::USER_STATUS_ACTIVE)]);
+		$this->groupManager->method('isInGroup')->willReturn(true);
+
+		$this->assertFalse($this->svc->isValidUser('alice'));
 	}
 }

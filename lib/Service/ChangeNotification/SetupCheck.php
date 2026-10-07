@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace OCA\SendentSynchroniser\Service\ChangeNotification;
 
 use OCA\SendentSynchroniser\Constants;
+use OCA\SendentSynchroniser\Listener\DavChangeListener;
 
 /**
  * The setup diagnostic behind the settings page's "Run test" and
@@ -20,24 +21,29 @@ class SetupCheck {
 		private NotifyPushAvailability $availability,
 	) {}
 
-	/** @return array{ok: bool, server_supported: bool, notify_push: array<string, mixed>} */
+	/**
+	 * ok: the change feed works here. Without usable notify_push it still
+	 * does, the Connector polls; notify_push.ok reports that separately.
+	 *
+	 * @return array{ok: bool, server_supported: bool, notify_push: array<string, mixed>}
+	 */
 	public function run(): array {
 		$serverSupported = $this->serverSupportsChangeEvents();
 		$notifyPush = $this->checkNotifyPush();
 
 		return [
-			'ok' => $serverSupported && $notifyPush['ok'],
+			'ok' => $serverSupported,
 			'server_supported' => $serverSupported,
 			'notify_push' => $notifyPush,
 		];
 	}
 
 	/**
-	 * Change notifications need the OCP object-level DAV events, which exist
-	 * since Nextcloud 32. Protected so unit tests can pin either answer.
+	 * The same gate that decides whether the listener is registered at all.
+	 * Protected so unit tests can pin either answer.
 	 */
 	protected function serverSupportsChangeEvents(): bool {
-		return class_exists(\OCP\Calendar\Events\CalendarObjectCreatedEvent::class);
+		return DavChangeListener::serverSupported();
 	}
 
 	/** @return array<string, mixed> */

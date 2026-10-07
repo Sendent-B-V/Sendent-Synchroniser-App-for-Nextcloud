@@ -330,6 +330,17 @@ class CursorServiceTest extends TestCase {
 		$this->assertSame(1849233, $this->service()->current());
 	}
 
+	public function testCurrentCoversNumbersTheDatabaseHandedOutDuringACacheBlip(): void {
+		// inc() failed for a moment and the DB sequence stamped 5002, above
+		// the counter's 5000. /changes caps its cursor at current(): capped at
+		// 5000, a page of such rows is served again and again, and with
+		// has_more a Connector pages the same page forever.
+		$this->memcache->method('get')->willReturn('5000');
+		$this->ledger->method('maxSeq')->willReturn(5002);
+
+		$this->assertSame(5002, $this->service()->current());
+	}
+
 	public function testCurrentFallsBackToTheLedgerHighWaterMark(): void {
 		$this->memcache->method('get')->willReturn(null);
 		$this->ledger->method('maxSeq')->willReturn(4711);

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace OCA\SendentSynchroniser\Db;
 
+use OCA\SendentSynchroniser\Service\ChangeNotification\AfterCommit;
 use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeNotificationConfig;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\DB\QueryBuilder\IQueryBuilder;
@@ -21,10 +22,18 @@ class SequenceMapper {
 
 	public const TABLE = 'sndntsync_seq';
 
+	/**
+	 * The offset this process raised itself. Its durable copy is written only
+	 * after commit (see reseedAbove()), and until then the lift must already
+	 * apply to every number this process hands out.
+	 */
+	private int $knownOffset = 0;
+
 	public function __construct(
 		private IDBConnection $db,
 		private ChangeNotificationConfig $config,
 		private ITimeFactory $time,
+		private AfterCommit $afterCommit,
 	) {}
 
 	public function next(): int {
@@ -34,23 +43,36 @@ class SequenceMapper {
 		]);
 		$qb->executeStatement();
 
-		return $this->config->seqOffset() + (int)$qb->getLastInsertId();
+		return $this->offset() + (int)$qb->getLastInsertId();
 	}
 
 	/**
 	 * Lifts the emitted sequence above $target without rewriting autoincrement state.
 	 *
+	 * Runs inside the DAV backend's transaction, so the offset is stored after
+	 * commit, like CursorService's floor: an app-config write there would hold
+	 * its row lock until the user's write commits, and on PostgreSQL a
+	 * concurrent first insert of the key would fail and drop the change. Until
+	 * then other processes use the previous offset, find their numbers at or
+	 * below the target too, and lift on their own.
+	 *
 	 * Deliberately not atomic: two racing callers each consume their own id via
-	 * next() and compute the offset delta from that id, so whichever write lands
-	 * last still guarantees offset + any future id > target for its own consumed
-	 * value — a lost update can only produce a smaller-than-optimal (never
-	 * insufficient) lift. Do not "fix" this with a lock; it does not need one.
+	 * next() and compute the offset delta from that id, so either stored value
+	 * guarantees offset + any future id > target for its own consumed value.
+	 * The store only ever raises the offset, so the larger lift wins. Do not
+	 * "fix" this with a lock; it does not need one.
 	 */
 	public function reseedAbove(int $target): void {
 		$current = $this->next();
 		if ($current <= $target) {
-			$this->config->setSeqOffset($this->config->seqOffset() + ($target - $current) + 1);
+			$offset = $this->offset() + ($target - $current) + 1;
+			$this->knownOffset = $offset;
+			$this->afterCommit->run(fn () => $this->config->raiseSeqOffset($offset));
 		}
+	}
+
+	private function offset(): int {
+		return max($this->config->seqOffset(), $this->knownOffset);
 	}
 
 	/** Keeps the table from growing without bound. Called by the maintenance job. */

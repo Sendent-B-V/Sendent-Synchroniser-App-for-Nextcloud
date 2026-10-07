@@ -75,6 +75,18 @@ class ChangeNotificationSettingsControllerTest extends TestCase {
 		$this->assertSame(Http::STATUS_OK, $response->getStatus());
 	}
 
+	public function testSetBotUserAcceptsEmptyToRevokeTheFeed(): void {
+		// Clearing the bot user is the only way to take the feed away from the
+		// old account (admins keep access for diagnostics).
+		$this->userManager->expects($this->never())->method('userExists');
+		$this->config->expects($this->once())->method('setBotUser')->with('');
+
+		$response = $this->controller->setBotUser('');
+
+		$this->assertSame(Http::STATUS_OK, $response->getStatus());
+		$this->assertSame(['botUser' => ''], $response->getData());
+	}
+
 	public function testSetPollIntervalStoresAndReturnsTheClampedValue(): void {
 		$this->config->expects($this->once())->method('setPollInterval')->with(1);
 		$this->config->method('pollInterval')->willReturn(5);

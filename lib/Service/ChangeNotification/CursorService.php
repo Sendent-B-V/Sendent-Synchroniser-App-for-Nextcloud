@@ -141,17 +141,27 @@ class CursorService {
 		return is_int($value) ? $value : false;
 	}
 
-	/** The highest sequence number handed out so far; cheap, read-only. */
+	/**
+	 * The highest sequence number handed out so far; read-only. /changes
+	 * raises the fence to it and caps its cursor at it.
+	 *
+	 * The counter alone is not enough: while inc() failed, the DB sequence
+	 * stamped rows above it, and a cursor capped at the counter could never
+	 * pass them. The ledger's highest committed number covers those. Raising
+	 * the fence above the counter costs nothing: next() never hands out a
+	 * number at or below the ledger's highest, so no writer is re-stamped for it.
+	 */
 	public function current(): int {
+		$counter = 0;
 		$cache = $this->memcache();
 		if ($cache !== null) {
 			$value = $cache->get(self::KEY);
 			if (is_numeric($value)) {
-				return (int)$value;
+				$counter = (int)$value;
 			}
 		}
 
-		return $this->ledger->maxSeq();
+		return max($counter, $this->ledger->maxSeq());
 	}
 
 	/**

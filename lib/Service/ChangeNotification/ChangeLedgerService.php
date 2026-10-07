@@ -68,8 +68,8 @@ class ChangeLedgerService {
 	/**
 	 * Must run after the transaction that recorded $stamps has committed.
 	 *
-	 * A /changes read raises the fence to the counter's value before it reads
-	 * the ledger, then never returns a cursor past the fence. A row stamped at
+	 * A /changes read raises the fence to CursorService::current() before it
+	 * reads the ledger, then never returns a cursor past the fence. A row stamped at
 	 * or below the fence that was still uncommitted during that read would
 	 * therefore end up below the Connector's cursor, invisible to every later
 	 * read. Its writer can tell: after its own commit it sees the fence at or

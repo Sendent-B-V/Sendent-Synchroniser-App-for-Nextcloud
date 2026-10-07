@@ -10,7 +10,8 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 /**
  * occ sendentsynchroniser:cn-check — the settings page's "Run test", with an
- * exit code for monitoring and post-deploy gates (0 = usable).
+ * exit code for monitoring and post-deploy gates (0 = usable). Polling instead
+ * of push is usable: it prints WARN, not FAIL.
  */
 class ChangeNotificationCheck extends Command {
 
@@ -33,9 +34,9 @@ class ChangeNotificationCheck extends Command {
 
 		$output->writeln('Server: ' . $mark($result['server_supported'])
 			. ($result['server_supported']
-				? ' Nextcloud 32+ change events available'
+				? ' calendar and contact change events available'
 				: ' this Nextcloud is older than 32 — change notifications require NC 32 or later'));
-		$output->writeln('notify_push: ' . $mark($np['ok']) . ' ' . $np['message']);
+		$output->writeln('notify_push: ' . ($np['ok'] ? 'OK ' : 'WARN') . ' ' . $np['message']);
 		$output->writeln('  app_enabled: ' . $mark($np['app_enabled']));
 		$output->writeln('  queue_available: ' . $mark($np['queue_available']));
 		$output->writeln('  daemon: ' . $mark($np['daemon']['ok']) . ' ' . $np['daemon']['message']);

@@ -26,13 +26,23 @@ use Psr\Log\LoggerInterface;
  * Collections of users the Connector does not sync are never recorded
  * (SyncScope).
  *
- * Change notifications require Nextcloud 32+: object-level events are matched
- * only in their OCP\Calendar\Events form (@since 32.0.0). On older servers
- * those classes do not exist, instanceof evaluates to false, and the feature
- * is simply inert — the app itself still runs. Collection-level and CardDAV
- * events remain in OCA\DAV\Events on every version.
+ * Registered only where serverSupported(); the app itself runs everywhere.
+ * Collection-level and CardDAV events remain in OCA\DAV\Events on every
+ * version.
  */
 class DavChangeListener implements IEventListener {
+
+	/**
+	 * Whether this server dispatches the OCP calendar object events. They are
+	 * tagged @since 32.0.0 but were backported to 31.0.3, which added the
+	 * classes and their dispatch in the same release. Every such server also
+	 * nests transactions as savepoints (Nextcloud 30+), which record() needs:
+	 * without them a failed ledger write marks the DAV transaction
+	 * rollback-only and the user's own write fails on commit.
+	 */
+	public static function serverSupported(): bool {
+		return class_exists(\OCP\Calendar\Events\CalendarObjectCreatedEvent::class);
+	}
 
 	/** True once this request already logged a ledger/publisher failure. */
 	private bool $failureLogged = false;

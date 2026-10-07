@@ -42,10 +42,23 @@ class Application extends App implements IBootstrap {
 			\OCP\Calendar\Events\CalendarObjectMovedToTrashEvent::class,
 			\OCA\SendentSynchroniser\Listener\CalendarObjectTrashScrubListener::class,
 		);
-		// Change notifications require NC 32+: object-level events exist only
-		// as OCP\Calendar\Events (@since 32.0.0). On older servers these
-		// class-strings are never dispatched and the feature is inert.
-		// Collection-level and CardDAV events are OCA on every version.
+		if ($this->changeNotificationsSupported()) {
+			$this->registerChangeListeners($context);
+		}
+		$context->registerNotifierService(Notifier::class);
+	}
+
+	/** Protected so unit tests can pin either answer. */
+	protected function changeNotificationsSupported(): bool {
+		return DavChangeListener::serverSupported();
+	}
+
+	/**
+	 * All or nothing: CardDAV and collection-level events exist on every
+	 * supported version, but a feed that records them without calendar object
+	 * changes misses edits silently, so none are recorded on such a server.
+	 */
+	private function registerChangeListeners(IRegistrationContext $context): void {
 		$changeEvents = [
 			\OCP\Calendar\Events\CalendarObjectCreatedEvent::class,
 			\OCP\Calendar\Events\CalendarObjectUpdatedEvent::class,
@@ -71,7 +84,6 @@ class Application extends App implements IBootstrap {
 		foreach ($changeEvents as $changeEvent) {
 			$context->registerEventListener($changeEvent, DavChangeListener::class);
 		}
-		$context->registerNotifierService(Notifier::class);
 	}
 
 	public function boot(IBootContext $context): void {

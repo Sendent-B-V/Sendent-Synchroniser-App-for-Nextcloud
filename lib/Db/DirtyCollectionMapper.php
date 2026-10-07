@@ -68,7 +68,10 @@ class DirtyCollectionMapper extends QBMapper {
 	 * @return int number of rows updated (0 when the collection is new)
 	 *
 	 * change_seq/structural_seq clamp with GREATEST so a slow writer can never
-	 * move the row back below a cursor a reader already holds.
+	 * move the row back below a cursor a reader already holds. The sequence is
+	 * a bound integer, never literal(): that quotes it, and against a string
+	 * MySQL compares as text (GREATEST(999, '1000') = 999) while SQLite ranks
+	 * any text above any integer (MAX(5000, '1000') = '1000').
 	 *
 	 * MySQL note: updated_at always changes, so this returns >= 1 for an
 	 * existing row except a rare same-second lower-seq call, which returns 0
@@ -77,11 +80,11 @@ class DirtyCollectionMapper extends QBMapper {
 	private function touch(CollectionReference $ref, int $seq, int $now): int {
 		$qb = $this->db->getQueryBuilder();
 		$qb->update(self::TABLE)
-			->set('change_seq', $qb->func()->greatest('change_seq', $qb->expr()->literal($seq, IQueryBuilder::PARAM_INT)))
+			->set('change_seq', $qb->func()->greatest('change_seq', $qb->createNamedParameter($seq, IQueryBuilder::PARAM_INT)))
 			->set('updated_at', $qb->createNamedParameter($now, IQueryBuilder::PARAM_INT));
 
 		if ($ref->collectionChanged) {
-			$qb->set('structural_seq', $qb->func()->greatest('structural_seq', $qb->expr()->literal($seq, IQueryBuilder::PARAM_INT)));
+			$qb->set('structural_seq', $qb->func()->greatest('structural_seq', $qb->createNamedParameter($seq, IQueryBuilder::PARAM_INT)));
 		}
 
 		$qb->where($qb->expr()->eq('principal_uri', $qb->createNamedParameter($ref->principalUri)))

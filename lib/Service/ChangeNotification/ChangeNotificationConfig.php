@@ -71,8 +71,12 @@ class ChangeNotificationConfig {
 		return max(0, (int)$this->appConfig->getAppValue(Constants::CN_SEQ_OFFSET_KEY, '0'));
 	}
 
-	public function setSeqOffset(int $offset): void {
-		$this->appConfig->setAppValue(Constants::CN_SEQ_OFFSET_KEY, (string)max(0, $offset));
+	/** Monotonic: the offset only ever rises. */
+	public function raiseSeqOffset(int $offset): void {
+		if ($offset <= $this->seqOffset()) {
+			return;
+		}
+		$this->appConfig->setAppValue(Constants::CN_SEQ_OFFSET_KEY, (string)$offset);
 	}
 
 	private function clampPollInterval(int $seconds): int {

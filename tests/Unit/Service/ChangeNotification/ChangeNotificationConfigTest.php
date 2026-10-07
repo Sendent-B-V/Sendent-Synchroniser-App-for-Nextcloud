@@ -78,4 +78,12 @@ class ChangeNotificationConfigTest extends TestCase {
 		$this->config->raiseSeqFloor(12);
 		$this->assertSame(1234, $this->config->seqFloor());
 	}
+
+	public function testTheSequenceOffsetOnlyRises(): void {
+		// Two racing reseeds store their own lifts; the smaller one landing
+		// last must not undo the larger.
+		$this->config->raiseSeqOffset(5000);
+		$this->config->raiseSeqOffset(4990);
+		$this->assertSame(5000, $this->config->seqOffset());
+	}
 }

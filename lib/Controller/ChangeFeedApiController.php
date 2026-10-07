@@ -62,10 +62,11 @@ class ChangeFeedApiController extends ApiController {
 	 * this read can see row 11 while row 10 is still uncommitted. Two rules
 	 * keep row 10 from ending up below the Connector's cursor:
 	 *
-	 *  1. Before reading, raise the fence (CursorService) to the counter's
-	 *     current value F. A row numbered at or below F that commits after the
-	 *     read sees the raised fence once its writer has committed, and its
-	 *     writer re-stamps it above F (ChangeLedgerService::confirm()).
+	 *  1. Before reading, raise the fence to the highest number handed out so
+	 *     far, F (CursorService::current()). A row numbered at or below F that
+	 *     commits after the read sees the raised fence once its writer has
+	 *     committed, and its writer re-stamps it above F
+	 *     (ChangeLedgerService::confirm()).
 	 *  2. Never return a cursor above F. A row above F that was still
 	 *     uncommitted is not re-stamped, so it must stay above the cursor;
 	 *     rows above F that this read did see are simply read again next time.

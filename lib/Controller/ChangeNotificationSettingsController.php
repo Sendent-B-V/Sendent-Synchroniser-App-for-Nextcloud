@@ -38,8 +38,9 @@ class ChangeNotificationSettingsController extends ApiController {
 		return new DataResponse(['transportMode' => $mode]);
 	}
 
+	/** Empty clears it: no account then receives hints or reads the feed, admins aside. */
 	public function setBotUser(string $uid): DataResponse {
-		if ($uid === '' || !$this->userManager->userExists($uid)) {
+		if ($uid !== '' && !$this->userManager->userExists($uid)) {
 			return new DataResponse(['message' => 'User does not exist'], Http::STATUS_BAD_REQUEST);
 		}
 

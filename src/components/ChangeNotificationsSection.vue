@@ -46,7 +46,7 @@
 						? t('sendentsynchroniser', 'Push daemon: reachable ✓')
 						: t('sendentsynchroniser', 'Push daemon: {message} ✗', { message: check.notify_push.daemon.message }) }}
 				</div>
-				<div :class="['cn-status__line', check.notify_push.ok ? 'cn-status__line--ok' : 'cn-status__line--fail']">
+				<div :class="['cn-status__line', check.notify_push.ok ? 'cn-status__line--ok' : 'cn-status__line--warn']">
 					{{ check.notify_push.message }}
 				</div>
 			</div>
@@ -68,7 +68,7 @@
 				<span v-if="saved.botUser" class="settings-section__saved">&#x2713;</span>
 			</div>
 			<p class="settings-section__hint">
-				{{ t('sendentsynchroniser', 'This account receives change hints and reads the change feed only; it needs no group memberships, quota or calendars. Create it and an app password for the Connector with occ user:add and occ user:auth-tokens:add; occ user:auth-tokens:list shows when the Connector last used it.') }}
+				{{ t('sendentsynchroniser', 'This account receives change hints and reads the change feed only; it needs no group memberships, quota or calendars. Create it and an app password for the Connector with occ user:add and occ user:auth-tokens:add; occ user:auth-tokens:list shows when the Connector last used it. Leave empty to revoke its access.') }}
 			</p>
 		</div>
 
@@ -121,6 +121,8 @@ const props = defineProps<{
 const transportMode = ref(props.initialTransportMode === 'polling' ? 'polling' : 'auto')
 const botUser = ref(props.initialBotUser)
 const pollInterval = ref(props.initialPollInterval)
+// What the server last stored; an emptied field falls back to it.
+let savedPollInterval = props.initialPollInterval
 
 const checking = ref(false)
 const check = ref<SetupCheck | null>(null)
@@ -138,26 +140,43 @@ function showSaved(key: string) {
  * @param endpoint settings endpoint under /api/1.0/settings/
  * @param data POST body
  * @param feedbackKey feedback key to flash on success
+ * @return the response body, or null when saving failed
  */
-async function saveSetting(endpoint: string, data: Record<string, string | number>, feedbackKey: string) {
+async function saveSetting(endpoint: string, data: Record<string, string | number>, feedbackKey: string): Promise<Record<string, unknown> | null> {
 	const url = generateUrl('/apps/sendentsynchroniser/api/1.0/settings/' + endpoint)
 	try {
-		await axios.post(url, data)
+		const response = await axios.post(url, data)
 		saveError.value = null
 		showSaved(feedbackKey)
+		return response.data
 	} catch (e) {
 		const message = (e as { response?: { data?: { message?: string } } })?.response?.data?.message
 		saveError.value = message || t('sendentsynchroniser', 'Saving failed')
 		console.error('Failed to save setting:', endpoint)
+		return null
 	}
 }
 
 /** */
 function saveTransportMode() { saveSetting('cnTransportMode', { mode: transportMode.value }, 'transportMode') }
-/** */
-function saveBotUser() { saveSetting('cnBotUser', { uid: botUser.value }, 'botUser') }
-/** */
-function savePollInterval() { saveSetting('cnPollInterval', { pollInterval: Number(pollInterval.value) }, 'pollInterval') }
+/** Empty is allowed: it revokes the old account's access to the feed. */
+function saveBotUser() {
+	botUser.value = botUser.value.trim()
+	saveSetting('cnBotUser', { uid: botUser.value }, 'botUser')
+}
+/** Shows the value the server stored, which it clamps to its bounds. */
+async function savePollInterval() {
+	const raw = String(pollInterval.value).trim()
+	if (raw === '' || !Number.isFinite(Number(raw))) {
+		pollInterval.value = savedPollInterval
+		return
+	}
+	const data = await saveSetting('cnPollInterval', { pollInterval: Math.round(Number(raw)) }, 'pollInterval')
+	if (data !== null && data.pollInterval !== undefined) {
+		savedPollInterval = String(data.pollInterval)
+		pollInterval.value = savedPollInterval
+	}
+}
 
 /** The same check as occ sendentsynchroniser:cn-check; probes the push daemon. */
 async function runCheck() {
@@ -231,6 +250,10 @@ onMounted(() => {
 
 		&--ok {
 			color: var(--color-success, #2d7b41);
+		}
+
+		&--warn {
+			color: var(--color-warning-text, #a37200);
 		}
 
 		&--fail {
