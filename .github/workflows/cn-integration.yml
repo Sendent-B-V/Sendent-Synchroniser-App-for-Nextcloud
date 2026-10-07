@@ -1,0 +1,70 @@
+name: Change-notification integration tests
+
+on: [push, pull_request]
+
+# The change feed's concurrency guarantees (fence, savepoints, counter floor)
+# only show with a real database, concurrent processes and Redis as the
+# distributed cache — none of which the SQLite unit-test job has.
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        nextcloud-versions: ['stable32', 'stable35']
+        database: ['mysql', 'pgsql']
+
+    name: ${{ matrix.database }} on ${{ matrix.nextcloud-versions }} integration tests
+
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: nextcloud
+          MARIADB_USER: nextcloud
+          MARIADB_PASSWORD: nextcloud
+        ports: ['3306:3306']
+        options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=5s --health-timeout=5s --health-retries=20
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: nextcloud
+          POSTGRES_USER: nextcloud
+          POSTGRES_PASSWORD: nextcloud
+        ports: ['5432:5432']
+        options: --health-cmd=pg_isready --health-interval=5s --health-timeout=5s --health-retries=20
+      redis:
+        image: redis:7
+        ports: ['6379:6379']
+        options: --health-cmd="redis-cli ping" --health-interval=5s --health-timeout=5s --health-retries=20
+
+    steps:
+    - name: Set up php8.3
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.3'
+        extensions: ctype, curl, dom, gd, gmp, iconv, intl, json, mbstring, openssl, pdo_mysql, pdo_pgsql, posix, redis, xml, zip
+        coverage: none
+    - name: Checkout Nextcloud
+      run: git clone https://github.com/nextcloud/server.git --recursive --depth 1 -b ${{ matrix.nextcloud-versions }} nextcloud
+    - name: Install Nextcloud
+      run: |
+        if [ "${{ matrix.database }}" = "mysql" ]; then PORT=3306; else PORT=5432; fi
+        php -f nextcloud/occ maintenance:install --database ${{ matrix.database }} --database-host 127.0.0.1 --database-port $PORT \
+          --database-name nextcloud --database-user nextcloud --database-pass nextcloud --admin-user admin --admin-pass admin
+        php -f nextcloud/occ config:system:set redis host --value=127.0.0.1
+        php -f nextcloud/occ config:system:set redis port --value=6379 --type=integer
+        php -f nextcloud/occ config:system:set memcache.distributed --value='\OC\Memcache\Redis'
+    - name: Checkout the app
+      uses: actions/checkout@v7
+      with:
+        path: nextcloud/apps/sendentsynchroniser
+    - name: Install dependencies
+      working-directory: nextcloud/apps/sendentsynchroniser
+      run: composer update --no-interaction
+    - name: Enable app
+      run: php -f nextcloud/occ app:enable sendentsynchroniser
+    - name: Run integration tests
+      working-directory: nextcloud/apps/sendentsynchroniser
+      run: vendor/bin/phpunit -c phpunit.integration.xml

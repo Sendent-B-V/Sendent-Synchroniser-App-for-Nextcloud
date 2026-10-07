@@ -26,6 +26,10 @@ if (adminEl) {
 		trashbinScrubEnabled: (state.trashbinScrubEnabled as string) || 'false',
 		mailAppInstalled: state.mailAppInstalled || false,
 		notificationsAppInstalled: state.notificationsAppInstalled || false,
+		cnTransportMode: (state.cnTransportMode as string) || 'auto',
+		cnBotUser: (state.cnBotUser as string) || '',
+		cnPollInterval: (state.cnPollInterval as string) || '30',
+		cnNotifyPushInstalled: Boolean(state.cnNotifyPushInstalled),
 	})
 
 	const pinia = createPinia()

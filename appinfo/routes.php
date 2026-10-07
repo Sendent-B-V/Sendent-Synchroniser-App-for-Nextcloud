@@ -35,6 +35,14 @@ return [
 
 		['name' => 'status_api#index', 'url' => '/api/1.0/status', 'verb' => 'GET'],
 
+		['name' => 'change_feed_api#config', 'url' => '/api/1.0/notify/config', 'verb' => 'GET'],
+		['name' => 'change_feed_api#changes', 'url' => '/api/1.0/notify/changes', 'verb' => 'GET'],
+
+		['name' => 'change_notification_settings#setTransportMode', 'url' => '/api/1.0/settings/cnTransportMode', 'verb' => 'POST'],
+		['name' => 'change_notification_settings#setBotUser', 'url' => '/api/1.0/settings/cnBotUser', 'verb' => 'POST'],
+		['name' => 'change_notification_settings#setPollInterval', 'url' => '/api/1.0/settings/cnPollInterval', 'verb' => 'POST'],
+		['name' => 'change_notification_settings#check', 'url' => '/api/1.0/settings/cnCheck', 'verb' => 'POST'],
+
 		[
 			'name' => 'license_api#preflighted_cors',
 			'url' => '/api/1.0/{path}',

@@ -144,13 +144,9 @@ class SyncUserService {
 	 * 
 	*/
 	public function getAllUsers() {
-		// Gets active groups
-		$activeGroups = $this->appConfig->getAppValue('activeGroups', '');
-		$activeGroups = ($activeGroups !== '' && $activeGroups !== 'null') ? json_decode($activeGroups) : [];
-
 		// Gets all users in active groups
 		$users = [];
-		foreach ($activeGroups as $gid) {
+		foreach ($this->activeGroups() as $gid) {
 			$group = $this->groupManager->get($gid);
 			if ($group === null) {
 				// In this case it's likely the group was removed
@@ -164,7 +160,38 @@ class SyncUserService {
 	}
 
 	/**
-	 * 
+	 * The rule behind getValidUsers() for a single user: an activated sync
+	 * user in one of the active groups.
+	 */
+	public function isValidUser(string $userId): bool {
+		$syncUsers = $this->syncUserMapper->findByUid($userId);
+		if (empty($syncUsers) || (int)$syncUsers[0]->getActive() !== Constants::USER_STATUS_ACTIVE) {
+			return false;
+		}
+
+		foreach ($this->activeGroups() as $gid) {
+			if ($this->groupManager->isInGroup($userId, $gid)) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	/**
+	 * Defensive parse of the activeGroups app config: missing, 'null' or
+	 * malformed JSON all mean no active groups.
+	 *
+	 * @return string[]
+	 */
+	private function activeGroups(): array {
+		$decoded = json_decode($this->appConfig->getAppValue('activeGroups', ''), true);
+
+		return is_array($decoded) ? array_values(array_filter($decoded, 'is_string')) : [];
+	}
+
+	/**
+	 *
 	 * This function returns all inactive users that may use the app
 	 * 
 	*/
