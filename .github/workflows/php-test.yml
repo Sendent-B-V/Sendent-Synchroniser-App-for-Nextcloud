@@ -9,22 +9,6 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # NC 30: PHP 8.1 - 8.3
-          - php-versions: '8.1'
-            nextcloud-versions: 'stable30'
-          - php-versions: '8.2'
-            nextcloud-versions: 'stable30'
-          - php-versions: '8.3'
-            nextcloud-versions: 'stable30'
-          # NC 31: PHP 8.1 - 8.4
-          - php-versions: '8.1'
-            nextcloud-versions: 'stable31'
-          - php-versions: '8.2'
-            nextcloud-versions: 'stable31'
-          - php-versions: '8.3'
-            nextcloud-versions: 'stable31'
-          - php-versions: '8.4'
-            nextcloud-versions: 'stable31'
           # NC 32: PHP 8.1 - 8.4
           - php-versions: '8.1'
             nextcloud-versions: 'stable32'
