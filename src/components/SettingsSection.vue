@@ -12,7 +12,7 @@
 				<input v-model="sharedSecret"
 					:type="showSecret ? 'text' : 'password'"
 					class="settings-section__input"
-					@keyup="debounceSaveSecret">
+					@input="debounceSaveSecret">
 				<button class="settings-section__toggle"
 					@click.prevent="showSecret = !showSecret">
 					<img :src="viewIconUrl" style="height:20px;width:20px">
@@ -50,7 +50,7 @@
 				<input v-model="emailDomain"
 					class="settings-section__input"
 					placeholder="acme.com"
-					@keyup="debounceSaveEmailDomain">
+					@input="debounceSaveEmailDomain">
 				<span v-if="saved.emailDomain" class="settings-section__saved">&#x2713;</span>
 			</div>
 		</div>
@@ -69,7 +69,7 @@
 					<input v-model="defaultCalendar"
 						class="settings-section__input"
 						:placeholder="t('sendentsynchroniser', 'e.g. exchange')"
-						@keyup="debounceSaveDefaultCalendar">
+						@input="debounceSaveDefaultCalendar">
 					<span v-if="saved.defaultCalendar" class="settings-section__saved">&#x2713;</span>
 				</div>
 			</div>
@@ -81,7 +81,7 @@
 					<input v-model="defaultAddressbook"
 						class="settings-section__input"
 						:placeholder="t('sendentsynchroniser', 'e.g. exchange-contacts')"
-						@keyup="debounceSaveDefaultAddressbook">
+						@input="debounceSaveDefaultAddressbook">
 					<span v-if="saved.defaultAddressbook" class="settings-section__saved">&#x2713;</span>
 				</div>
 			</div>
@@ -101,11 +101,14 @@
 						{{ t('sendentsynchroniser', 'Service account (default)') }}
 					</option>
 					<option value="perUserOAuth">
-						{{ t('sendentsynchroniser', 'Per-user OAuth') }}
+						{{ t('sendentsynchroniser', 'Per-user Microsoft sign-in') }}
 					</option>
 				</select>
 				<span v-if="saved.graphAuthMethod" class="settings-section__saved">&#x2713;</span>
 			</div>
+			<p v-if="graphAuthMethod === 'perUserOAuth'" class="settings-section__hint">
+				{{ t('sendentsynchroniser', 'Users who have not signed-in will sync with the Service account.') }}
+			</p>
 		</div>
 
 		<!-- Sync service public URL, only relevant for per-user OAuth. The
@@ -117,12 +120,12 @@
 					type="url"
 					class="settings-section__input"
 					placeholder="https://sync.example.com"
-					@keyup="debounceSaveSyncServicePublicUrl">
+					@input="debounceSaveSyncServicePublicUrl">
 				<span v-if="saved.syncServicePublicUrl" class="settings-section__saved">&#x2713;</span>
 			</div>
 			<p class="settings-section__hint">
 				{{ isSyncServicePublicUrlValid
-					? t('sendentsynchroniser', 'The address where users\' browsers reach the Sendent sync service. It must match the public URL configured on the sync service.')
+					? t('sendentsynchroniser', 'The address where users\' browsers reach the Sendent sync service. It must match the public URL configured on the sync service under DelegatedAuth:Graph:PublicBaseUrl.')
 					: t('sendentsynchroniser', 'Enter an absolute URL starting with https://. It is not saved until it is valid.') }}
 			</p>
 		</div>

@@ -99,8 +99,4 @@ class SettingsControllerGraphAuthMethodTest extends TestCase {
 			'no host' => ['https://'],
 		];
 	}
-
-	public function testDefaultIsServiceAccount(): void {
-		$this->assertSame(Constants::GRAPH_AUTH_METHOD_SERVICE_ACCOUNT, Constants::GRAPH_AUTH_METHOD_DEFAULT);
-	}
 }

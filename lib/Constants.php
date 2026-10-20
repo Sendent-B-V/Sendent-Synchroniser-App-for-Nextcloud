@@ -36,7 +36,7 @@ class Constants {
 	public const TRASHBIN_SCRUB_DEFAULT = 'false';
 	public const SENDENT_PROPERTY_PREFIX = 'X-SENDENT';
 
-	// How the sync service authenticates to Microsoft Graph. Per-user OAuth
+	// How the sync service authenticates to Microsoft Graph. Per-user Microsoft sign-in
 	// lets users sign in with their own Microsoft account; users who have not
 	// signed in keep syncing through the service account.
 	public const GRAPH_AUTH_METHOD_KEY = 'graphAuthMethod';
