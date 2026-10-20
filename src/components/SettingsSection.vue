@@ -87,6 +87,46 @@
 			</div>
 		</div>
 
+		<h3>{{ t('sendentsynchroniser', 'Graph authentication') }}</h3>
+
+		<!-- Graph authentication method. Stored value graphAuthMethod:
+			 'serviceAccount' (default) or 'perUserOAuth'. -->
+		<div class="settings-section__field">
+			<label>{{ t('sendentsynchroniser', 'Authentication method') }}</label>
+			<div class="settings-section__input-row">
+				<select v-model="graphAuthMethod"
+					class="settings-section__input"
+					@change="saveGraphAuthMethod">
+					<option value="serviceAccount">
+						{{ t('sendentsynchroniser', 'Service account (default)') }}
+					</option>
+					<option value="perUserOAuth">
+						{{ t('sendentsynchroniser', 'Per-user OAuth') }}
+					</option>
+				</select>
+				<span v-if="saved.graphAuthMethod" class="settings-section__saved">&#x2713;</span>
+			</div>
+		</div>
+
+		<!-- Sync service public URL, only relevant for per-user OAuth. The
+			 server rejects anything but an absolute https URL. -->
+		<div v-if="graphAuthMethod === 'perUserOAuth'" class="settings-section__field">
+			<label>{{ t('sendentsynchroniser', 'Sync service public URL') }}</label>
+			<div class="settings-section__input-row">
+				<input v-model="syncServicePublicUrl"
+					type="url"
+					class="settings-section__input"
+					placeholder="https://sync.example.com"
+					@keyup="debounceSaveSyncServicePublicUrl">
+				<span v-if="saved.syncServicePublicUrl" class="settings-section__saved">&#x2713;</span>
+			</div>
+			<p class="settings-section__hint">
+				{{ isSyncServicePublicUrlValid
+					? t('sendentsynchroniser', 'The address where users\' browsers reach the Sendent sync service. It must match the public URL configured on the sync service.')
+					: t('sendentsynchroniser', 'Enter an absolute URL starting with https://. It is not saved until it is valid.') }}
+			</p>
+		</div>
+
 		<h3>{{ t('sendentsynchroniser', 'Enrollment reminders') }}</h3>
 
 		<!-- Reminder type -->
@@ -227,7 +267,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { computed, ref, reactive } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl, imagePath } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
@@ -243,6 +283,8 @@ const props = defineProps<{
 	initialDefaultAddressbook: string
 	initialGraphApiMode: string
 	initialTrashbinScrubEnabled: string
+	initialGraphAuthMethod: string
+	initialSyncServicePublicUrl: string
 	mailAppInstalled: boolean
 	notificationsAppInstalled: boolean
 }>()
@@ -257,6 +299,20 @@ const defaultCalendar = ref(props.initialDefaultCalendar)
 const defaultAddressbook = ref(props.initialDefaultAddressbook)
 const graphApiMode = ref(props.initialGraphApiMode === 'false' ? 'false' : 'true')
 const trashbinScrubEnabled = ref(props.initialTrashbinScrubEnabled === 'true' ? 'true' : 'false')
+const graphAuthMethod = ref(props.initialGraphAuthMethod === 'perUserOAuth' ? 'perUserOAuth' : 'serviceAccount')
+const syncServicePublicUrl = ref(props.initialSyncServicePublicUrl)
+const isSyncServicePublicUrlValid = computed(() => {
+	const value = syncServicePublicUrl.value.trim()
+	if (value === '') {
+		return true
+	}
+	try {
+		const url = new URL(value)
+		return url.protocol === 'https:' && url.search === '' && url.hash === ''
+	} catch {
+		return false
+	}
+})
 const showSuppressionWarning = ref(false)
 const showSecret = ref(false)
 const viewIconUrl = imagePath('sendentsynchroniser', 'view.svg')
@@ -334,6 +390,24 @@ function saveNotificationInterval() { saveSetting('notificationInterval', { noti
  * events deleted after the change), so no confirmation gate.
  */
 function saveTrashbinScrub() { saveSetting('trashbinScrub', { trashbinScrubEnabled: trashbinScrubEnabled.value }, 'trashbinScrub') }
+
+/**
+ * Save the Graph authentication method.
+ */
+function saveGraphAuthMethod() { saveSetting('graphAuthMethod', { graphAuthMethod: graphAuthMethod.value }, 'graphAuthMethod') }
+
+let syncServicePublicUrlTimer: ReturnType<typeof setTimeout>
+/**
+ * Save the sync service public URL once typing pauses and the value is valid.
+ */
+function debounceSaveSyncServicePublicUrl() {
+	clearTimeout(syncServicePublicUrlTimer)
+	syncServicePublicUrlTimer = setTimeout(() => {
+		if (isSyncServicePublicUrlValid.value) {
+			saveSetting('syncServicePublicUrl', { syncServicePublicUrl: syncServicePublicUrl.value.trim() }, 'syncServicePublicUrl')
+		}
+	}, 500)
+}
 
 /**
  * Save the toggle. Re-enabling suppression ('true') is the safe direction and

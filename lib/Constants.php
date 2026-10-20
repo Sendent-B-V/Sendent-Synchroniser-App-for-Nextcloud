@@ -35,4 +35,17 @@ class Constants {
 	public const TRASHBIN_SCRUB_KEY = 'trashbinScrubEnabled';
 	public const TRASHBIN_SCRUB_DEFAULT = 'false';
 	public const SENDENT_PROPERTY_PREFIX = 'X-SENDENT';
+
+	// How the sync service authenticates to Microsoft Graph. Per-user OAuth
+	// lets users sign in with their own Microsoft account; users who have not
+	// signed in keep syncing through the service account.
+	public const GRAPH_AUTH_METHOD_KEY = 'graphAuthMethod';
+	public const GRAPH_AUTH_METHOD_SERVICE_ACCOUNT = 'serviceAccount';
+	public const GRAPH_AUTH_METHOD_PER_USER_OAUTH = 'perUserOAuth';
+	public const GRAPH_AUTH_METHOD_DEFAULT = self::GRAPH_AUTH_METHOD_SERVICE_ACCOUNT;
+
+	// Address where users' browsers reach the sync service, used to build the
+	// Microsoft sign-in start link. Must match DelegatedAuth:Graph:PublicBaseUrl
+	// on the sync service. Stored without a trailing slash.
+	public const SYNC_SERVICE_PUBLIC_URL_KEY = 'syncServicePublicUrl';
 }

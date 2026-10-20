@@ -74,6 +74,8 @@
 				:initial-default-addressbook="defaultAddressbook"
 				:initial-graph-api-mode="graphApiMode"
 				:initial-trashbin-scrub-enabled="trashbinScrubEnabled"
+				:initial-graph-auth-method="graphAuthMethod"
+				:initial-sync-service-public-url="syncServicePublicUrl"
 				:mail-app-installed="mailAppInstalled"
 				:notifications-app-installed="notificationsAppInstalled" />
 		</section>
@@ -101,6 +103,8 @@ defineProps<{
 	defaultAddressbook: string
 	graphApiMode: string
 	trashbinScrubEnabled: string
+	graphAuthMethod: string
+	syncServicePublicUrl: string
 	mailAppInstalled: boolean
 	notificationsAppInstalled: boolean
 }>()

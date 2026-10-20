@@ -27,6 +27,8 @@ return [
 		['name' => 'settings#setIMAPSync', 'url' => '/api/1.0/settings/imapsync', 'verb' => 'POST'],
 		['name' => 'settings#setGraphApiMode', 'url' => '/api/1.0/settings/graphApiMode', 'verb' => 'POST'],
 		['name' => 'settings#setTrashbinScrub', 'url' => '/api/1.0/settings/trashbinScrub', 'verb' => 'POST'],
+		['name' => 'settings#setGraphAuthMethod', 'url' => '/api/1.0/settings/graphAuthMethod', 'verb' => 'POST'],
+		['name' => 'settings#setSyncServicePublicUrl', 'url' => '/api/1.0/settings/syncServicePublicUrl', 'verb' => 'POST'],
 		['name' => 'settings#setEmailDomain', 'url' => '/api/1.0/settings/emailDomain', 'verb' => 'POST'],
 		['name' => 'settings#setDefaultCalendar', 'url' => '/api/1.0/settings/defaultCalendar', 'verb' => 'POST'],
 		['name' => 'settings#setDefaultAddressbook', 'url' => '/api/1.0/settings/defaultAddressbook', 'verb' => 'POST'],
