@@ -180,17 +180,12 @@ class SettingsController extends ApiController {
 	}
 
 	/**
-	 * Saves the Graph authentication method.
+	 * Saves the org-wide sign-in mode.
 	 *
-	 * @param string $graphAuthMethod Constants::GRAPH_AUTH_METHOD_SERVICE_ACCOUNT
-	 *                                or Constants::GRAPH_AUTH_METHOD_PER_USER_OAUTH
+	 * @param string $graphAuthMethod one of Constants::GRAPH_AUTH_METHODS
 	 */
 	public function setGraphAuthMethod($graphAuthMethod) {
-		$allowed = [
-			Constants::GRAPH_AUTH_METHOD_SERVICE_ACCOUNT,
-			Constants::GRAPH_AUTH_METHOD_PER_USER_OAUTH,
-		];
-		if (!in_array($graphAuthMethod, $allowed, true)) {
+		if (!in_array($graphAuthMethod, Constants::GRAPH_AUTH_METHODS, true)) {
 			return new JSONResponse(['error' => 'Unknown Graph authentication method'], Http::STATUS_BAD_REQUEST);
 		}
 		return $this->appConfig->setAppValue(Constants::GRAPH_AUTH_METHOD_KEY, $graphAuthMethod);

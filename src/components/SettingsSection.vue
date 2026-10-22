@@ -89,8 +89,9 @@
 
 		<h3>{{ t('sendentsynchroniser', 'Graph authentication') }}</h3>
 
-		<!-- Graph authentication method. Stored value graphAuthMethod:
-			 'serviceAccount' (default) or 'perUserOAuth'. -->
+		<!-- Org-wide sign-in mode. Stored value graphAuthMethod: 'serviceAccount'
+			 (default), 'perUserFallback' or 'perUserStrict'; the sync service reads
+			 it from the active-users response. -->
 		<div class="settings-section__field">
 			<label>{{ t('sendentsynchroniser', 'Authentication method') }}</label>
 			<div class="settings-section__input-row">
@@ -100,20 +101,29 @@
 					<option value="serviceAccount">
 						{{ t('sendentsynchroniser', 'Service account (default)') }}
 					</option>
-					<option value="perUserOAuth">
-						{{ t('sendentsynchroniser', 'Per-user Microsoft sign-in') }}
+					<option value="perUserFallback">
+						{{ t('sendentsynchroniser', 'Per-user Microsoft sign-in (Service account fallback)') }}
+					</option>
+					<option value="perUserStrict">
+						{{ t('sendentsynchroniser', 'Per-user Microsoft sign-in (No fallback)') }}
 					</option>
 				</select>
 				<span v-if="saved.graphAuthMethod" class="settings-section__saved">&#x2713;</span>
 			</div>
-			<p v-if="graphAuthMethod === 'perUserOAuth'" class="settings-section__hint">
+			<p v-if="graphAuthMethod === 'serviceAccount'" class="settings-section__hint">
+				{{ t('sendentsynchroniser', 'Every user syncs through the Service account. Users do not sign in themselves.') }}
+			</p>
+			<p v-if="graphAuthMethod === 'perUserFallback'" class="settings-section__hint">
 				{{ t('sendentsynchroniser', 'Users who have not signed-in will sync with the Service account.') }}
+			</p>
+			<p v-if="graphAuthMethod === 'perUserStrict'" class="settings-section__hint">
+				{{ t('sendentsynchroniser', 'Users who have not signed-in will not sync.') }}
 			</p>
 		</div>
 
-		<!-- Sync service public URL, only relevant for per-user OAuth. The
-			 server rejects anything but an absolute https URL. -->
-		<div v-if="graphAuthMethod === 'perUserOAuth'" class="settings-section__field">
+		<!-- Sync service public URL, only relevant when users sign in themselves
+			 (either per-user mode). The server rejects anything but an absolute https URL. -->
+		<div v-if="isPerUser" class="settings-section__field">
 			<label>{{ t('sendentsynchroniser', 'Sync service public URL') }}</label>
 			<div class="settings-section__input-row">
 				<input v-model="syncServicePublicUrl"
@@ -125,7 +135,7 @@
 			</div>
 			<p class="settings-section__hint">
 				{{ isSyncServicePublicUrlValid
-					? t('sendentsynchroniser', 'The address where users\' browsers reach the Sendent sync service. It must match the public URL configured on the sync service under DelegatedAuth:Graph:PublicBaseUrl.')
+					? t('sendentsynchroniser', 'The address where users\' browsers reach the Sendent sync service. It must be exactly the value configured on the sync service under DelegatedAuth:Graph:PublicBaseUrl.')
 					: t('sendentsynchroniser', 'Enter an absolute URL starting with https://. It is not saved until it is valid.') }}
 			</p>
 		</div>
@@ -302,7 +312,13 @@ const defaultCalendar = ref(props.initialDefaultCalendar)
 const defaultAddressbook = ref(props.initialDefaultAddressbook)
 const graphApiMode = ref(props.initialGraphApiMode === 'false' ? 'false' : 'true')
 const trashbinScrubEnabled = ref(props.initialTrashbinScrubEnabled === 'true' ? 'true' : 'false')
-const graphAuthMethod = ref(props.initialGraphAuthMethod === 'perUserOAuth' ? 'perUserOAuth' : 'serviceAccount')
+// Stored values of the sign-in mode (Constants::GRAPH_AUTH_METHODS). The
+// initial value arrives already normalised by Admin.php; the guard here only
+// protects a stale bundle, with the same rule: unknown means service account.
+const perUserModes = ['perUserFallback', 'perUserStrict']
+const graphAuthMethods = ['serviceAccount', ...perUserModes]
+const graphAuthMethod = ref(graphAuthMethods.includes(props.initialGraphAuthMethod) ? props.initialGraphAuthMethod : 'serviceAccount')
+const isPerUser = computed(() => perUserModes.includes(graphAuthMethod.value))
 const syncServicePublicUrl = ref(props.initialSyncServicePublicUrl)
 const isSyncServicePublicUrlValid = computed(() => {
 	const value = syncServicePublicUrl.value.trim()

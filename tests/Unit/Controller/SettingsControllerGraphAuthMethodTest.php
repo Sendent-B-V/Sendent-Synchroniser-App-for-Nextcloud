@@ -38,28 +38,48 @@ class SettingsControllerGraphAuthMethodTest extends TestCase {
 		);
 	}
 
-	public function testKnownMethodsAreStored(): void {
-		$this->appConfig->expects($this->exactly(2))
+	#[DataProvider('knownMethods')]
+	public function testKnownMethodIsStored(string $method): void {
+		$this->appConfig->expects($this->once())
 			->method('setAppValue')
-			->willReturnCallback(function ($key, $value) {
-				$this->assertSame(Constants::GRAPH_AUTH_METHOD_KEY, $key);
-				$this->assertContains($value, [
-					Constants::GRAPH_AUTH_METHOD_SERVICE_ACCOUNT,
-					Constants::GRAPH_AUTH_METHOD_PER_USER_OAUTH,
-				]);
-			});
+			->with(Constants::GRAPH_AUTH_METHOD_KEY, $method);
 
-		$this->controller->setGraphAuthMethod(Constants::GRAPH_AUTH_METHOD_SERVICE_ACCOUNT);
-		$this->controller->setGraphAuthMethod(Constants::GRAPH_AUTH_METHOD_PER_USER_OAUTH);
+		$this->controller->setGraphAuthMethod($method);
 	}
 
-	public function testUnknownMethodIsRejected(): void {
+	public static function knownMethods(): array {
+		return [
+			'service account' => [Constants::GRAPH_AUTH_METHOD_SERVICE_ACCOUNT],
+			'per user, fallback' => [Constants::GRAPH_AUTH_METHOD_PER_USER_FALLBACK],
+			'per user, strict' => [Constants::GRAPH_AUTH_METHOD_PER_USER_STRICT],
+		];
+	}
+
+	public function testStoredValuesMatchTheContract(): void {
+		// The sync service compares these strings byte for byte (CONTRACTS.md, Q3 and C7).
+		$this->assertSame('serviceAccount', Constants::GRAPH_AUTH_METHOD_SERVICE_ACCOUNT);
+		$this->assertSame('perUserFallback', Constants::GRAPH_AUTH_METHOD_PER_USER_FALLBACK);
+		$this->assertSame('perUserStrict', Constants::GRAPH_AUTH_METHOD_PER_USER_STRICT);
+		$this->assertSame(Constants::GRAPH_AUTH_METHOD_SERVICE_ACCOUNT, Constants::GRAPH_AUTH_METHOD_DEFAULT);
+	}
+
+	#[DataProvider('unknownMethods')]
+	public function testUnknownMethodIsRejected(string $method): void {
 		$this->appConfig->expects($this->never())->method('setAppValue');
 
-		$response = $this->controller->setGraphAuthMethod('delegated');
+		$response = $this->controller->setGraphAuthMethod($method);
 
 		$this->assertInstanceOf(JSONResponse::class, $response);
 		$this->assertSame(Http::STATUS_BAD_REQUEST, $response->getStatus());
+	}
+
+	public static function unknownMethods(): array {
+		return [
+			'free text' => ['delegated'],
+			'empty' => [''],
+			'pre-rename value' => ['perUserOAuth'],
+			'wrong case' => ['PerUserStrict'],
+		];
 	}
 
 	#[DataProvider('acceptedPublicUrls')]
