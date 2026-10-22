@@ -3,6 +3,7 @@
 namespace OCA\SendentSynchroniser\Controller;
 
 use OCP\AppFramework\ApiController;
+use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\Services\IAppConfig;
 use OCP\IGroupManager;
@@ -176,6 +177,41 @@ class SettingsController extends ApiController {
 			Constants::TRASHBIN_SCRUB_KEY,
 			$trashbinScrubEnabled
 		);
+	}
+
+	/**
+	 * Saves the org-wide sign-in mode.
+	 *
+	 * @param string $graphAuthMethod one of Constants::GRAPH_AUTH_METHODS
+	 */
+	public function setGraphAuthMethod($graphAuthMethod) {
+		if (!in_array($graphAuthMethod, Constants::GRAPH_AUTH_METHODS, true)) {
+			return new JSONResponse(['error' => 'Unknown Graph authentication method'], Http::STATUS_BAD_REQUEST);
+		}
+		return $this->appConfig->setAppValue(Constants::GRAPH_AUTH_METHOD_KEY, $graphAuthMethod);
+	}
+
+	/**
+	 * Saves the sync service's public URL.
+	 *
+	 * Empty clears it. Otherwise it must be an absolute https URL without query
+	 * or fragment; a trailing slash is dropped so the start path can be appended.
+	 *
+	 * @param string $syncServicePublicUrl
+	 */
+	public function setSyncServicePublicUrl($syncServicePublicUrl) {
+		$url = rtrim(trim((string)$syncServicePublicUrl), '/');
+		if ($url !== '') {
+			$parts = parse_url($url);
+			if ($parts === false
+				|| strtolower($parts['scheme'] ?? '') !== 'https'
+				|| empty($parts['host'])
+				|| isset($parts['query'])
+				|| isset($parts['fragment'])) {
+				return new JSONResponse(['error' => 'Sync service public URL must be an absolute https URL'], Http::STATUS_BAD_REQUEST);
+			}
+		}
+		return $this->appConfig->setAppValue(Constants::SYNC_SERVICE_PUBLIC_URL_KEY, $url);
 	}
 
 	/**

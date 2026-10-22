@@ -12,7 +12,7 @@
 				<input v-model="sharedSecret"
 					:type="showSecret ? 'text' : 'password'"
 					class="settings-section__input"
-					@keyup="debounceSaveSecret">
+					@input="debounceSaveSecret">
 				<button class="settings-section__toggle"
 					@click.prevent="showSecret = !showSecret">
 					<img :src="viewIconUrl" style="height:20px;width:20px">
@@ -50,7 +50,7 @@
 				<input v-model="emailDomain"
 					class="settings-section__input"
 					placeholder="acme.com"
-					@keyup="debounceSaveEmailDomain">
+					@input="debounceSaveEmailDomain">
 				<span v-if="saved.emailDomain" class="settings-section__saved">&#x2713;</span>
 			</div>
 		</div>
@@ -69,7 +69,7 @@
 					<input v-model="defaultCalendar"
 						class="settings-section__input"
 						:placeholder="t('sendentsynchroniser', 'e.g. exchange')"
-						@keyup="debounceSaveDefaultCalendar">
+						@input="debounceSaveDefaultCalendar">
 					<span v-if="saved.defaultCalendar" class="settings-section__saved">&#x2713;</span>
 				</div>
 			</div>
@@ -81,10 +81,63 @@
 					<input v-model="defaultAddressbook"
 						class="settings-section__input"
 						:placeholder="t('sendentsynchroniser', 'e.g. exchange-contacts')"
-						@keyup="debounceSaveDefaultAddressbook">
+						@input="debounceSaveDefaultAddressbook">
 					<span v-if="saved.defaultAddressbook" class="settings-section__saved">&#x2713;</span>
 				</div>
 			</div>
+		</div>
+
+		<h3>{{ t('sendentsynchroniser', 'Graph authentication') }}</h3>
+
+		<!-- Org-wide sign-in mode. Stored value graphAuthMethod: 'serviceAccount'
+			 (default), 'perUserFallback' or 'perUserStrict'; the sync service reads
+			 it from the active-users response. -->
+		<div class="settings-section__field">
+			<label>{{ t('sendentsynchroniser', 'Authentication method') }}</label>
+			<div class="settings-section__input-row">
+				<select v-model="graphAuthMethod"
+					class="settings-section__input"
+					@change="saveGraphAuthMethod">
+					<option value="serviceAccount">
+						{{ t('sendentsynchroniser', 'Service account (default)') }}
+					</option>
+					<option value="perUserFallback">
+						{{ t('sendentsynchroniser', 'Per-user Microsoft sign-in (Service account fallback)') }}
+					</option>
+					<option value="perUserStrict">
+						{{ t('sendentsynchroniser', 'Per-user Microsoft sign-in (No fallback)') }}
+					</option>
+				</select>
+				<span v-if="saved.graphAuthMethod" class="settings-section__saved">&#x2713;</span>
+			</div>
+			<p v-if="graphAuthMethod === 'serviceAccount'" class="settings-section__hint">
+				{{ t('sendentsynchroniser', 'Every user syncs through the Service account. Users do not sign in themselves.') }}
+			</p>
+			<p v-if="graphAuthMethod === 'perUserFallback'" class="settings-section__hint">
+				{{ t('sendentsynchroniser', 'Users who have not signed-in will sync with the Service account.') }}
+			</p>
+			<p v-if="graphAuthMethod === 'perUserStrict'" class="settings-section__hint">
+				{{ t('sendentsynchroniser', 'Users who have not signed-in will not sync.') }}
+			</p>
+		</div>
+
+		<!-- Sync service public URL, only relevant when users sign in themselves
+			 (either per-user mode). The server rejects anything but an absolute https URL. -->
+		<div v-if="isPerUser" class="settings-section__field">
+			<label>{{ t('sendentsynchroniser', 'Sync service public URL') }}</label>
+			<div class="settings-section__input-row">
+				<input v-model="syncServicePublicUrl"
+					type="url"
+					class="settings-section__input"
+					placeholder="https://sync.example.com"
+					@input="debounceSaveSyncServicePublicUrl">
+				<span v-if="saved.syncServicePublicUrl" class="settings-section__saved">&#x2713;</span>
+			</div>
+			<p class="settings-section__hint">
+				{{ isSyncServicePublicUrlValid
+					? t('sendentsynchroniser', 'The address where users\' browsers reach the Sendent sync service. It must be exactly the value configured on the sync service under DelegatedAuth:Graph:PublicBaseUrl.')
+					: t('sendentsynchroniser', 'Enter an absolute URL starting with https://. It is not saved until it is valid.') }}
+			</p>
 		</div>
 
 		<h3>{{ t('sendentsynchroniser', 'Enrollment reminders') }}</h3>
@@ -227,7 +280,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { computed, ref, reactive } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl, imagePath } from '@nextcloud/router'
 import axios from '@nextcloud/axios'
@@ -243,6 +296,8 @@ const props = defineProps<{
 	initialDefaultAddressbook: string
 	initialGraphApiMode: string
 	initialTrashbinScrubEnabled: string
+	initialGraphAuthMethod: string
+	initialSyncServicePublicUrl: string
 	mailAppInstalled: boolean
 	notificationsAppInstalled: boolean
 }>()
@@ -257,6 +312,26 @@ const defaultCalendar = ref(props.initialDefaultCalendar)
 const defaultAddressbook = ref(props.initialDefaultAddressbook)
 const graphApiMode = ref(props.initialGraphApiMode === 'false' ? 'false' : 'true')
 const trashbinScrubEnabled = ref(props.initialTrashbinScrubEnabled === 'true' ? 'true' : 'false')
+// Stored values of the sign-in mode (Constants::GRAPH_AUTH_METHODS). The
+// initial value arrives already normalised by Admin.php; the guard here only
+// protects a stale bundle, with the same rule: unknown means service account.
+const perUserModes = ['perUserFallback', 'perUserStrict']
+const graphAuthMethods = ['serviceAccount', ...perUserModes]
+const graphAuthMethod = ref(graphAuthMethods.includes(props.initialGraphAuthMethod) ? props.initialGraphAuthMethod : 'serviceAccount')
+const isPerUser = computed(() => perUserModes.includes(graphAuthMethod.value))
+const syncServicePublicUrl = ref(props.initialSyncServicePublicUrl)
+const isSyncServicePublicUrlValid = computed(() => {
+	const value = syncServicePublicUrl.value.trim()
+	if (value === '') {
+		return true
+	}
+	try {
+		const url = new URL(value)
+		return url.protocol === 'https:' && url.search === '' && url.hash === ''
+	} catch {
+		return false
+	}
+})
 const showSuppressionWarning = ref(false)
 const showSecret = ref(false)
 const viewIconUrl = imagePath('sendentsynchroniser', 'view.svg')
@@ -334,6 +409,24 @@ function saveNotificationInterval() { saveSetting('notificationInterval', { noti
  * events deleted after the change), so no confirmation gate.
  */
 function saveTrashbinScrub() { saveSetting('trashbinScrub', { trashbinScrubEnabled: trashbinScrubEnabled.value }, 'trashbinScrub') }
+
+/**
+ * Save the Graph authentication method.
+ */
+function saveGraphAuthMethod() { saveSetting('graphAuthMethod', { graphAuthMethod: graphAuthMethod.value }, 'graphAuthMethod') }
+
+let syncServicePublicUrlTimer: ReturnType<typeof setTimeout>
+/**
+ * Save the sync service public URL once typing pauses and the value is valid.
+ */
+function debounceSaveSyncServicePublicUrl() {
+	clearTimeout(syncServicePublicUrlTimer)
+	syncServicePublicUrlTimer = setTimeout(() => {
+		if (isSyncServicePublicUrlValid.value) {
+			saveSetting('syncServicePublicUrl', { syncServicePublicUrl: syncServicePublicUrl.value.trim() }, 'syncServicePublicUrl')
+		}
+	}, 500)
+}
 
 /**
  * Save the toggle. Re-enabling suppression ('true') is the safe direction and

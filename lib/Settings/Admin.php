@@ -117,6 +117,10 @@ class Admin implements ISettings {
 		$params['defaultAddressbook'] = $this->appConfig->getAppValue('defaultAddressbook', '');
 		$params['graphApiMode'] = $this->appConfig->getAppValue(Constants::DISABLE_ITIP_IMIP_KEY, Constants::DISABLE_ITIP_IMIP_DEFAULT);
 		$params['trashbinScrubEnabled'] = $this->appConfig->getAppValue(Constants::TRASHBIN_SCRUB_KEY, Constants::TRASHBIN_SCRUB_DEFAULT);
+		$params['graphAuthMethod'] = Constants::normaliseGraphAuthMethod(
+			$this->appConfig->getAppValue(Constants::GRAPH_AUTH_METHOD_KEY, Constants::GRAPH_AUTH_METHOD_DEFAULT)
+		);
+		$params['syncServicePublicUrl'] = $this->appConfig->getAppValue(Constants::SYNC_SERVICE_PUBLIC_URL_KEY, '');
 
 		return $params;
 	}

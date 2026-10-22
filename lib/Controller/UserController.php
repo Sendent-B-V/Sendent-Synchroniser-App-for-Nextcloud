@@ -269,7 +269,14 @@ class UserController extends Controller {
 			$offset = ($page - 1) * $limit;
 			$pagedUsers = array_slice($activeUsers, $offset, $limit);
 
+			// The org-wide sign-in mode rides along on the paged shape only; the
+			// flat array below has no named slots (CONTRACTS.md, C7).
+			$signInMode = Constants::normaliseGraphAuthMethod(
+				$this->appConfig->getAppValue(Constants::GRAPH_AUTH_METHOD_KEY, Constants::GRAPH_AUTH_METHOD_DEFAULT)
+			);
+
 			return new JSONResponse([
+				'signInMode' => $signInMode,
 				'data' => array_values($pagedUsers),
 				'pagination' => [
 					'page' => $page,

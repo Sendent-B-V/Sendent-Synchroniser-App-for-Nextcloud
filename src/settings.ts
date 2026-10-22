@@ -24,6 +24,8 @@ if (adminEl) {
 		defaultAddressbook: (state.defaultAddressbook as string) || '',
 		graphApiMode: (state.graphApiMode as string) || 'true',
 		trashbinScrubEnabled: (state.trashbinScrubEnabled as string) || 'false',
+		graphAuthMethod: (state.graphAuthMethod as string) || 'serviceAccount',
+		syncServicePublicUrl: (state.syncServicePublicUrl as string) || '',
 		mailAppInstalled: state.mailAppInstalled || false,
 		notificationsAppInstalled: state.notificationsAppInstalled || false,
 	})
