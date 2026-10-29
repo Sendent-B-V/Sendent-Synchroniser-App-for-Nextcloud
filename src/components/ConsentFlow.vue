@@ -32,17 +32,18 @@
 				</button>
 			</div>
 
-			<p v-if="microsoftResultText"
-				:class="{ 'consent-flow__error': microsoftResultFailed }"
-				role="status">
-				{{ microsoftResultText }}
-			</p>
-
-			<div v-if="showConnectMicrosoft" class="consent-flow__microsoft">
-				<p>{{ t('sendentsynchroniser', 'Your organisation synchronises with your own Microsoft account. Sign in once so the synchronisation can act on your behalf.') }}</p>
-				<button class="primary" :disabled="busy" @click="connectMicrosoft">
-					{{ t('sendentsynchroniser', 'Connect Microsoft account') }}
-				</button>
+			<div v-if="showConnectMicrosoft || microsoftResultText" class="consent-flow__microsoft">
+				<template v-if="showConnectMicrosoft">
+					<p>{{ t('sendentsynchroniser', 'Your organisation synchronises with your own Microsoft account. Sign in once so the synchronisation can act on your behalf.') }}</p>
+					<button class="primary" :disabled="busy" @click="connectMicrosoft">
+						{{ t('sendentsynchroniser', 'Connect Microsoft account') }}
+					</button>
+				</template>
+				<p v-if="microsoftResultText"
+					:class="microsoftResultFailed ? 'consent-flow__error' : 'consent-flow__success'"
+					role="status">
+					{{ microsoftResultText }}
+				</p>
 			</div>
 		</div>
 	</div>
@@ -370,5 +371,13 @@ async function handleClick() {
 	margin-top: 20px;
 	padding-top: 16px;
 	border-top: 1px solid var(--color-border);
+}
+
+.consent-flow__microsoft button + p {
+	margin-top: 12px;
+}
+
+.consent-flow__success {
+	color: var(--color-success-text, #2d7d46);
 }
 </style>
