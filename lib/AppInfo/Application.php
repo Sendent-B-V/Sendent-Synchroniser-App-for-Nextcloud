@@ -6,6 +6,8 @@ use OCA\Files\Event\LoadAdditionalScriptsEvent;
 use OCA\SendentSynchroniser\Listener\TokenInvalidInjector;
 use OCA\SendentSynchroniser\Notification\Notifier;
 use OCA\SendentSynchroniser\Service\InitialLoadManager;
+use OCA\SendentSynchroniser\Service\NonceSource;
+use OCA\SendentSynchroniser\Service\RandomNonceSource;
 use OCP\AppFramework\App;
 use OCP\AppFramework\Bootstrap\IBootContext;
 use OCP\AppFramework\Bootstrap\IBootstrap;
@@ -42,6 +44,9 @@ class Application extends App implements IBootstrap {
 			\OCA\SendentSynchroniser\Listener\CalendarObjectTrashScrubListener::class,
 		);
 		$context->registerNotifierService(Notifier::class);
+		// StartLinkBuilder depends on the NonceSource interface; tell the
+		// container which implementation to build for it.
+		$context->registerService(NonceSource::class, fn () => new RandomNonceSource());
 	}
 
 	public function boot(IBootContext $context): void {
