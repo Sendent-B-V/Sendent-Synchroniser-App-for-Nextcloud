@@ -31,14 +31,28 @@
 					{{ secondaryLabel }}
 				</button>
 			</div>
+
+			<p v-if="microsoftResultText"
+				:class="{ 'consent-flow__error': microsoftResultFailed }"
+				role="status">
+				{{ microsoftResultText }}
+			</p>
+
+			<div v-if="showConnectMicrosoft" class="consent-flow__microsoft">
+				<p>{{ t('sendentsynchroniser', 'Your organisation synchronises with your own Microsoft account. Sign in once so the synchronisation can act on your behalf.') }}</p>
+				<button class="primary" :disabled="busy" @click="connectMicrosoft">
+					{{ t('sendentsynchroniser', 'Connect Microsoft account') }}
+				</button>
+			</div>
 		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
+import { getRequestToken } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
 
 type Step = 'idle' | 'step1' | 'reset' | 'step2' | 'complete'
@@ -46,6 +60,8 @@ type Step = 'idle' | 'step1' | 'reset' | 'step2' | 'complete'
 const props = defineProps<{
 	activeUser: boolean
 	isModal?: boolean
+	/** Org-wide sign-in mode; absent in the modal, which learns it from the activate response. */
+	graphAuthMethod?: string
 }>()
 
 const emit = defineEmits<{
@@ -63,6 +79,82 @@ const busy = ref(false)
 const errorText = ref('')
 // Set once the server answered OK or Skipped: further clicks only activate.
 const resetSettled = ref(false)
+
+/**
+ * True for both per-user modes; anything else (including unknown) is the service account.
+ *
+ * @param mode the stored sign-in mode as the server reports it
+ */
+function isPerUserMode(mode?: string): boolean {
+	return mode === 'perUserFallback' || mode === 'perUserStrict'
+}
+
+const perUserMode = ref(isPerUserMode(props.graphAuthMethod))
+const microsoftResultText = ref('')
+const microsoftResultFailed = ref(false)
+
+// Shown once the user is a sync user: either already active on the settings
+// page, or just activated (step2 / complete) on either mount point.
+const showConnectMicrosoft = computed(() => perUserMode.value
+	&& ((step.value === 'idle' && props.activeUser) || step.value === 'step2' || step.value === 'complete'))
+
+/**
+ * Sends the browser to the signed start link. A plain navigation, not a fetch:
+ * the server answers with a redirect to the sync service, and the CSRF check
+ * only passes when the request token travels as a query parameter.
+ */
+function connectMicrosoft() {
+	const url = generateUrl('/apps/sendentsynchroniser/api/1.0/graphAuth/start') + '?requesttoken=' + encodeURIComponent(getRequestToken() ?? '')
+	window.location.assign(url)
+}
+
+/**
+ * Text for a failed return. The service sends the reason lower-cased: the
+ * start checks give malformed, signature, expired, replayed; the callback
+ * gives unknownstate, expiredstate, cancelled, accountmismatch, redemptionfailed.
+ *
+ * @param reason the lower-cased reason from the msauth=failed redirect
+ */
+function microsoftFailureText(reason: string): string {
+	switch (reason) {
+	case 'cancelled':
+		return t('sendentsynchroniser', 'The Microsoft sign-in was cancelled. Nothing has changed; you can try again whenever you are ready.')
+	case 'accountmismatch':
+		return t('sendentsynchroniser', 'You signed in with a Microsoft account that is not the mailbox linked to your Nextcloud account. Please sign in with your work account.')
+	case 'expired':
+	case 'expiredstate':
+		return t('sendentsynchroniser', 'The Microsoft sign-in took too long and has expired. Please try again.')
+	default:
+		return t('sendentsynchroniser', 'The Microsoft sign-in failed. Please try again or contact your administrator.') + ' (' + reason + ')'
+	}
+}
+
+/**
+ * Reads msauth / reason from the page URL after the service redirected back,
+ * shows the matching text, and strips the two parameters so a refresh does not
+ * repeat the message.
+ */
+function readMicrosoftReturnFlag() {
+	const params = new URLSearchParams(window.location.search)
+	const result = params.get('msauth')
+	if (result === null) return
+
+	if (result === 'ok') {
+		microsoftResultText.value = t('sendentsynchroniser', 'Your Microsoft account is connected. Synchronisation will use it from now on.')
+		microsoftResultFailed.value = false
+	} else {
+		microsoftResultText.value = microsoftFailureText(params.get('reason') ?? 'unknown')
+		microsoftResultFailed.value = true
+	}
+
+	params.delete('msauth')
+	params.delete('reason')
+	const query = params.toString()
+	const clean = window.location.pathname + (query ? '?' + query : '') + window.location.hash
+	window.history.replaceState(window.history.state, '', clean)
+}
+
+onMounted(readMicrosoftReturnFlag)
 
 // Set initial state based on activeUser
 if (props.activeUser) {
@@ -83,6 +175,9 @@ async function doActivate() {
 		const url = generateUrl('/apps/sendentsynchroniser/api/1.0/user/activate')
 		const response = await axios.get(url)
 		if (response.status !== 200) return
+
+		// The modal has no initial state; this is where it learns the sign-in mode.
+		perUserMode.value = isPerUserMode(response.data.graphAuthMethod as string | undefined)
 
 		// activate() silently ensures default collections exist (admin-configured)
 		// No user selection — collections are managed by the administrator
@@ -269,5 +364,11 @@ async function handleClick() {
 .consent-flow__error {
 	color: var(--color-error-text, #b00020);
 	margin-bottom: 12px;
+}
+
+.consent-flow__microsoft {
+	margin-top: 20px;
+	padding-top: 16px;
+	border-top: 1px solid var(--color-border);
 }
 </style>

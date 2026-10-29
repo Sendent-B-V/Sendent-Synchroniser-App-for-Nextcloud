@@ -2,6 +2,7 @@
 	<div id="sendentsynchroniser-user-settings">
 		<h2>{{ t('sendentsynchroniser', 'Synchronizer') }}</h2>
 		<ConsentFlow :active-user="isActive"
+			:graph-auth-method="graphAuthMethod"
 			@consent-changed="isActive = true" />
 		<RetractConsent v-if="isActive" />
 	</div>
@@ -15,6 +16,7 @@ import RetractConsent from './RetractConsent.vue'
 
 const props = defineProps<{
 	activeUser: boolean
+	graphAuthMethod: string
 }>()
 
 const isActive = ref(props.activeUser)
