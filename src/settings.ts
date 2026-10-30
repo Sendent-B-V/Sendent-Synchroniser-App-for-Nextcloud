@@ -49,6 +49,7 @@ if (userEl) {
 
 	const app = createApp(UserSettings, {
 		activeUser: state.activeUser || false,
+		graphAuthMethod: (state.graphAuthMethod as string) || 'serviceAccount',
 	})
 
 	const pinia = createPinia()

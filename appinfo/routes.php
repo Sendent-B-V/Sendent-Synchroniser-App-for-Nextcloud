@@ -37,6 +37,9 @@ return [
 
 		['name' => 'status_api#index', 'url' => '/api/1.0/status', 'verb' => 'GET'],
 
+		// Browser navigation, redirects to the sync service's Microsoft sign-in.
+		['name' => 'graph_auth#start', 'url' => '/api/1.0/graphAuth/start', 'verb' => 'GET'],
+
 		[
 			'name' => 'license_api#preflighted_cors',
 			'url' => '/api/1.0/{path}',

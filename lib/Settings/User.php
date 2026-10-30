@@ -62,8 +62,12 @@ class User implements ISettings {
 		$syncUsers = $this->syncUserMapper->findByUid($this->userId);
 		$activeUser = !empty($syncUsers) && $syncUsers[0]->getActive() === Constants::USER_STATUS_ACTIVE;
 
+		// The consent flow shows the Connect Microsoft button from this.
+		$graphAuthMethod = Constants::normaliseGraphAuthMethod($this->appConfig->getAppValue(Constants::GRAPH_AUTH_METHOD_KEY, ''));
+
 		$this->initialState->provideInitialState('user', [
 			'activeUser' => $activeUser,
+			'graphAuthMethod' => $graphAuthMethod,
 		]);
 
 		return new TemplateResponse('sendentsynchroniser', 'indexUser');

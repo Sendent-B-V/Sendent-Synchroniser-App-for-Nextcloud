@@ -179,9 +179,13 @@ class UserController extends Controller {
 		// Accepting and declining the calendar clean-up both end here.
 		$this->syncUserService->clearResetOffer($credentials->getUID());
 
+		// The consent modal has no initial state and learns the sign-in mode here.
+		$graphAuthMethod = Constants::normaliseGraphAuthMethod($this->appConfig->getAppValue(Constants::GRAPH_AUTH_METHOD_KEY, ''));
+
 		return new JSONResponse([
 			'emailDomain' =>  '@' . $this->appConfig->getAppValue('emailDomain', ''),
 			'shouldAskMailSync' => ($this->appManager->isInstalled('mail') && ($this->appConfig->getAppValue('IMAPSyncEnabled', "false") === 'true')),
+			'graphAuthMethod' => $graphAuthMethod,
 		]);
 
 	}
