@@ -7,9 +7,18 @@
 		</template>
 		<template v-else-if="!activeUser && step === 'idle'">
 			<p class="consent-flow__message">
-				{{ t('sendentsynchroniser', 'To ensure the seamless operation of the Nextcloud Exchange Connector, we need your permission to synchronize your Outlook with Nextcloud. This process consists of one or two simple step(s) and should only take a minute of your time.') }}
+				{{ t('sendentsynchroniser', 'To ensure the seamless operation of the Nextcloud Exchange Connector, we need your permission to synchronize your Outlook with Nextcloud. This process consists of a few simple steps and should only take a minute of your time.') }}
 			</p>
 		</template>
+		<!-- The service sends the browser back here, so the flow is idle again when the result arrives. -->
+		<div v-if="microsoftResultText && step === 'idle'" class="consent-flow__result">
+			<p :class="microsoftResultFailed ? 'consent-flow__error' : 'consent-flow__success'" role="status">
+				{{ microsoftResultText }}
+			</p>
+			<button v-if="microsoftResultFailed" class="primary" @click="connectMicrosoft">
+				{{ t('sendentsynchroniser', 'Try again') }}
+			</button>
+		</div>
 
 		<div class="consent-flow__content">
 			<h3 v-if="title">
@@ -31,20 +40,6 @@
 					{{ secondaryLabel }}
 				</button>
 			</div>
-
-			<div v-if="showConnectMicrosoft || microsoftResultText" class="consent-flow__microsoft">
-				<template v-if="showConnectMicrosoft">
-					<p>{{ t('sendentsynchroniser', 'Your organisation synchronises with your own Microsoft account. Sign in once so the synchronisation can act on your behalf.') }}</p>
-					<button class="primary" :disabled="busy" @click="connectMicrosoft">
-						{{ t('sendentsynchroniser', 'Connect Microsoft account') }}
-					</button>
-				</template>
-				<p v-if="microsoftResultText"
-					:class="microsoftResultFailed ? 'consent-flow__error' : 'consent-flow__success'"
-					role="status">
-					{{ microsoftResultText }}
-				</p>
-			</div>
 		</div>
 	</div>
 </template>
@@ -56,7 +51,13 @@ import { generateUrl } from '@nextcloud/router'
 import { getRequestToken } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
 
-type Step = 'idle' | 'step1' | 'reset' | 'step2' | 'complete'
+type Step = 'idle' | 'step1' | 'reset' | 'mail' | 'microsoft' | 'complete'
+
+interface ActivateResponse {
+	emailDomain: string
+	shouldAskMailSync: boolean
+	graphAuthMethod?: string
+}
 
 const props = defineProps<{
 	activeUser: boolean
@@ -81,23 +82,33 @@ const errorText = ref('')
 // Set once the server answered OK or Skipped: further clicks only activate.
 const resetSettled = ref(false)
 
+const signInMode = ref(props.graphAuthMethod ?? '')
+const microsoftResultText = ref('')
+const microsoftResultFailed = ref(false)
+
+// "Give access" is step 1; the mail and Microsoft steps take the next number
+// in the order they actually appear, so the titles stay right whichever are shown.
+const lastStepNumber = ref(1)
+
 /**
  * True for both per-user modes; anything else (including unknown) is the service account.
  *
  * @param mode the stored sign-in mode as the server reports it
  */
-function isPerUserMode(mode?: string): boolean {
+function isPerUserMode(mode: string): boolean {
 	return mode === 'perUserFallback' || mode === 'perUserStrict'
 }
 
-const perUserMode = ref(isPerUserMode(props.graphAuthMethod))
-const microsoftResultText = ref('')
-const microsoftResultFailed = ref(false)
+// Only the fallback mode lets a user finish without connecting; strict syncs nothing for them.
+const canSkipMicrosoft = computed(() => signInMode.value === 'perUserFallback')
 
-// Shown once the user is a sync user: either already active on the settings
-// page, or just activated (step2 / complete) on either mount point.
-const showConnectMicrosoft = computed(() => perUserMode.value
-	&& ((step.value === 'idle' && props.activeUser) || step.value === 'step2' || step.value === 'complete'))
+/**
+ * Hands out the number for the next numbered step title.
+ */
+function nextStepNumber(): number {
+	lastStepNumber.value++
+	return lastStepNumber.value
+}
 
 /**
  * Sends the browser to the signed start link. A plain navigation, not a fetch:
@@ -169,66 +180,122 @@ if (props.activeUser) {
 }
 
 /**
- * Activates sync for the user and advances to the mail step or completion.
+ * Shows the mail step. The button opens the Mail app in a new tab so the flow
+ * can carry on to the Microsoft step afterwards.
+ *
+ * @param hasOtherAccount true when the Mail app has an account, but not for the Exchange domain
+ */
+function showMailStep(hasOtherAccount: boolean) {
+	step.value = 'mail'
+	title.value = t('sendentsynchroniser', 'Step {number}: Set up mail', { number: nextStepNumber() })
+	text.value = hasOtherAccount
+		? t('sendentsynchroniser', 'Your Outlook appointments, contacts, and tasks are now synchronised with Nextcloud. The Mail application already has an account, but it is not for your Exchange domain. Please open the Mail app in a new tab and set up your Exchange mailbox there, then return to this tab to continue.')
+		: t('sendentsynchroniser', 'Your Outlook appointments, contacts, and tasks are now synchronised with Nextcloud. Please open the Mail app in a new tab and set up your Exchange mailbox there, then return to this tab to continue.')
+	buttonLabel.value = t('sendentsynchroniser', 'Open Mail app')
+}
+
+/**
+ * Shows the Microsoft step. Connect leaves the page; Skip is offered under the
+ * fallback mode only.
+ */
+function showMicrosoftStep() {
+	step.value = 'microsoft'
+	title.value = t('sendentsynchroniser', 'Step {number}: Connect your Microsoft account', { number: nextStepNumber() })
+	text.value = t('sendentsynchroniser', 'Please connect your Microsoft account to synchronise your Outlook appointments, contacts, and tasks with Nextcloud.')
+	buttonLabel.value = t('sendentsynchroniser', 'Connect Microsoft account')
+	secondaryLabel.value = canSkipMicrosoft.value ? t('sendentsynchroniser', 'Skip for now') : ''
+	showButton.value = true
+}
+
+/**
+ * Shows the final step.
+ *
+ * @param mailConfirmed true when the Mail app already had the Exchange mailbox set up
+ */
+function showComplete(mailConfirmed = false) {
+	step.value = 'complete'
+	title.value = t('sendentsynchroniser', 'Configuration complete')
+	text.value = mailConfirmed
+		? t('sendentsynchroniser', 'Your Outlook appointments, contacts, and tasks are now synchronised with Nextcloud. And, your Exchange mailbox seems properly setup in the Mail application. You may close this window')
+		: t('sendentsynchroniser', 'Your account is fully configured for Exchange synchronization. You may close this window')
+	buttonLabel.value = t('sendentsynchroniser', 'Close')
+	secondaryLabel.value = ''
+	// The modal has its own close control.
+	showButton.value = !props.isModal
+}
+
+/**
+ * The step after mail: Microsoft in the per-user modes, completion otherwise.
+ *
+ * @param mailConfirmed passed through to showComplete
+ */
+function showMicrosoftStepOrComplete(mailConfirmed = false) {
+	if (isPerUserMode(signInMode.value)) {
+		showMicrosoftStep()
+	} else {
+		showComplete(mailConfirmed)
+	}
+}
+
+/**
+ * Decides what comes after activation: the mail step when the admin enabled
+ * mail sync and the Mail app has no matching account, otherwise straight on.
+ *
+ * @param data the activate response
+ */
+async function advanceAfterActivation(data: ActivateResponse) {
+	if (!data.shouldAskMailSync) {
+		showMicrosoftStepOrComplete()
+		return
+	}
+
+	const accountsResp = await axios.get(generateUrl('/apps/mail/api/accounts'))
+	const account = accountsResp.data[0]
+	if (account !== undefined && account.emailAddress.endsWith(data.emailDomain)) {
+		showMicrosoftStepOrComplete(true)
+		return
+	}
+
+	showMailStep(account !== undefined)
+}
+
+/**
+ * Activates sync for the user and moves on to the next step.
  */
 async function doActivate() {
 	try {
 		const url = generateUrl('/apps/sendentsynchroniser/api/1.0/user/activate')
-		const response = await axios.get(url)
+		const response = await axios.get<ActivateResponse>(url)
 		if (response.status !== 200) return
 
 		// The modal has no initial state; this is where it learns the sign-in mode.
-		perUserMode.value = isPerUserMode(response.data.graphAuthMethod as string | undefined)
+		signInMode.value = response.data.graphAuthMethod ?? ''
 
 		// activate() silently ensures default collections exist (admin-configured)
 		// No user selection — collections are managed by the administrator
 
-		if (response.data.shouldAskMailSync) {
-			const domain = response.data.emailDomain as string
-			const accountsUrl = generateUrl('/apps/mail/api/accounts')
-			const accountsResp = await axios.get(accountsUrl)
-
-			if (accountsResp.data.length === 0) {
-				step.value = 'step2'
-				title.value = t('sendentsynchroniser', 'Step 2: Set up mail')
-				text.value = t('sendentsynchroniser', "Your Outlook appointments, contacts, and tasks are now synchronised with Nextcloud. By clicking the button below you'll be redirected to the Mail application to set it up.")
-				buttonLabel.value = t('sendentsynchroniser', 'Finish')
-			} else {
-				const account = accountsResp.data[0]
-				if (account.emailAddress.endsWith(domain)) {
-					step.value = 'complete'
-					title.value = t('sendentsynchroniser', 'Configuration complete')
-					text.value = t('sendentsynchroniser', 'Your Outlook appointments, contacts, and tasks are now synchronised with Nextcloud. And, your Exchange mailbox seems properly setup in the Mail application. You may close this window')
-					buttonLabel.value = t('sendentsynchroniser', 'Close')
-				} else {
-					step.value = 'step2'
-					title.value = t('sendentsynchroniser', 'Step 2: Set up mail')
-					text.value = t('sendentsynchroniser', "Your Outlook appointments, contacts, and tasks are now synchronised with Nextcloud. But, your Exchange mailbox doesn't seem properly setup in the Mail application. Please click the button below to grant permission for accessing your Exchange mailbox.")
-					buttonLabel.value = t('sendentsynchroniser', 'Finish')
-				}
-			}
-		} else {
-			step.value = 'complete'
-			title.value = t('sendentsynchroniser', 'Configuration complete')
-			text.value = t('sendentsynchroniser', 'Your account is fully configured for Exchange synchronization. You may close this window')
-			buttonLabel.value = t('sendentsynchroniser', 'Close')
-			showButton.value = !props.isModal
-		}
-
 		errorText.value = ''
 		secondaryLabel.value = ''
 		emit('consent-changed')
+
+		await advanceAfterActivation(response.data)
 	} catch (err) {
 		console.warn('Error during consent flow activation', err)
 		errorText.value = t('sendentsynchroniser', 'Activation failed. Please try again.')
 	}
 }
 
-/** Activates without the clean-up: declined, or the status check failed and the user chose to continue. */
+/** The second button: skips the Microsoft step, declines the clean-up, or continues after a failed status check. */
 async function handleSecondary() {
 	if (busy.value) return
 	const canContinue = secondaryLabel.value !== ''
 	if (!canContinue) return
+
+	if (step.value === 'microsoft') {
+		showComplete()
+		return
+	}
+
 	busy.value = true
 	try {
 		await doActivate()
@@ -328,8 +395,15 @@ async function handleClick() {
 		return
 	}
 
-	if (step.value === 'step2') {
-		window.open(generateUrl('/apps/mail'), '_self')
+	if (step.value === 'mail') {
+		// A new tab, so the flow can carry on here.
+		window.open(generateUrl('/apps/mail'), '_blank')
+		showMicrosoftStepOrComplete()
+		return
+	}
+
+	if (step.value === 'microsoft') {
+		connectMicrosoft()
 		return
 	}
 
@@ -367,17 +441,12 @@ async function handleClick() {
 	margin-bottom: 12px;
 }
 
-.consent-flow__microsoft {
-	margin-top: 20px;
-	padding-top: 16px;
-	border-top: 1px solid var(--color-border);
-}
-
-.consent-flow__microsoft button + p {
-	margin-top: 12px;
-}
-
 .consent-flow__success {
 	color: var(--color-success-text, #2d7d46);
+	margin-bottom: 12px;
+}
+
+.consent-flow__result {
+	margin-bottom: 16px;
 }
 </style>
