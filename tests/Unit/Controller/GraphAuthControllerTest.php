@@ -4,13 +4,17 @@ declare(strict_types=1);
 namespace OCA\SendentSynchroniser\Tests\Unit\Controller;
 
 use OCA\SendentSynchroniser\Controller\GraphAuthController;
+use OCA\SendentSynchroniser\Db\AuthStatusMapper;
 use OCA\SendentSynchroniser\Service\StartLinkBuilder;
 use OCA\SendentSynchroniser\Service\StartLinkUnavailableException;
+use OCA\SendentSynchroniser\Service\SyncUserService;
 use OCP\AppFramework\Http;
 use OCP\AppFramework\Http\JSONResponse;
 use OCP\AppFramework\Http\RedirectResponse;
+use OCP\AppFramework\Services\IAppConfig;
 use OCP\IRequest;
 use OCP\IUser;
+use OCP\IUserManager;
 use OCP\IUserSession;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
@@ -32,6 +36,10 @@ class GraphAuthControllerTest extends TestCase {
 			$this->builder,
 			$this->userSession,
 			new NullLogger(),
+			$this->createStub(AuthStatusMapper::class),
+			$this->createStub(IUserManager::class),
+			$this->createStub(IAppConfig::class),
+			$this->createStub(SyncUserService::class),
 		);
 	}
 
