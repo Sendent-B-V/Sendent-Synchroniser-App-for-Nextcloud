@@ -10,6 +10,7 @@ use OCP\IGroupManager;
 use OCP\Settings\ISettings;
 use \Psr\Log\LoggerInterface;
 use OCA\SendentSynchroniser\Constants;
+use OCA\SendentSynchroniser\Db\AuthStatusMapper;
 use OCA\SendentSynchroniser\Db\SyncUserMapper;
 
 class User implements ISettings {
@@ -32,6 +33,9 @@ class User implements ISettings {
 	/** @var SyncUserMapper */
 	private $syncUserMapper;
 
+	/** @var AuthStatusMapper */
+	private $authStatusMapper;
+
 	/** @var string */
 	private $userId;
 
@@ -42,6 +46,7 @@ class User implements ISettings {
 		IInitialState $initialState,
 		LoggerInterface $logger,
 		SyncUserMapper $syncUserMapper,
+		AuthStatusMapper $authStatusMapper,
 		string $userId) {
 
 		$this->appConfig = $appConfig;
@@ -50,6 +55,7 @@ class User implements ISettings {
 		$this->initialState = $initialState;
 		$this->logger = $logger;
 		$this->syncUserMapper = $syncUserMapper;
+		$this->authStatusMapper = $authStatusMapper;
 		$this->userId = $userId;
 	}
 
@@ -65,9 +71,14 @@ class User implements ISettings {
 		// The consent flow shows the Connect Microsoft button from this.
 		$graphAuthMethod = Constants::normaliseGraphAuthMethod($this->appConfig->getAppValue(Constants::GRAPH_AUTH_METHOD_KEY, ''));
 
+		// The stored Microsoft status, so the page can ask for a reconnect; null
+		// until the sync service has reported one. Same shape as graphAuth/status.
+		$authStatus = $this->authStatusMapper->findByUidAndProvider($this->userId, Constants::AUTH_PROVIDER_GRAPH);
+
 		$this->initialState->provideInitialState('user', [
 			'activeUser' => $activeUser,
 			'graphAuthMethod' => $graphAuthMethod,
+			'authStatus' => $authStatus?->jsonSerialize(),
 		]);
 
 		return new TemplateResponse('sendentsynchroniser', 'indexUser');

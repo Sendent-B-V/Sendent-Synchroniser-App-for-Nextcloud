@@ -34,7 +34,8 @@ class SettingsControllerGraphAuthMethodTest extends TestCase {
 			new NullLogger(),
 			$this->createMock(IManager::class),
 			$this->createMock(SyncUserMapper::class),
-			$this->createMock(SyncUserService::class)
+			$this->createMock(SyncUserService::class),
+			$this->createMock(\OCA\SendentSynchroniser\Db\AuthStatusMapper::class)
 		);
 	}
 

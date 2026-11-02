@@ -38,7 +38,11 @@ class AuthStatus extends Entity implements JsonSerializable {
 	 * Shape returned to the logged-in user's own browser (never to the service).
 	 */
 	public function jsonSerialize(): array {
-		// TODO (banner): provider, status, reason, changedAt. No id, no uid.
-		return [];
+		return [
+			'provider' => $this->getProvider(),
+			'status' => $this->getStatus(),
+			'reason' => $this->getReason(),
+			'changedAt' => $this->getChangedAt(),
+		];
 	}
 }

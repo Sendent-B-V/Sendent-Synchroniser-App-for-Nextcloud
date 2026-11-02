@@ -142,9 +142,18 @@ class GraphAuthController extends Controller {
 	 * @NoAdminRequired
 	 */
 	public function myStatus(): JSONResponse {
-		// TODO (banner): 401 without a user; otherwise the AuthStatus row for
-		// (uid, 'graph') or null, plus the normalised sign-in mode.
-		return new JSONResponse(null, Http::STATUS_NOT_IMPLEMENTED);
+		$uid = $this->userSession->getUser()?->getUID();
+		if ($uid === null) {
+			return new JSONResponse(['error' => 'not logged in'], Http::STATUS_UNAUTHORIZED);
+		}
+
+		// activeUser tells the modal whether to run the consent flow or only the
+		// Microsoft step; status is null until the service has reported anything.
+		return new JSONResponse([
+			'signInMode' => Constants::normaliseGraphAuthMethod($this->appConfig->getAppValue(Constants::GRAPH_AUTH_METHOD_KEY, '')),
+			'activeUser' => $this->syncUserService->isActiveUser($uid),
+			'status' => $this->authStatusMapper->findByUidAndProvider($uid, Constants::AUTH_PROVIDER_GRAPH),
+		]);
 	}
 
 	/**
