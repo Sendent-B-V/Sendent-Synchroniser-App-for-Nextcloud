@@ -39,6 +39,10 @@ return [
 
 		// Browser navigation, redirects to the sync service's Microsoft sign-in.
 		['name' => 'graph_auth#start', 'url' => '/api/1.0/graphAuth/start', 'verb' => 'GET'],
+		// Logged-in user's own sign-in status, for the banner.
+		['name' => 'graph_auth#myStatus', 'url' => '/api/1.0/graphAuth/status', 'verb' => 'GET'],
+		// The sync service reports a sign-in status change, service account only.
+		['name' => 'graph_auth#status', 'url' => '/api/1.0/user/authStatus', 'verb' => 'POST'],
 
 		[
 			'name' => 'license_api#preflighted_cors',

@@ -71,6 +71,26 @@ class Constants {
 			: self::GRAPH_AUTH_METHOD_DEFAULT;
 	}
 
+	// The sign-in status callback vocabulary. Exact strings, the service never
+	// sends numeric values or other casings.
+	public const AUTH_PROVIDER_GRAPH = 'graph';
+	public const AUTH_PROVIDERS = [
+		self::AUTH_PROVIDER_GRAPH,
+		// 'ews' when per-user EWS sign-in lands.
+	];
+	public const AUTH_STATUS_NOT_CONNECTED = 'notConnected';
+	public const AUTH_STATUS_ACTIVE = 'active';
+	public const AUTH_STATUS_NEEDS_RECONNECT = 'needsReconnect';
+	public const AUTH_STATUSES = [
+		self::AUTH_STATUS_NOT_CONNECTED,
+		self::AUTH_STATUS_ACTIVE,
+		self::AUTH_STATUS_NEEDS_RECONNECT,
+	];
+	// changedAt: UTC ISO 8601 with a mandatory Z and an optional fraction of
+	// one to seven digits (.NET DateTime serialises up to seven). Anything
+	// else is a malformed body, never interpreted.
+	public const AUTH_CHANGED_AT_PATTERN = '/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,7})?Z$/';
+
 	// Address where users' browsers reach the sync service, used to build the
 	// Microsoft sign-in start link. Must match DelegatedAuth:Graph:PublicBaseUrl
 	// on the sync service. Stored without a trailing slash.

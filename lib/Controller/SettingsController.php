@@ -13,6 +13,7 @@ use \Psr\Log\LoggerInterface;
 use OCA\SendentSynchroniser\Constants;
 use OCA\SendentSynchroniser\Db\SyncUserMapper;
 use OCA\SendentSynchroniser\Service\SyncUserService;
+use OCA\SendentSynchroniser\Db\AuthStatusMapper;
 
 class SettingsController extends ApiController {
 
@@ -40,6 +41,9 @@ class SettingsController extends ApiController {
 	/** @var SyncUserService */
 	private $syncUserService;
 
+	/** @var AuthStatusMapper */
+	private $authStatusMapper;
+
 	public function __construct($appName, IRequest $request,
 		string $userId,
 		IAppConfig $appConfig,
@@ -47,7 +51,8 @@ class SettingsController extends ApiController {
 		LoggerInterface $logger,
 		IManager $notificationManager,
 		SyncUserMapper $syncUserMapper,
-		SyncUserService $syncUserService) {
+		SyncUserService $syncUserService,
+		AuthStatusMapper $authStatusMapper) {
 
  		parent::__construct($appName, $request);
 
@@ -58,6 +63,7 @@ class SettingsController extends ApiController {
 		$this->request = $request;
 		$this->syncUserMapper = $syncUserMapper;
 		$this->syncUserService = $syncUserService;
+		$this->authStatusMapper = $authStatusMapper;
 		$this->userId = $userId;
 
  	}
@@ -348,6 +354,23 @@ class SettingsController extends ApiController {
 						return new JSONResponse(FALSE);
 					}
 					if ($syncUsers[0]->getActive() === Constants::USER_STATUS_ACTIVE) {
+						// Consented. In the per-user modes the Microsoft sign-in can
+						// still need attention; under serviceAccount a stored row is
+						// meaningless and is not consulted.
+						$mode = Constants::normaliseGraphAuthMethod($this->appConfig->getAppValue(Constants::GRAPH_AUTH_METHOD_KEY, ''));
+						if ($mode !== Constants::GRAPH_AUTH_METHOD_SERVICE_ACCOUNT) {
+							$row = $this->authStatusMapper->findByUidAndProvider($this->userId, Constants::AUTH_PROVIDER_GRAPH);
+							// A broken sign-in is shown in both per-user modes.
+							if ($row !== null && $row->getStatus() === Constants::AUTH_STATUS_NEEDS_RECONNECT) {
+								return new JSONResponse(TRUE);
+							}
+							// Under strict nothing syncs until the user has signed in, so
+							// never-reported and notConnected get the prompt too.
+							if ($mode === Constants::GRAPH_AUTH_METHOD_PER_USER_STRICT
+								&& ($row === null || $row->getStatus() !== Constants::AUTH_STATUS_ACTIVE)) {
+								return new JSONResponse(TRUE);
+							}
+						}
 						return new JSONResponse($this->syncUserService->needsReconsent($this->userId));
 					}
 					return new JSONResponse(TRUE);

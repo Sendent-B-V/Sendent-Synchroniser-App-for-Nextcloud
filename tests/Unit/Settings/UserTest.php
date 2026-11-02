@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace OCA\SendentSynchroniser\Tests\Unit\Settings;
 
 use OCA\SendentSynchroniser\Constants;
+use OCA\SendentSynchroniser\Db\AuthStatus;
+use OCA\SendentSynchroniser\Db\AuthStatusMapper;
 use OCA\SendentSynchroniser\Db\SyncUserMapper;
 use OCA\SendentSynchroniser\Settings\User;
 use OCP\App\IAppManager;
@@ -24,6 +26,7 @@ class UserTest extends TestCase {
 
 	private IAppConfig&Stub $appConfig;
 	private IInitialState&MockObject $initialState;
+	private AuthStatusMapper&Stub $authStatusMapper;
 	private User $settings;
 
 	protected function setUp(): void {
@@ -31,6 +34,7 @@ class UserTest extends TestCase {
 		$this->initialState = $this->createMock(IInitialState::class);
 		$syncUserMapper = $this->createStub(SyncUserMapper::class);
 		$syncUserMapper->method('findByUid')->willReturn([]);
+		$this->authStatusMapper = $this->createStub(AuthStatusMapper::class);
 		$this->settings = new User(
 			$this->createStub(IAppManager::class),
 			$this->createStub(IGroupManager::class),
@@ -38,6 +42,7 @@ class UserTest extends TestCase {
 			$this->initialState,
 			new NullLogger(),
 			$syncUserMapper,
+			$this->authStatusMapper,
 			'alice',
 		);
 	}
@@ -49,10 +54,12 @@ class UserTest extends TestCase {
 
 	public function testInitialStateCarriesTheStoredSignInMode(): void {
 		$this->storedMode(Constants::GRAPH_AUTH_METHOD_PER_USER_STRICT);
+		$this->authStatusMapper->method('findByUidAndProvider')->willReturn(null);
 		$this->initialState->expects($this->once())->method('provideInitialState')
 			->with('user', [
 				'activeUser' => false,
 				'graphAuthMethod' => Constants::GRAPH_AUTH_METHOD_PER_USER_STRICT,
+				'authStatus' => null,
 			]);
 
 		$this->settings->getForm();
@@ -60,10 +67,37 @@ class UserTest extends TestCase {
 
 	public function testUnknownStoredModeIsNormalisedToTheDefault(): void {
 		$this->storedMode('garbage');
+		$this->authStatusMapper->method('findByUidAndProvider')->willReturn(null);
 		$this->initialState->expects($this->once())->method('provideInitialState')
 			->with('user', [
 				'activeUser' => false,
 				'graphAuthMethod' => Constants::GRAPH_AUTH_METHOD_DEFAULT,
+				'authStatus' => null,
+			]);
+
+		$this->settings->getForm();
+	}
+
+	public function testInitialStateCarriesTheStoredMicrosoftStatus(): void {
+		$this->storedMode(Constants::GRAPH_AUTH_METHOD_PER_USER_FALLBACK);
+		$row = new AuthStatus();
+		$row->setId(5);
+		$row->setUid('alice');
+		$row->setProvider('graph');
+		$row->setStatus('needsReconnect');
+		$row->setReason('refresh_token_expired');
+		$row->setChangedAt(1792402200);
+		$this->authStatusMapper->method('findByUidAndProvider')->willReturn($row);
+		$this->initialState->expects($this->once())->method('provideInitialState')
+			->with('user', [
+				'activeUser' => false,
+				'graphAuthMethod' => Constants::GRAPH_AUTH_METHOD_PER_USER_FALLBACK,
+				'authStatus' => [
+					'provider' => 'graph',
+					'status' => 'needsReconnect',
+					'reason' => 'refresh_token_expired',
+					'changedAt' => 1792402200,
+				],
 			]);
 
 		$this->settings->getForm();

@@ -3,6 +3,7 @@
 		<h2>{{ t('sendentsynchroniser', 'Synchronizer') }}</h2>
 		<ConsentFlow :active-user="isActive"
 			:graph-auth-method="graphAuthMethod"
+			:auth-status="authStatus"
 			@consent-changed="isActive = true" />
 		<RetractConsent v-if="isActive" />
 	</div>
@@ -13,10 +14,13 @@ import { ref } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
 import ConsentFlow from './ConsentFlow.vue'
 import RetractConsent from './RetractConsent.vue'
+import type { AuthStatus } from '../types/authStatus'
 
 const props = defineProps<{
 	activeUser: boolean
 	graphAuthMethod: string
+	/** The stored Microsoft status, null until the service has reported one. */
+	authStatus: AuthStatus | null
 }>()
 
 const isActive = ref(props.activeUser)

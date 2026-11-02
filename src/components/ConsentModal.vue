@@ -4,14 +4,18 @@
 		@click.self="close">
 		<div class="consent-modal__content">
 			<div class="consent-modal__header">
-				<h2>{{ t('sendentsynchroniser', 'Sendent synchronisation not active') }}</h2>
+				<h2>{{ headerText }}</h2>
 				<a href="#"
 					class="consent-modal__close"
 					@click.prevent="close">&times;</a>
 			</div>
 			<div class="consent-modal__body">
-				<ConsentFlow :active-user="false"
+				<!-- Rendered once the status is known, so the flow opens on the right text. -->
+				<ConsentFlow v-if="loaded"
+					:active-user="activeUser"
 					:is-modal="true"
+					:graph-auth-method="signInMode"
+					:auth-status="authStatus"
 					@close="close" />
 			</div>
 		</div>
@@ -19,11 +23,48 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { translate as t } from '@nextcloud/l10n'
+import { generateUrl } from '@nextcloud/router'
+import axios from '@nextcloud/axios'
 import ConsentFlow from './ConsentFlow.vue'
+import { needsMicrosoftAttention } from '../types/authStatus'
+import type { AuthStatus, MyStatusResponse } from '../types/authStatus'
 
 const visible = ref(true)
+const loaded = ref(false)
+const activeUser = ref(false)
+const signInMode = ref('')
+const authStatus = ref<AuthStatus | null>(null)
+
+// The header names the problem: missing consent, or a Microsoft sign-in to fix.
+const headerText = computed(() => {
+	if (!needsMicrosoftAttention(activeUser.value, signInMode.value, authStatus.value)) {
+		return t('sendentsynchroniser', 'Sendent synchronisation not active')
+	}
+	return authStatus.value?.status === 'needsReconnect'
+		? t('sendentsynchroniser', 'Microsoft sign-in needs attention')
+		: t('sendentsynchroniser', 'Microsoft sign-in required')
+})
+
+/**
+ * The modal is mounted on a plain "show it" answer and has no initial state,
+ * so it asks for the user's own sign-in status before rendering the flow.
+ * If that fails it falls back to the plain consent flow, as before.
+ */
+onMounted(async () => {
+	try {
+		const url = generateUrl('/apps/sendentsynchroniser/api/1.0/graphAuth/status')
+		const resp = await axios.get<MyStatusResponse>(url)
+		activeUser.value = resp.data.activeUser
+		signInMode.value = resp.data.signInMode
+		authStatus.value = resp.data.status
+	} catch (err) {
+		console.warn('Could not read the Microsoft sign-in status', err)
+	} finally {
+		loaded.value = true
+	}
+})
 
 /**
  *

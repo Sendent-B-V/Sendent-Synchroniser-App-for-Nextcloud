@@ -120,6 +120,12 @@ class SyncUserService {
 		return (int)$syncUsers[0]->getResetoffer() === 1;
 	}
 
+	/** True when the user has a sync row with status ACTIVE, i.e. consent is in place. */
+	public function isActiveUser(string $userId): bool {
+		$syncUsers = $this->syncUserMapper->findByUid($userId);
+		return !empty($syncUsers) && $syncUsers[0]->getActive() === Constants::USER_STATUS_ACTIVE;
+	}
+
 	/** For ACTIVE users; does not check the status itself. */
 	public function needsReconsent(string $userId): bool {
 		return !$this->hasAnyAppToken($userId) || $this->hasPendingResetOffer($userId);

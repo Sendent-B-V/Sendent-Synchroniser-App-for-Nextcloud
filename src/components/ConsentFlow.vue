@@ -1,6 +1,11 @@
 <template>
 	<div class="consent-flow">
-		<template v-if="activeUser && step === 'idle'">
+		<template v-if="microsoftAttention && step === 'idle'">
+			<p class="consent-flow__message consent-flow__attention" role="alert">
+				{{ microsoftAttentionText }}
+			</p>
+		</template>
+		<template v-else-if="activeUser && step === 'idle'">
 			<p class="consent-flow__message">
 				{{ t('sendentsynchroniser', 'You have already succesfully provided your consent for syncing your data using the Nextcloud Exchange Connector.') }}
 			</p>
@@ -50,8 +55,10 @@ import { translate as t } from '@nextcloud/l10n'
 import { generateUrl } from '@nextcloud/router'
 import { getRequestToken } from '@nextcloud/auth'
 import axios from '@nextcloud/axios'
+import { isPerUserMode, needsMicrosoftAttention } from '../types/authStatus'
+import type { AuthStatus } from '../types/authStatus'
 
-type Step = 'idle' | 'step1' | 'reset' | 'mail' | 'microsoft' | 'complete'
+type Step ='idle' | 'step1' | 'reset' | 'mail' | 'microsoft' | 'complete'
 
 interface ActivateResponse {
 	emailDomain: string
@@ -62,8 +69,10 @@ interface ActivateResponse {
 const props = defineProps<{
 	activeUser: boolean
 	isModal?: boolean
-	/** Org-wide sign-in mode; absent in the modal, which learns it from the activate response. */
+	/** Org-wide sign-in mode; the modal fetches it, the settings page gets it as initial state. */
 	graphAuthMethod?: string
+	/** Null until the service has reported a status for this user. */
+	authStatus?: AuthStatus | null
 }>()
 
 const emit = defineEmits<{
@@ -90,17 +99,38 @@ const microsoftResultFailed = ref(false)
 // in the order they actually appear, so the titles stay right whichever are shown.
 const lastStepNumber = ref(1)
 
-/**
- * True for both per-user modes; anything else (including unknown) is the service account.
- *
- * @param mode the stored sign-in mode as the server reports it
- */
-function isPerUserMode(mode: string): boolean {
-	return mode === 'perUserFallback' || mode === 'perUserStrict'
-}
-
 // Only the fallback mode lets a user finish without connecting; strict syncs nothing for them.
 const canSkipMicrosoft = computed(() => signInMode.value === 'perUserFallback')
+
+// A consented user whose Microsoft sign-in broke, or who never connected under
+// strict: the idle view asks them to connect and the button goes straight there.
+const microsoftAttention = computed(() => needsMicrosoftAttention(props.activeUser, signInMode.value, props.authStatus))
+
+/**
+ * Text for a stored needsReconnect reason. The service sends short machine
+ * codes; unknown ones get the generic sentence plus the code, so a new code
+ * never needs a release here.
+ *
+ * @param reason the stored reason code, null when the service sent none
+ */
+function reconnectReasonText(reason: string | null): string {
+	switch (reason) {
+	case 'refresh_token_revoked':
+		return t('sendentsynchroniser', 'Your Microsoft sign-in was revoked, for example after a password change or by your administrator. Please connect your Microsoft account again.')
+	case 'refresh_token_expired':
+		return t('sendentsynchroniser', 'Your Microsoft sign-in has expired. Please connect your Microsoft account again.')
+	case 'consent_revoked':
+		return t('sendentsynchroniser', 'Permission for Sendent to access your mailbox was withdrawn. Please connect your Microsoft account again.')
+	case 'cache_unreadable':
+		return t('sendentsynchroniser', 'Your saved Microsoft sign-in could not be read. Please connect your Microsoft account again.')
+	default:
+		return t('sendentsynchroniser', 'Your Microsoft sign-in needs attention. Please connect your Microsoft account again.') + (reason ? ' (' + reason + ')' : '')
+	}
+}
+
+const microsoftAttentionText = computed(() => props.authStatus?.status === 'needsReconnect'
+	? reconnectReasonText(props.authStatus.reason)
+	: t('sendentsynchroniser', 'Your organisation requires every user to sign in with Microsoft. Your Outlook appointments, contacts, and tasks are not synchronised until you connect your Microsoft account.'))
 
 /**
  * Hands out the number for the next numbered step title.
@@ -168,8 +198,13 @@ function readMicrosoftReturnFlag() {
 
 onMounted(readMicrosoftReturnFlag)
 
-// Set initial state based on activeUser
-if (props.activeUser) {
+// Set initial state based on activeUser and the Microsoft status
+if (microsoftAttention.value) {
+	// The paragraph above the content says why; the button is the only action.
+	title.value = ''
+	text.value = ''
+	buttonLabel.value = t('sendentsynchroniser', 'Connect Microsoft account')
+} else if (props.activeUser) {
 	title.value = t('sendentsynchroniser', 'Give consent')
 	text.value = t('sendentsynchroniser', 'You can refresh your consent by clicking the button below.')
 	buttonLabel.value = t('sendentsynchroniser', 'Refresh consent')
@@ -310,6 +345,12 @@ async function handleSecondary() {
 async function handleClick() {
 	if (busy.value) return
 
+	if (step.value === 'idle' && microsoftAttention.value) {
+		// Consent is in place; only the Microsoft sign-in is missing or broken.
+		connectMicrosoft()
+		return
+	}
+
 	if (step.value === 'idle') {
 		step.value = 'step1'
 		title.value = t('sendentsynchroniser', 'Step 1: Set up appointments, contacts, and tasks')
@@ -439,6 +480,11 @@ async function handleClick() {
 .consent-flow__error {
 	color: var(--color-error-text, #b00020);
 	margin-bottom: 12px;
+}
+
+.consent-flow__attention {
+	color: var(--color-warning-text, #8a6d00);
+	font-weight: 600;
 }
 
 .consent-flow__success {
