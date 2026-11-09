@@ -153,7 +153,8 @@ function connectMicrosoft() {
 /**
  * Text for a failed return. The service sends the reason lower-cased: the
  * start checks give malformed, signature, expired, replayed; the callback
- * gives unknownstate, expiredstate, cancelled, accountmismatch, redemptionfailed.
+ * gives unknownstate, expiredstate, cancelled, accountmismatch, unknownuser,
+ * redemptionfailed.
  *
  * @param reason the lower-cased reason from the msauth=failed redirect
  */
@@ -166,6 +167,9 @@ function microsoftFailureText(reason: string): string {
 	case 'expired':
 	case 'expiredstate':
 		return t('sendentsynchroniser', 'The Microsoft sign-in took too long and has expired. Please try again.')
+	case 'unknownuser':
+		// The service has no row for this user yet: a timing problem, not a wrong account.
+		return t('sendentsynchroniser', 'The sync service has not picked up your account yet. Please wait a minute and try again.')
 	default:
 		return t('sendentsynchroniser', 'The Microsoft sign-in failed. Please try again or contact your administrator.') + ' (' + reason + ')'
 	}
