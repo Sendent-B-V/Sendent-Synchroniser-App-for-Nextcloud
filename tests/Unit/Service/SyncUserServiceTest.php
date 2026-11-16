@@ -92,6 +92,43 @@ class SyncUserServiceTest extends TestCase {
 		$this->assertSame(1, $syncUser->getResetoffer());
 	}
 
+	public function testInvalidateUserSetsInactiveAndPersists(): void {
+		// The default outcome, and the one the sign-in status callback relies on
+		// under strict mode: INACTIVE brings the consent prompt back, whereas
+		// NOCONSENT would silence it for good.
+		$syncUser = $this->givenSyncUser(0);
+		$this->tokenProvider->method('getTokenByUser')->willReturn([]);
+		$this->mapper->expects($this->once())->method('update')->with($syncUser);
+
+		$response = $this->svc->invalidateUser('alice');
+
+		$this->assertSame(Constants::USER_STATUS_INACTIVE, $syncUser->getActive());
+		$this->assertSame('success', $response['status']);
+	}
+
+	public function testInvalidateUserCanRecordRetractedConsent(): void {
+		$syncUser = $this->givenSyncUser(0);
+		$this->tokenProvider->method('getTokenByUser')->willReturn([]);
+		$this->mapper->expects($this->once())->method('update')->with($syncUser);
+
+		$this->svc->invalidateUser('alice', Constants::USER_STATUS_NOCONSENT);
+
+		$this->assertSame(Constants::USER_STATUS_NOCONSENT, $syncUser->getActive());
+	}
+
+	public function testInvalidateUserWithoutSyncRowTouchesNothing(): void {
+		// A Nextcloud account that never consented: reachable from the status
+		// callback, which checks the account and not the sync row.
+		$this->mapper->method('findByUid')->willReturn([]);
+		$this->tokenProvider->expects($this->never())->method('getTokenByUser');
+		$this->tokenProvider->expects($this->never())->method('invalidateTokenById');
+		$this->mapper->expects($this->never())->method('update');
+
+		$response = $this->svc->invalidateUser('alice');
+
+		$this->assertSame(['status' => 'error', 'message' => 'user does not exist'], $response);
+	}
+
 	// ---- hasAnyAppToken -------------------------------------------------
 
 	public function testHasAnyAppTokenTrueForLegacyName(): void {
