@@ -29,6 +29,8 @@ class GraphAuthRouteAccessTest extends TestCase {
 	private function accessMarkers(string $method): array {
 		$reflection = new \ReflectionMethod(GraphAuthController::class, $method);
 
+		// Finds the tag names in the docblock: on every line that starts with
+		// " * @Name", it captures Name without the @ (NoCSRFRequired, param, ...).
 		preg_match_all('/^\s*\*\s*@([A-Za-z]+)/m', (string)$reflection->getDocComment(), $matches);
 		$markers = $matches[1];
 
