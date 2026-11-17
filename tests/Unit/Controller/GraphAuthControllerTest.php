@@ -16,6 +16,7 @@ use OCP\IRequest;
 use OCP\IUser;
 use OCP\IUserManager;
 use OCP\IUserSession;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\MockObject\Stub;
 use PHPUnit\Framework\TestCase;
@@ -61,16 +62,26 @@ class GraphAuthControllerTest extends TestCase {
 		$this->assertSame(Http::STATUS_SEE_OTHER, $response->getStatus());
 	}
 
-	public function testReturns409WithReasonWhenLinkUnavailable(): void {
+	/** Each refusal and the literal reason string the caller receives. */
+	public static function refusals(): array {
+		return [
+			'sign-in mode is service account' => [StartLinkUnavailableException::REASON_SERVICE_ACCOUNT, 'serviceAccount'],
+			'public URL not set' => [StartLinkUnavailableException::REASON_PUBLIC_URL, 'publicUrl'],
+			'shared secret not set' => [StartLinkUnavailableException::REASON_SHARED_SECRET, 'sharedSecret'],
+		];
+	}
+
+	#[DataProvider('refusals')]
+	public function testReturns409WithReasonWhenLinkUnavailable(string $cause, string $reason): void {
 		$this->loggedInAs('alice');
 		$this->builder->expects($this->once())->method('build')
-			->willThrowException(new StartLinkUnavailableException(StartLinkUnavailableException::REASON_PUBLIC_URL));
+			->willThrowException(new StartLinkUnavailableException($cause));
 
 		$response = $this->controller->start();
 
 		$this->assertInstanceOf(JSONResponse::class, $response);
 		$this->assertSame(Http::STATUS_CONFLICT, $response->getStatus());
-		$this->assertSame(['reason' => 'publicUrl'], $response->getData());
+		$this->assertSame(['reason' => $reason], $response->getData());
 	}
 
 	public function testReturns401WithoutUser(): void {
