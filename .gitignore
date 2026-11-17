@@ -150,4 +150,5 @@ lib/.DS_Store
 
 # Internal planning/research docs (session artifacts, not shipped)
 docs/superpowers/
-/docs
+/docs/*
+!/docs/per-event-feed/
