@@ -75,7 +75,30 @@ To decide:
 - The retention period, in days.
 - What a reader gets when its cursor is older than the oldest row we still hold. It must be able to tell "nothing happened" from "rows were removed", and fall back to a full sync in the second case.
 
-Proposed answer: to be filled.
+What we know:
+
+- A row is only useful until the timer sync has covered the same change. Retention has to exceed the longest gap the sync service should survive without a full resync: a restart is minutes, an overnight crash about 16 hours, a weekend about 3 days.
+- The listener records a change whoever made it. It filters on the owner of the calendar only, not on who wrote (`lib/Listener/DavChangeListener.php:58-64`, `lib/Service/ChangeNotification/SyncScope.php:32-36`, read; a write by another user was recorded under the owner, run). So events the sync service itself writes into the synced calendar produce rows too.
+- The sync service has a step that drops its own writes when they come back (`Application/Orchestration/SynchronizeEvents/Steps/FilterEventEchoStep.cs`, read at 590e3133). Not checked: that it also applies to rows from the feed.
+- Table size is not the limit. At an assumed 1,000 users with 30 changes a day each, own writes included, 3 days is about 90,000 small rows.
+
+Proposed answer: 3 days. The sync service can then be down for a whole weekend, from Friday evening to Monday morning, and still read every row when it comes back, without a full resync.
+
+A reader with an older cursor gets no special response. It receives the per-event rows that are still kept, and nothing says that older ones were removed.
+
+Why nothing is lost:
+
+- Per-calendar rows are never removed. A reader with an older cursor still gets the row that says the calendar changed since its cursor.
+- The timer sync runs whatever the feed says, and it reads the calendar by sync token. Every change the removed rows described is picked up there. Those changes arrive one timer interval later than they would have through the feed, which is how every calendar change arrives today.
+- The only thing a signal could trigger is a sync of that calendar, and the timer sync does that anyway.
+
+What this costs: the gap is not visible. After an outage longer than the retention period the response looks normal, and the feed does not show that older changes came in through the timer sync.
+
+Options not chosen:
+
+- An error status for a too-old cursor. It withholds the per-calendar rows, which are still valid, and a new reader starting at 0 would always hit it.
+- A flag saying the range is incomplete. The reader asks from its cursor minus the overlap, so on an instance with no changes for longer than the retention period the flag would be raised on every request.
+- A floor value in every response that the reader compares with its stored cursor. This is the shape to add if a visible signal is wanted later. It is an added field, so it can come later without breaking a reader.
 
 Depends on this: C10, N8.2, N9.1.
 
@@ -152,6 +175,15 @@ Decisions this section makes, for review:
 
 ## C10: Retention and the too-old cursor (proposal, 16 November 2026)
 
-Empty until Q6 is settled. This section then states the retention period, the configuration key, the exact response for a cursor that is too old, and what the reader is expected to do with it.
+Follows the proposed answer to Q6 and changes with it.
 
-Decisions this section makes, for review: to be listed.
+- Per-event rows are kept for 3 days and then removed by the maintenance job. Per-calendar and per-address-book rows are never removed.
+- A request with a cursor older than the oldest kept per-event row is answered like any other request. The response has no extra field and no error.
+- The reader needs no new behaviour. Its timer sync covers changes whose per-event rows were removed.
+
+Still to write down here before review: the configuration key for the retention period, and whether it can be changed by the admin at all.
+
+Decisions this section makes, for review:
+
+- 3 days of retention for per-event rows.
+- No signal for a too-old cursor.

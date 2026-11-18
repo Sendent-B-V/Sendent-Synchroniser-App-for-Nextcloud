@@ -59,7 +59,7 @@ All of Phase 0 is one PR, the decision PR. Nothing below starts until the rows i
 | Status | Id | Task | Est | After | Notes |
 |---|---|---|---|---|---|
 | TODO | N8.1 | Return per-event rows from `/notify/changes` in one sequence order with the per-calendar rows, under the existing fence and page limit, with one cursor. Files: `lib/Controller/ChangeFeedApiController.php`, the mapper from N6.2. Unit tests included. | 1 | N6.2, C8 | solo. Can be built against rows inserted by a test, in parallel with Phase 2. |
-| TODO | N8.2 | Answer a cursor that is older than the oldest kept row as contract C10 says. Needs a mark of the highest removed sequence that survives the cleanup. Files: `lib/Service/ChangeNotification/CursorService.php`, `lib/Controller/ChangeFeedApiController.php`. | 0.5 | N8.1, N9.1, C10 | solo. needs Q6. |
+| TODO | N8.2 | Answer a cursor that is older than the oldest kept row as contract C10 says. Needs a mark of the highest removed sequence that survives the cleanup. Files: `lib/Service/ChangeNotification/CursorService.php`, `lib/Controller/ChangeFeedApiController.php`. | 0.5 | N8.1, N9.1, C10 | solo. needs Q6. Dropped if Q6 is settled as proposed: no signal for a too-old cursor means there is nothing to build here. |
 
 ## Phase 4: housekeeping
 
