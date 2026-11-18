@@ -137,9 +137,23 @@ Options not chosen:
 - Both rows share one number. A page that ends between the two would move the cursor past the second row, so paging would need a rule for equal numbers, and the new number after commit would have to be given to both rows in two tables. Nothing asks for the two rows to be matched.
 - A guaranteed order. The new number after commit would then always have to move both rows together.
 
-Still to write down here before review:
+Shared test vector. User alice saved a contact and then changed the event `one.ics` in her synced calendar `personal`. The sync service asks `GET /notify/changes?since=1000`:
 
-- One example response as the shared test vector.
+```json
+{
+  "v": 1,
+  "instance": "oc1a2b3c4d5e",
+  "cursor": 1052,
+  "refs": [
+    { "p": "principals/users/alice", "t": "carddav", "u": "contacts", "c": false, "q": 1049 },
+    { "p": "principals/users/alice", "t": "caldav", "u": "personal", "c": false, "q": 1051, "o": "one.ics", "k": "updated" },
+    { "p": "principals/users/alice", "t": "caldav", "u": "personal", "c": false, "q": 1052 }
+  ],
+  "has_more": false
+}
+```
+
+The second row is the per-event row. The third is the per-calendar row for the same change. `c` is always false on a per-event row. The order of keys inside a row carries no meaning.
 
 Decisions this section makes, for review:
 
@@ -177,12 +191,13 @@ What we know about the synced calendar (read on 3a339c2, 18 November 2026):
 
 The synced calendar is worked out by one rule in one place. The list of sync users and the listener both use it, so the calendar the sync service is told about and the calendar that gets per-event rows cannot differ.
 
-Still to write down here before review: what happens for a user whose setting names a calendar that does not exist.
+Proposal for a setting that names a calendar that does not exist: the user gets no per-event rows and nothing is logged per change. Per-calendar rows are still written, so the timer sync is not affected. This matches what the app does today, where it reports the URI to the sync service without checking it (`lib/Service/SyncUserService.php:310-318`, read). A check on the admin page when the setting is saved would be the place to catch it, and is not part of this feature.
 
 Decisions this section makes, for review:
 
 - Changes in other calendars of the same user produce no per-event row.
 - One rule for the synced calendar, shared by the sync-user list and the listener.
+- A setting that names a calendar that does not exist gives no per-event rows and no error.
 - A purge from trash is silent, because the trash step already sent `deleted`.
 - A failure while writing a per-event row never breaks the user's save.
 
@@ -194,9 +209,10 @@ Follows the proposed answer to Q6 and changes with it.
 - A request with a cursor older than the oldest kept per-event row is answered like any other request. The response has no extra field and no error.
 - The reader needs no new behaviour. Its timer sync covers changes whose per-event rows were removed.
 
-Still to write down here before review: the configuration key for the retention period, and whether it can be changed by the admin at all.
+Proposal for the setting: the retention period is a fixed value in `lib/Constants.php`, not a setting an admin can change. The feed already does this for its other fixed limits, the overlap and the page size (`lib/Constants.php:68-72`, read), and keeps app settings for the values an admin is meant to tune. The maintenance job runs on every cron run (`lib/Cron/ChangeNotificationMaintenance.php:30`, read), so rows are removed within minutes of passing 3 days.
 
 Decisions this section makes, for review:
 
 - 3 days of retention for per-event rows.
 - No signal for a too-old cursor.
+- The retention period is a fixed value, not an admin setting.
