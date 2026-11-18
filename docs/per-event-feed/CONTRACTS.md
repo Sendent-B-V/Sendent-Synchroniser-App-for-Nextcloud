@@ -98,9 +98,9 @@ A per-event row has the same five fields plus:
 - `o`: the event's file name inside the calendar, for example `one.ics`. Not a full path.
 - `k`: the change kind. One of `created`, `updated`, `deleted`.
 
+A row is a per-event row when it has both `o` and `k`. A row without them is a per-calendar or per-address-book row. There is no separate marker. The sync service already reads rows this way (`Application/ChangeFeed/NextcloudChangeFeedWorker.cs:234`, read).
 
 Still to write down here before review:
-
 
 - The order of rows in one response when both kinds are present, and how the cursor moves.
 - Whether one change produces both a per-calendar row and a per-event row with separate sequence numbers.
