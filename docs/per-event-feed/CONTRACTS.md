@@ -123,16 +123,29 @@ A per-event row has the same five fields plus:
 
 A row is a per-event row when it has both `o` and `k`. A row without them is a per-calendar or per-address-book row. There is no separate marker. The sync service already reads rows this way (`Application/ChangeFeed/NextcloudChangeFeedWorker.cs:234`, read).
 
+Sequence numbers and order:
+
+- One event change writes two rows, a per-event row and the per-calendar row. Each gets its own sequence number. No two rows share a number, as today (`lib/Service/ChangeNotification/ChangeLedgerService.php:54-58`, read).
+- A response holds both kinds of row in one list, ordered by sequence number. The cursor moves as it does today.
+- The per-event row usually has the lower number. The sync service must handle either row arriving first and must not treat one as proof that the other was already delivered.
+- Why the order is not guaranteed: a row whose number a read has already passed gets a new number after commit. That can happen to the per-event row alone, which then sits above its per-calendar row.
+
+To bring up with Artem: the sentence above on handling either row first.
+
+Options not chosen:
+
+- Both rows share one number. A page that ends between the two would move the cursor past the second row, so paging would need a rule for equal numbers, and the new number after commit would have to be given to both rows in two tables. Nothing asks for the two rows to be matched.
+- A guaranteed order. The new number after commit would then always have to move both rows together.
+
 Still to write down here before review:
 
-- The order of rows in one response when both kinds are present, and how the cursor moves.
-- Whether one change produces both a per-calendar row and a per-event row with separate sequence numbers.
 - One example response as the shared test vector.
 
 Decisions this section makes, for review:
 
 - The field names `o` and `k`, and no UID in the row.
 - A reader tells the two kinds of row apart by the presence of `o` and `k`.
+- Each row has its own sequence number, and the order between a per-event row and its per-calendar row is not guaranteed.
 - The three kinds, with no "moved" and no "restored".
 - The row holds no event content, no etag and no sync token.
 
