@@ -52,11 +52,11 @@ Depends on this: C8, N7.1.
 
 ## Q4: What do we send when an event moves out of the synced calendar? (open)
 
-What we know: the move event carries the source calendar, the target calendar and the new file name (run). It does not carry the old file name. Whether the Calendar app keeps the file name on a move was not checked.
+What we know: the move event carries the source calendar, the target calendar and the new file name (run). It does not carry the old file name. The Calendar app (6.6.5 on Nextcloud 35) keeps the file name and the UID on a move; it sends one WebDAV MOVE and only the calendar changes (run twice, 18 November 2026). Another CalDAV client can still rename the file in the same MOVE.
 
 Option A. Send nothing. The timer sync removes the event on the other side.
 
-Option B. Send "deleted" for the source calendar with the new file name. This is wrong whenever a client renames the file during the move.
+Option B. Send "deleted" for the source calendar with the new file name. This is right for a move in the Calendar app. When a client renames the file during the move, the row names a file the synced calendar never held.
 
 A move into the synced calendar is sent as "created" in both options.
 
@@ -136,7 +136,15 @@ Rows are written only for events in the user's synced calendar, and only for use
 | Subscription and federated calendars | none |
 | Contacts | none at card level; address-book rows stay as they are |
 
-Still to write down here before review: how the synced calendar is found for a user, and what happens when it cannot be found.
+What we know about the synced calendar (read on 3a339c2, 18 November 2026):
+
+- It is a calendar URI. The app resolves it as the `calendar` column of the user's row in `sndntsync_users`, then the app setting `defaultCalendar`, then `personal` (`lib/Service/SyncUserService.php:260`, `:310-318`). This is the value the sync service is told.
+- Nothing in the app writes the per-user column, so today it is one value for all users.
+- The setting is free text and is not checked on save. The app does not check that the calendar exists when it reports the URI.
+- The listener already has the changed calendar's URI and reads the user's row, so the check is a comparison of two URIs with no extra query.
+- Not verified: that a change made by a sharee arrives with the owner's principal and the original URI.
+
+Still to write down here before review: how the listener and the list of sync users are kept on the same rule, and what happens for a user whose setting names a calendar that does not exist.
 
 Decisions this section makes, for review:
 

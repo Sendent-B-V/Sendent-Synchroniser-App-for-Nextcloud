@@ -50,7 +50,7 @@ All of Phase 0 is one PR, the decision PR. Nothing below starts until the rows i
 | Status | Id | Task | Est | After | Notes |
 |---|---|---|---|---|---|
 | TODO | N7.1 | Turn each of the six event-level changes into the file name and kind for a row, following contract C9. Covers the trash name, the silent purge, the restore event that lacks a UID, and the move. Why: the listener reads only the calendar today. Files: `lib/Service/ChangeNotification/DavEventReferenceExtractor.php`, `lib/ChangeNotification/`. Unit tests included. | 1 | C8, C9 | safe. needs Q3, Q4, Q5. |
-| TODO | N7.2 | Decide per change whether the event is in the user's synced calendar. Why: scope is checked per user today, not per calendar. Files: `lib/Service/ChangeNotification/SyncScope.php`, `lib/Service/SyncUserService.php` for reading the setting. Unit tests included. | 0.5 | C9 | safe. How the setting resolves per user is not verified yet; see the range in PLAN.md. |
+| TODO | N7.2 | Decide per change whether the event is in the user's synced calendar. Why: scope is checked per user today, not per calendar. Files: `lib/Service/ChangeNotification/SyncScope.php`, `lib/Service/SyncUserService.php` for reading the setting. Unit tests included. | 0.5 | C9 | The synced calendar is a URI and the check is a URI comparison; see contract C9. `SyncScope` keeps only yes or no per user today, so this changes what it caches. |
 | TODO | N7.3 | Write the per-event row together with the per-calendar row, inside the same savepoint, with failures swallowed and logged as today. Why: a feed failure must never break the user's save. Files: `lib/Listener/DavChangeListener.php`, `lib/Service/ChangeNotification/ChangeLedgerService.php`. | 1 | N6.2, N7.1, N7.2 | solo. |
 | TODO | N7.4 | Extend the re-stamp after commit to per-event rows. Why: a row written before the commit can otherwise sit below a cursor a reader already passed. Files: `lib/Service/ChangeNotification/ChangeLedgerService.php`, `lib/Service/ChangeNotification/PostCommitQueue.php`. | 0.5 | N7.3 | solo. |
 
@@ -83,4 +83,6 @@ All of Phase 0 is one PR, the decision PR. Nothing below starts until the rows i
 | Status | Id | Task | Est | After | Notes |
 |---|---|---|---|---|---|
 | TODO | X1 | Run the event probe on Nextcloud 33. | 0.25 | | safe. 32 and 35 were run, 34 was read. |
-| TODO | X2 | Check in the Calendar app: file name on a move between calendars, and what "this and future events" produces. | 0.25 | | safe. Feeds Q4. |
+| DONE | X2 | Check in the Calendar app: file name on a move between calendars, and what "this and future events" produces. | 0.25 | | safe. Feeds Q4. Done 18 November 2026: a move keeps the file name and UID. "This and all future" leaves the original with its name and UID and adds a second event with a new name and a new UID. Only a title change was tested. |
+| TODO | X3 | Run a change made by a sharee in a shared calendar and check which principal and calendar URI the event carries. | 0.25 | | safe. Feeds contract C9 and N7.2. |
+| TODO | X4 | The trash scrub listener uses `personal` and ignores the synced-calendar setting (`lib/Listener/CalendarObjectTrashScrubListener.php:82`). Decide whether it follows the setting. | 0.25 | | Found on the way. Not part of the feed. |
