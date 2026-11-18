@@ -18,7 +18,7 @@ What the research found: all six event-level changes reach the app with the cale
 
 Depends on this: every task below Phase 0.
 
-## Q2: Can the sync service process a row for an event that was created in Nextcloud? (open)
+## Q2: Can the sync service process a row for an event that was created in Nextcloud? (settled 18 November 2026)
 
 A "created" or "updated" row gives the calendar and the event's file name. The sync service has to find that event from the file name alone.
 
@@ -30,23 +30,17 @@ What we know:
 - A query on the UID finds both kinds of event (run). The sync service has such a lookup (`Sendent.Dav.Client/Calls/Gateways/CalDavCalendarQueryGateway.cs:109-114`, read), but the feed worker does not pass the UID from the row to it.
 - Not run: the sync service itself. The query was built from its source and run inside Nextcloud.
 
-Proposed answer: no, not as the sync service is today. A row for an event created in Nextcloud is fetched and comes back empty. Rows for events the sync service created work. The sync service needs a change: look the event up by the UID from the row, or fetch it by path.
-
-Depends on this: S1, G1, Q3.
+Answer: yes. Artem confirmed on 18 November 2026 that the file name is enough. The query result above was on commit 590e3133 and is kept here as the reason gate G1 includes an event created in Nextcloud.
 
 Depends on this: S1, G1.
 
-## Q3: Does the row carry the event UID? (open)
+## Q3: Does the row carry the event UID? (settled 18 November 2026)
 
 The UID was asked for as "ideally". The sync service reads by file name.
 
-What we know: five of the six events carry the UID (run). The restore event does not (run). To fill it we read one column of the event row in the same transaction. Q2 shows a lookup by UID finds events created in Nextcloud, where the lookup by file name does not.
+What we know: five of the six events carry the UID (run). The restore event does not (run). To fill it we read one column of the event row in the same transaction.
 
-Option A. Carry the UID. One extra field in the row and one extra read on restore.
-
-Option B. Leave it out. The row adds only the file name and the kind.
-
-Proposed answer: none yet. The plan assumes A until this is settled.
+Answer: no. The row adds only the file name and the kind. Artem confirmed the file name is enough (Q2), so the UID has no use in the row, and the restore event needs no extra read.
 
 Depends on this: C8, N7.1.
 
@@ -85,11 +79,11 @@ Proposed answer: to be filled.
 
 Depends on this: C10, N8.2, N9.1.
 
-## Q7: Does deleting a calendar get an explicit row? (open)
+## Q7: Does deleting a calendar get an explicit row? (settled 18 November 2026)
 
 What we know: moving a calendar to trash, restoring it and deleting it each fire one calendar-level event and no event-level ones (run). The per-calendar row stays in the feed.
 
-Proposed answer: no extra row. The existing per-calendar row covers it.
+Answer: no extra row. The existing per-calendar row covers it.
 
 Depends on this: nothing if the answer is no.
 
@@ -103,7 +97,6 @@ A per-event row has the same five fields plus:
 
 - `o`: the event's file name inside the calendar, for example `one.ics`. Not a full path.
 - `k`: the change kind. One of `created`, `updated`, `deleted`.
-- `uid`: the event UID. Only if Q3 is answered A.
 
 Still to write down here before review:
 
@@ -114,7 +107,7 @@ Still to write down here before review:
 
 Decisions this section makes, for review:
 
-- The field names `o`, `k` and `uid`.
+- The field names `o` and `k`, and no UID in the row.
 - The three kinds, with no "moved" and no "restored".
 - The row holds no event content, no etag and no sync token.
 
@@ -142,7 +135,7 @@ What we know about the synced calendar (read on 3a339c2, 18 November 2026):
 - Nothing in the app writes the per-user column, so today it is one value for all users.
 - The setting is free text and is not checked on save. The app does not check that the calendar exists when it reports the URI.
 - The listener already has the changed calendar's URI and reads the user's row, so the check is a comparison of two URIs with no extra query.
-- Not verified: that a change made by a sharee arrives with the owner's principal and the original URI.
+- A change made by a sharee arrives with the owner's principal and the calendar's own URI, not the sharee's `_shared_by_` view (run twice on Nextcloud 35 over CalDAV, 18 November 2026). Not run: the Calendar web UI as sharee, group shares, a sharee who is also a sync user.
 
 Still to write down here before review: how the listener and the list of sync users are kept on the same rule, and what happens for a user whose setting names a calendar that does not exist.
 

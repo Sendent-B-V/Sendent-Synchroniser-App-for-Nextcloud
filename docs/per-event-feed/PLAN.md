@@ -21,7 +21,7 @@ Realistic range: 8 to 13 days. What moves it:
 
 - Q2. If the sync service cannot find an event created in Nextcloud, that is up to a day in the sync service and a second gate run.
 - The synced calendar. How the setting resolves per user was not checked. Half a day if it is a plain lookup, more if it is not.
-- Q3 and Q5. Without the UID and with restore sent as "created", the write path loses about half a day.
+- Q5. With restore sent as "created" the write path is slightly smaller. The UID is out of the row (Q3), which already removed the extra read on restore.
 - Concurrency tests. One day if the existing test setup carries over, two if it does not.
 
 ## Where we are today
