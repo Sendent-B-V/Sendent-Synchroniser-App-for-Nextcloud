@@ -54,15 +54,15 @@ Option B. Send "deleted" for the source calendar with the new file name. This is
 
 A move into the synced calendar is sent as "created" in both options.
 
-Proposed answer: A.
+Proposed answer: none yet. Asked on 18 November 2026 which of the two the sync service wants.
 
 Depends on this: C9, N7.1.
 
-## Q5: Is a restore from trash sent as "created" or as its own kind? (open)
+## Q5: Is a restore from trash sent as "created" or as its own kind? (settled 18 November 2026)
 
 What we know: the sync service handles created and updated the same way (`Application.Abstractions/Orchestration/HookedCalendarChange.cs:6`, read). The restore event gives the original file name back (run).
 
-Proposed answer: "created". No new kind.
+Answer: "created". No new kind. The sync service sees the state of a restored event when it fetches it, so a separate kind would tell it nothing more.
 
 Depends on this: C8, N7.1.
 
@@ -98,9 +98,10 @@ A per-event row has the same five fields plus:
 - `o`: the event's file name inside the calendar, for example `one.ics`. Not a full path.
 - `k`: the change kind. One of `created`, `updated`, `deleted`.
 
+
 Still to write down here before review:
 
-- How a reader tells a per-event row from a per-calendar row.
+
 - The order of rows in one response when both kinds are present, and how the cursor moves.
 - Whether one change produces both a per-calendar row and a per-event row with separate sequence numbers.
 - One example response as the shared test vector.
@@ -108,6 +109,7 @@ Still to write down here before review:
 Decisions this section makes, for review:
 
 - The field names `o` and `k`, and no UID in the row.
+- A reader tells the two kinds of row apart by the presence of `o` and `k`.
 - The three kinds, with no "moved" and no "restored".
 - The row holds no event content, no etag and no sync token.
 
@@ -121,7 +123,7 @@ Rows are written only for events in the user's synced calendar, and only for use
 | Event updated | `updated` |
 | One occurrence of a series changed | `updated`, on the series file |
 | Event moved to trash | `deleted`, with the original file name |
-| Event restored from trash | see Q5 |
+| Event restored from trash | `created`, with the original file name |
 | Event purged from trash | none |
 | Event moved into the synced calendar | `created` |
 | Event moved out of the synced calendar | see Q4 |
@@ -137,11 +139,14 @@ What we know about the synced calendar (read on 3a339c2, 18 November 2026):
 - The listener already has the changed calendar's URI and reads the user's row, so the check is a comparison of two URIs with no extra query.
 - A change made by a sharee arrives with the owner's principal and the calendar's own URI, not the sharee's `_shared_by_` view (run twice on Nextcloud 35 over CalDAV, 18 November 2026). Not run: the Calendar web UI as sharee, group shares, a sharee who is also a sync user.
 
-Still to write down here before review: how the listener and the list of sync users are kept on the same rule, and what happens for a user whose setting names a calendar that does not exist.
+The synced calendar is worked out by one rule in one place. The list of sync users and the listener both use it, so the calendar the sync service is told about and the calendar that gets per-event rows cannot differ.
+
+Still to write down here before review: what happens for a user whose setting names a calendar that does not exist.
 
 Decisions this section makes, for review:
 
 - Changes in other calendars of the same user produce no per-event row.
+- One rule for the synced calendar, shared by the sync-user list and the listener.
 - A purge from trash is silent, because the trash step already sent `deleted`.
 - A failure while writing a per-event row never breaks the user's save.
 
