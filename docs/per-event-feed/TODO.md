@@ -30,7 +30,7 @@ All of Phase 0 is one PR, the decision PR. Nothing below starts until the rows i
 | DONE | C1 | Settle Q1: build per-event rows, or token read on the existing row. | 0 | | all. Settled 16 November 2026: per-event rows are built. |
 | DONE | C2 | Settle Q2: can the sync service process a row for an event created in Nextcloud. | 0 | | all. Settled 18 November 2026: Artem says the file name is enough. |
 | DONE | C3 | Settle Q3: UID in the row or not. | 0 | C1 | all. Settled 18 November 2026: no UID in the row. |
-| TODO | C4 | Settle Q4: what is sent when an event moves out of the synced calendar. | 0 | C1 | all. |
+| DONE | C4 | Settle Q4: what is sent when an event moves out of the synced calendar. | 0 | C1 | all. Settled 19 November 2026: sent as deleted, as Artem asked. |
 | DONE | C5 | Settle Q5: restore sent as created or as its own kind. | 0 | C1 | all. Settled 18 November 2026: sent as created. |
 | TODO | C6 | Settle Q6: retention period and the too-old cursor. | 0 | C1 | all. |
 | DONE | C7 | Settle Q7: explicit row for a deleted calendar or not. | 0 | C1 | all. Settled 18 November 2026: no extra row. |
@@ -49,7 +49,7 @@ All of Phase 0 is one PR, the decision PR. Nothing below starts until the rows i
 
 | Status | Id | Task | Est | After | Notes |
 |---|---|---|---|---|---|
-| TODO | N7.1 | Turn each of the six event-level changes into the file name and kind for a row, following contract C9. Covers the trash name, the silent purge, the restore and the move. Why: the listener reads only the calendar today. Files: `lib/Service/ChangeNotification/DavEventReferenceExtractor.php`, `lib/ChangeNotification/`. Unit tests included. | 1 | C8, C9 | safe. needs Q4. |
+| TODO | N7.1 | Turn each of the six event-level changes into the file name and kind for a row, following contract C9. Covers the trash name, the silent purge, the restore and the move. Why: the listener reads only the calendar today. Files: `lib/Service/ChangeNotification/DavEventReferenceExtractor.php`, `lib/ChangeNotification/`. Unit tests included. | 1 | C8, C9 | safe. |
 | TODO | N7.2 | Decide per change whether the event is in the user's synced calendar. Why: scope is checked per user today, not per calendar. Files: `lib/Service/ChangeNotification/SyncScope.php`, `lib/Service/SyncUserService.php` for reading the setting. Unit tests included. | 0.5 | C9 | The synced calendar is a URI and the check is a URI comparison; see contract C9. `SyncScope` keeps only yes or no per user today, so this changes what it caches. |
 | TODO | N7.3 | Write the per-event row together with the per-calendar row, inside the same savepoint, with failures swallowed and logged as today. Why: a feed failure must never break the user's save. Files: `lib/Listener/DavChangeListener.php`, `lib/Service/ChangeNotification/ChangeLedgerService.php`. | 1 | N6.2, N7.1, N7.2 | solo. |
 | TODO | N7.4 | Extend the re-stamp after commit to per-event rows. Why: a row written before the commit can otherwise sit below a cursor a reader already passed. Files: `lib/Service/ChangeNotification/ChangeLedgerService.php`, `lib/Service/ChangeNotification/PostCommitQueue.php`. | 0.5 | N7.3 | solo. |

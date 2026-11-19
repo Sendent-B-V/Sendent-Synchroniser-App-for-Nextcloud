@@ -44,7 +44,7 @@ Answer: no. The row adds only the file name and the kind. Artem confirmed the fi
 
 Depends on this: C8, N7.1.
 
-## Q4: What do we send when an event moves out of the synced calendar? (open)
+## Q4: What do we send when an event moves out of the synced calendar? (settled 19 November 2026)
 
 What we know: the move event carries the source calendar, the target calendar and the new file name (run). It does not carry the old file name. The Calendar app (6.6.5 on Nextcloud 35) keeps the file name and the UID on a move; it sends one WebDAV MOVE and only the calendar changes (run twice, 18 November 2026). Another CalDAV client can still rename the file in the same MOVE.
 
@@ -54,7 +54,7 @@ Option B. Send "deleted" for the source calendar with the new file name. This is
 
 A move into the synced calendar is sent as "created" in both options.
 
-Proposed answer: none yet. Asked on 18 November 2026 which of the two the sync service wants.
+Answer: B. A move out of the synced calendar is sent as "deleted" for the synced calendar, with the file name the event has after the move. Artem asked for this on 19 November 2026. The Calendar app keeps the file name on a move, so the row names the event the sync service knows. A client that renames the file during the move produces a row for a name the synced calendar never held.
 
 Depends on this: C9, N7.1.
 
@@ -176,7 +176,7 @@ Rows are written only for events in the user's synced calendar, and only for use
 | Event restored from trash | `created`, with the original file name |
 | Event purged from trash | none |
 | Event moved into the synced calendar | `created` |
-| Event moved out of the synced calendar | see Q4 |
+| Event moved out of the synced calendar | `deleted`, with the file name after the move |
 | Calendar trashed, restored or deleted | none at event level, see Q7 |
 | Subscription and federated calendars | none |
 | Contacts | none at card level; address-book rows stay as they are |

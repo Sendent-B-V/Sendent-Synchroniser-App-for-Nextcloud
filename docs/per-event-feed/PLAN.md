@@ -42,7 +42,7 @@ The contracts in CONTRACTS.md hold the exact shapes. In short:
 
 - A per-event row has the fields of a per-calendar row plus the event's file name and the change kind. The kind is created, updated or deleted. There is no UID and no event content.
 - Rows are written only for events in the user's synced calendar. One rule works out which calendar that is, and the list of sync users and the listener both use it.
-- A move to trash is sent as deleted, a restore as created, and a purge from trash sends nothing. A move into the synced calendar is created. A move out is still open (Q4).
+- A move to trash is sent as deleted, a restore as created, and a purge from trash sends nothing. A move into the synced calendar is created. A move out is deleted.
 - Per-calendar rows stay as they are. Per-event rows go in a separate append-only table.
 - Each row has its own sequence number. One endpoint returns both kinds in one list ordered by number, with one cursor.
 - The row is written in the user's transaction inside a savepoint. A failure is swallowed and logged and never breaks the save.
@@ -66,7 +66,7 @@ Unit tests with each task. One integration test on the CI matrix for every row o
 
 ## Dependencies and open questions
 
-Settled: Q1, Q2, Q3, Q5 and Q7. Open: Q4 is waiting for an answer from Artem. Q6 and the contracts C8 to C10 hold proposals that wait for review.
+Settled: Q1 to Q5 and Q7. Q6 and the contracts C8 to C10 hold proposals that wait for review.
 
 ## Risks
 
