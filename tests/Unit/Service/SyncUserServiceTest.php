@@ -12,8 +12,11 @@ use OCA\SendentSynchroniser\Service\SchedulingSuppressionService;
 use OCA\SendentSynchroniser\Service\SyncUserService;
 use OCP\Accounts\IAccountManager;
 use OCP\AppFramework\Services\IAppConfig;
+use OCP\IGroup;
 use OCP\IGroupManager;
+use OCP\IUser;
 use OCP\IUserManager;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
@@ -25,6 +28,7 @@ class SyncUserServiceTest extends TestCase {
 	private SchedulingSuppressionService&MockObject $suppression;
 	private IAppConfig&MockObject $appConfig;
 	private IGroupManager&MockObject $groupManager;
+	private IUserManager&MockObject $userManager;
 	private SyncUserService $svc;
 
 	protected function setUp(): void {
@@ -33,6 +37,7 @@ class SyncUserServiceTest extends TestCase {
 		$this->suppression = $this->createMock(SchedulingSuppressionService::class);
 		$this->appConfig = $this->createMock(IAppConfig::class);
 		$this->groupManager = $this->createMock(IGroupManager::class);
+		$this->userManager = $this->createMock(IUserManager::class);
 		$this->svc = new SyncUserService(
 			$this->createMock(IAccountManager::class),
 			'sendentsynchroniser',
@@ -40,7 +45,7 @@ class SyncUserServiceTest extends TestCase {
 			$this->groupManager,
 			new NullLogger(),
 			$this->tokenProvider,
-			$this->createMock(IUserManager::class),
+			$this->userManager,
 			$this->mapper,
 			$this->suppression
 		);
@@ -218,9 +223,9 @@ class SyncUserServiceTest extends TestCase {
 	}
 
 	private function activeGroups(string $json): void {
-		$this->appConfig->method('getAppValue')->willReturnMap([
-			['activeGroups', '', $json],
-		]);
+		// isValidUser() is answered from the synced-calendars lookup, which
+		// also reads the calendar setting, so every setting needs a value.
+		$this->settings(['activeGroups' => $json]);
 	}
 
 	private function syncUserWithStatus(int|string $status): SyncUser {
@@ -276,5 +281,177 @@ class SyncUserServiceTest extends TestCase {
 		$this->groupManager->method('isInGroup')->willReturn(true);
 
 		$this->assertFalse($this->svc->isValidUser('alice'));
+	}
+
+	// ---- synced calendars ---------------------------------------------------
+
+	/**
+	 * The resolution order: the user's own value, then the app setting, then
+	 * 'personal'. Null and the empty string both count as "not set". Today
+	 * the synced set holds exactly that one URI.
+	 *
+	 * @return array<string, array{?string, string, string}> stored on the user's row, app setting, expected URI
+	 */
+	public static function syncedCalendarCases(): array {
+		return [
+			'the per-user value wins over the setting' => ['work', 'team', 'work'],
+			'the per-user value wins when the setting is empty' => ['work', '', 'work'],
+			'a null per-user value falls to the setting' => [null, 'team', 'team'],
+			'an empty per-user value falls to the setting' => ['', 'team', 'team'],
+			'null and an empty setting fall to personal' => [null, '', 'personal'],
+			'empty and an empty setting fall to personal' => ['', '', 'personal'],
+		];
+	}
+
+	/** Every app setting the service reads, at its default unless overridden. */
+	private function settings(array $overrides = []): void {
+		$values = $overrides + [
+			'activeGroups' => '["sync"]',
+			'defaultCalendar' => '',
+			'defaultAddressbook' => '',
+			'emailTemplate' => '',
+			'emailDomain' => '',
+		];
+		$map = [];
+		foreach ($values as $key => $value) {
+			$map[] = [$key, '', $value];
+		}
+		$this->appConfig->method('getAppValue')->willReturnMap($map);
+	}
+
+	private function syncUserWithCalendar(?string $calendar, int|string $status = Constants::USER_STATUS_ACTIVE): SyncUser {
+		$user = new SyncUser();
+		$user->setUid('alice');
+		$user->setActive($status);
+		$user->setCalendar($calendar);
+		return $user;
+	}
+
+	/** Makes alice a member of the active group 'sync', as getValidUsers() walks it. */
+	private function givenAliceInTheActiveGroup(): void {
+		$alice = $this->createMock(IUser::class);
+		$alice->method('getUID')->willReturn('alice');
+		$alice->method('getDisplayName')->willReturn('Alice');
+		$alice->method('getEmailAddress')->willReturn('alice@example.com');
+
+		$group = $this->createMock(IGroup::class);
+		$group->method('getUsers')->willReturn([$alice]);
+
+		$this->groupManager->method('get')->with('sync')->willReturn($group);
+		$this->groupManager->method('isInGroup')->with('alice', 'sync')->willReturn(true);
+		$this->userManager->method('get')->with('alice')->willReturn($alice);
+	}
+
+	#[DataProvider('syncedCalendarCases')]
+	public function testTheSyncedSetHoldsTheOneCalendarFromTheResolutionOrder(?string $stored, string $setting, string $expected): void {
+		$this->settings(['defaultCalendar' => $setting]);
+
+		$this->assertSame([$expected], $this->svc->resolveSyncedCalendars($this->syncUserWithCalendar($stored)));
+	}
+
+	public function testResolvingTheSyncedCalendarsDoesNotLoadOrChangeTheRow(): void {
+		// The caller hands the row in; the rule only reads it.
+		$this->settings(['defaultCalendar' => 'team']);
+		$this->mapper->expects($this->never())->method('findByUid');
+		$this->mapper->expects($this->never())->method('update');
+		$syncUser = $this->syncUserWithCalendar(null);
+
+		$this->svc->resolveSyncedCalendars($syncUser);
+
+		$this->assertNull($syncUser->getCalendar());
+	}
+
+	#[DataProvider('syncedCalendarCases')]
+	public function testTheValidUserListReportsTheSameCalendarAsBefore(?string $stored, string $setting, string $expected): void {
+		$this->settings(['defaultCalendar' => $setting]);
+		$this->givenAliceInTheActiveGroup();
+		$this->mapper->method('findByUid')->with('alice')->willReturn([$this->syncUserWithCalendar($stored)]);
+
+		$users = $this->svc->getValidUsers();
+
+		$this->assertCount(1, $users);
+		$this->assertSame('alice', $users[0]['uid']);
+		$this->assertSame($expected, $users[0]['calendar']);
+		// The address book keeps its own fallback and is not touched by the calendar rule.
+		$this->assertSame('contacts', $users[0]['addressbook']);
+	}
+
+	#[DataProvider('syncedCalendarCases')]
+	public function testAValidUserGetsTheirSyncedCalendars(?string $stored, string $setting, string $expected): void {
+		$this->settings(['defaultCalendar' => $setting]);
+		$this->mapper->method('findByUid')->with('alice')->willReturn([$this->syncUserWithCalendar($stored)]);
+		$this->groupManager->method('isInGroup')->with('alice', 'sync')->willReturn(true);
+
+		$this->assertSame([$expected], $this->svc->syncedCalendarsOfValidUser('alice'));
+	}
+
+	public function testTheCalendarInTheListIsOneOfTheSyncedCalendars(): void {
+		// The calendar the Connector is told about must be one the feed writes per-event rows for.
+		$this->settings(['defaultCalendar' => 'team']);
+		$this->givenAliceInTheActiveGroup();
+		$this->mapper->method('findByUid')->with('alice')->willReturn([$this->syncUserWithCalendar('')]);
+
+		$this->assertContains(
+			$this->svc->getValidUsers()[0]['calendar'],
+			$this->svc->syncedCalendarsOfValidUser('alice')
+		);
+	}
+
+	public function testAUserWhoNeverActivatedHasNoSyncedCalendars(): void {
+		$this->settings(['defaultCalendar' => 'team']);
+		$this->mapper->method('findByUid')->willReturn([]);
+		$this->groupManager->method('isInGroup')->willReturn(true);
+
+		$this->assertNull($this->svc->syncedCalendarsOfValidUser('alice'));
+	}
+
+	public function testAUserWhoRetractedConsentHasNoSyncedCalendars(): void {
+		$this->settings();
+		$this->mapper->method('findByUid')->willReturn([$this->syncUserWithCalendar('work', Constants::USER_STATUS_NOCONSENT)]);
+		$this->groupManager->method('isInGroup')->willReturn(true);
+
+		$this->assertNull($this->svc->syncedCalendarsOfValidUser('alice'));
+	}
+
+	public function testAnInactiveUserHasNoSyncedCalendars(): void {
+		$this->settings();
+		$this->mapper->method('findByUid')->willReturn([$this->syncUserWithCalendar('work', Constants::USER_STATUS_INACTIVE)]);
+		$this->groupManager->method('isInGroup')->willReturn(true);
+
+		$this->assertNull($this->svc->syncedCalendarsOfValidUser('alice'));
+	}
+
+	public function testAnActivatedUserOutsideEveryActiveGroupHasNoSyncedCalendars(): void {
+		$this->settings();
+		$this->mapper->method('findByUid')->willReturn([$this->syncUserWithCalendar('work')]);
+		$this->groupManager->method('isInGroup')->willReturn(false);
+
+		$this->assertNull($this->svc->syncedCalendarsOfValidUser('alice'));
+	}
+
+	public function testMalformedActiveGroupsGiveNobodySyncedCalendars(): void {
+		$this->settings(['activeGroups' => 'not json']);
+		$this->mapper->method('findByUid')->willReturn([$this->syncUserWithCalendar('work')]);
+		$this->groupManager->method('isInGroup')->willReturn(true);
+
+		$this->assertNull($this->svc->syncedCalendarsOfValidUser('alice'));
+	}
+
+	public function testAStatusReadBackAsAStringStillGetsSyncedCalendars(): void {
+		// Same driver quirk as for isValidUser(): the two must agree.
+		$this->settings();
+		$this->mapper->method('findByUid')->willReturn([$this->syncUserWithCalendar('work', '1')]);
+		$this->groupManager->method('isInGroup')->willReturn(true);
+
+		$this->assertSame(['work'], $this->svc->syncedCalendarsOfValidUser('alice'));
+	}
+
+	public function testTheSyncedCalendarsLookupLoadsTheRowOnce(): void {
+		$this->settings();
+		$this->mapper->expects($this->once())->method('findByUid')->with('alice')
+			->willReturn([$this->syncUserWithCalendar('work')]);
+		$this->groupManager->method('isInGroup')->willReturn(true);
+
+		$this->svc->syncedCalendarsOfValidUser('alice');
 	}
 }
