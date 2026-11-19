@@ -193,10 +193,11 @@ The synced calendars are worked out by one rule in one place. The list of sync u
 
 More than one synced calendar (added 19 November 2026). The sync team is testing several synced calendars per user. The rule therefore returns a set of calendar URIs, and the check is "is this calendar one of them". Today the set always holds one URI, from the order above. A move between two synced calendars follows from the table: `deleted` in the one it left and `created` in the one it entered.
 
+With several synced calendars the sync service must read the calendar from the row (`u`) to know which calendar an event belongs to. With one synced calendar the file name is enough; with several it is not. The field is already in every row, so nothing changes on the Nextcloud side. Gate G1 checks this with a change in a second synced calendar.
+
 Open, to ask Artem:
 
 - Where the list of a user's synced calendars lives: in the app's settings, or on the sync side. The app can only filter on a list it holds. Today it holds one value per user.
-- Whether the sync service uses the calendar named in the row (`u`) to know which calendar an event belongs to. With one synced calendar the file name is enough; with several it is not. The field is already in every row.
 - Which calendar the list of sync users reports as `calendar` once a user has several. Today it is the only one.
 
 Proposal for a setting that names a calendar that does not exist: the user gets no per-event rows and nothing is logged per change. Per-calendar rows are still written, so the timer sync is not affected. This matches what the app does today, where it reports the URI to the sync service without checking it (`lib/Service/SyncUserService.php:310-318`, read). A check on the admin page when the setting is saved would be the place to catch it, and is not part of this feature.

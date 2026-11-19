@@ -76,7 +76,7 @@ All of Phase 0 is one PR, the decision PR. Nothing below starts until the rows i
 | TODO | N10.2 | Concurrency test: two writers and one reader, no row is skipped or seen out of order across the fence. | 1 | N7.4, N8.1 | safe. |
 | TODO | N10.3 | Update the feed docs and the reference client for the new row. Files: `docs/change-notifications.md`, `docs/connector-change-feed-contract.md`, `docs/connector-reference/SendentChangeFeedClient.cs`. | 0.5 | C8, C9, C10 | safe. |
 | TODO | S1 | Sync service: confirm that no change is needed to process per-event rows, or fix the lookup for events created in Nextcloud. | 0 | C2, C8 | Other repo. Artem says the file name is enough; G1 confirms it with an event created in Nextcloud. |
-| TODO | G1 | Gate on the dev instance. Pass: an event created, changed and deleted in the synced calendar in Nextcloud reaches the other side through the feed without waiting for the timer sync, and a change in another calendar produces no row. | 0.5 | N10.1, N9.1, N9.2, S1 | Owed by everyone. needs Q2. |
+| TODO | G1 | Gate on the dev instance. Pass: an event created, changed and deleted in the synced calendar in Nextcloud reaches the other side through the feed without waiting for the timer sync, and a change in another calendar produces no row. Once a user can have a second synced calendar: a change there lands in the right calendar on the other side. | 0.5 | N10.1, N9.1, N9.2, S1 | Owed by everyone. needs Q2. |
 
 ## Cross-cutting follow-ups
 
