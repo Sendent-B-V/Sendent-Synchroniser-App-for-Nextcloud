@@ -56,6 +56,8 @@ A move into the synced calendar is sent as "created" in both options.
 
 Answer: B. A move out of the synced calendar is sent as "deleted" for the synced calendar, with the file name the event has after the move. Artem asked for this on 19 November 2026. The Calendar app keeps the file name on a move, so the row names the event the sync service knows. A client that renames the file during the move produces a row for a name the synced calendar never held.
 
+Changed 19 November 2026: the app does not know which calendars are synced (see C9), so it sends both sides of every move: `deleted` in the calendar the event left and `created` in the calendar it entered. The answer above still holds for a move out of a synced calendar.
+
 Depends on this: C9, N7.1.
 
 ## Q5: Is a restore from trash sent as "created" or as its own kind? (settled 18 November 2026)
@@ -163,9 +165,9 @@ Decisions this section makes, for review:
 - The three kinds, with no "moved" and no "restored".
 - The row holds no event content, no etag and no sync token.
 
-## C9: Which changes produce a per-event row (proposal, 16 November 2026)
+## C9: Which changes produce a per-event row (proposal, 16 November 2026, changed 19 November 2026)
 
-Rows are written only for events in one of the user's synced calendars, and only for users the feed already covers. A user has one synced calendar today; see "More than one synced calendar" below.
+Rows are written for events in every calendar of a user the feed already covers. The app does not filter by calendar. The sync service filters on the calendar named in the row (`u`).
 
 | Change | Row |
 |---|---|
@@ -175,38 +177,28 @@ Rows are written only for events in one of the user's synced calendars, and only
 | Event moved to trash | `deleted`, with the original file name |
 | Event restored from trash | `created`, with the original file name |
 | Event purged from trash | none |
-| Event moved into a synced calendar | `created` |
-| Event moved out of a synced calendar | `deleted`, with the file name after the move |
+| Event moved between calendars | `deleted` in the calendar it left and `created` in the calendar it entered, both with the file name after the move |
 | Calendar trashed, restored or deleted | none at event level, see Q7 |
 | Subscription and federated calendars | none |
 | Contacts | none at card level; address-book rows stay as they are |
 
-What we know about the synced calendar (read on 3a339c2, 18 November 2026):
+Why the app does not filter by calendar (19 November 2026). The sync team is testing several synced calendars per user, and Artem said the list of a user's synced calendars lives on the sync side. The app can only filter on a list it holds, and it holds one value per user. So every calendar of a covered user gets per-event rows, and the sync service drops the rows for calendars it does not sync, as it drops per-calendar rows today. The field `u` is already in every row. With several synced calendars the sync service must read it to know which calendar an event belongs to; the file name alone is not enough.
 
-- It is a calendar URI. The app resolves it as the `calendar` column of the user's row in `sndntsync_users`, then the app setting `defaultCalendar`, then `personal` (`lib/Service/SyncUserService.php:260`, `:310-318`). This is the value the sync service is told.
+Not verified: what the sync service does with a per-event row for a calendar it does not sync. On the branch read (590e3133) the worker does not look at `u`. Gate G1 checks it.
+
+What we know about the calendar the app reports (read on 3a339c2, 18 November 2026):
+
+- It is a calendar URI. The app resolves it as the `calendar` column of the user's row in `sndntsync_users`, then the app setting `defaultCalendar`, then `personal` (`lib/Service/SyncUserService.php:260`, `:310-318`). This is the value the sync service is told in the list of sync users.
 - Nothing in the app writes the per-user column, so today it is one value for all users.
 - The setting is free text and is not checked on save. The app does not check that the calendar exists when it reports the URI.
-- The listener already has the changed calendar's URI and reads the user's row, so the check is a comparison of two URIs with no extra query.
 - A change made by a sharee arrives with the owner's principal and the calendar's own URI, not the sharee's `_shared_by_` view (run twice on Nextcloud 35 over CalDAV, 18 November 2026). Not run: the Calendar web UI as sharee, group shares, a sharee who is also a sync user.
 
-The synced calendars are worked out by one rule in one place. The list of sync users and the listener both use it, so the calendar the sync service is told about and the calendars that get per-event rows cannot differ.
-
-More than one synced calendar (added 19 November 2026). The sync team is testing several synced calendars per user. The rule therefore returns a set of calendar URIs, and the check is "is this calendar one of them". Today the set always holds one URI, from the order above. A move between two synced calendars follows from the table: `deleted` in the one it left and `created` in the one it entered.
-
-With several synced calendars the sync service must read the calendar from the row (`u`) to know which calendar an event belongs to. With one synced calendar the file name is enough; with several it is not. The field is already in every row, so nothing changes on the Nextcloud side. Gate G1 checks this with a change in a second synced calendar.
-
-Open, to ask Artem:
-
-- Where the list of a user's synced calendars lives: in the app's settings, or on the sync side. The app can only filter on a list it holds. Today it holds one value per user.
-- Which calendar the list of sync users reports as `calendar` once a user has several. Today it is the only one.
-
-Proposal for a setting that names a calendar that does not exist: the user gets no per-event rows and nothing is logged per change. Per-calendar rows are still written, so the timer sync is not affected. This matches what the app does today, where it reports the URI to the sync service without checking it (`lib/Service/SyncUserService.php:310-318`, read). A check on the admin page when the setting is saved would be the place to catch it, and is not part of this feature.
+Open: which calendar the list of sync users reports as `calendar` once a user has several synced calendars. It does not affect the feed.
 
 Decisions this section makes, for review:
 
-- Changes in other calendars of the same user produce no per-event row.
-- One rule for the synced calendars, shared by the sync-user list and the listener. It returns a set, which holds one calendar today.
-- A setting that names a calendar that does not exist gives no per-event rows and no error.
+- Every calendar of a covered user gets per-event rows. The sync service filters on the calendar in the row.
+- A move always produces two rows, one for each calendar.
 - A purge from trash is silent, because the trash step already sent `deleted`.
 - A failure while writing a per-event row never breaks the user's save.
 

@@ -35,7 +35,7 @@ All of Phase 0 is one PR, the decision PR. Nothing below starts until the rows i
 | TODO | C6 | Settle Q6: retention period and the too-old cursor. | 0 | C1 | all. |
 | DONE | C7 | Settle Q7: explicit row for a deleted calendar or not. | 0 | C1 | all. Settled 18 November 2026: no extra row. |
 | TODO | C8 | Finish and agree contract C8, the row shape. | 0.5 | C3, C5 | all. |
-| TODO | C9 | Finish and agree contract C9, which changes produce a row. | 0.25 | C4, C7 | all. Includes how the synced calendar is found for a user. |
+| TODO | C9 | Finish and agree contract C9, which changes produce a row. | 0.25 | C4, C7 | all. Changed 19 November 2026: every calendar of a sync user gets rows; the sync service filters. |
 | TODO | C10 | Write and agree contract C10, retention and the too-old cursor. | 0.25 | C6 | all. |
 
 ## Phase 1: storage
@@ -50,8 +50,8 @@ All of Phase 0 is one PR, the decision PR. Nothing below starts until the rows i
 | Status | Id | Task | Est | After | Notes |
 |---|---|---|---|---|---|
 | TODO | N7.1 | Turn each of the six event-level changes into the file name and kind for a row, following contract C9. Covers the trash name, the silent purge, the restore and the move. Why: the listener reads only the calendar today. Files: `lib/Service/ChangeNotification/DavEventReferenceExtractor.php`, `lib/ChangeNotification/`. Unit tests included. | 1 | C8, C9 | safe. |
-| TODO | N7.2 | Decide per change whether the event is in the user's synced calendar. Why: scope is checked per user today, not per calendar. Files: `lib/Service/ChangeNotification/SyncScope.php`, `lib/Service/SyncUserService.php` for reading the setting. Unit tests included. | 0.5 | C9 | The synced calendar is a URI and the check is a URI comparison; see contract C9. `SyncScope` keeps only yes or no per user today, so this changes what it caches. |
-| TODO | N7.3 | Write the per-event row together with the per-calendar row, inside the same savepoint, with failures swallowed and logged as today. Why: a feed failure must never break the user's save. Files: `lib/Listener/DavChangeListener.php`, `lib/Service/ChangeNotification/ChangeLedgerService.php`. | 1 | N6.2, N7.1, N7.2 | solo. |
+| TODO | N7.2 | Decide per change whether the event is in the user's synced calendar. Why: scope is checked per user today, not per calendar. Files: `lib/Service/ChangeNotification/SyncScope.php`, `lib/Service/SyncUserService.php` for reading the setting. Unit tests included. | 0.5 | C9 | PR open, 19 November 2026. The one rule for the calendar reported in the list of sync users stays. The scope check has no caller: since 19 November 2026 the app does not filter by calendar, see contract C9. |
+| TODO | N7.3 | Write the per-event row together with the per-calendar row, inside the same savepoint, with failures swallowed and logged as today. Why: a feed failure must never break the user's save. Files: `lib/Listener/DavChangeListener.php`, `lib/Service/ChangeNotification/ChangeLedgerService.php`. | 1 | N6.2, N7.1 | solo. Writes rows for every calendar of a sync user; no check for the synced calendar. |
 | TODO | N7.4 | Extend the re-stamp after commit to per-event rows. Why: a row written before the commit can otherwise sit below a cursor a reader already passed. Files: `lib/Service/ChangeNotification/ChangeLedgerService.php`, `lib/Service/ChangeNotification/PostCommitQueue.php`. | 0.5 | N7.3 | solo. |
 
 ## Phase 3: read path
@@ -76,7 +76,7 @@ All of Phase 0 is one PR, the decision PR. Nothing below starts until the rows i
 | TODO | N10.2 | Concurrency test: two writers and one reader, no row is skipped or seen out of order across the fence. | 1 | N7.4, N8.1 | safe. |
 | TODO | N10.3 | Update the feed docs and the reference client for the new row. Files: `docs/change-notifications.md`, `docs/connector-change-feed-contract.md`, `docs/connector-reference/SendentChangeFeedClient.cs`. | 0.5 | C8, C9, C10 | safe. |
 | TODO | S1 | Sync service: confirm that no change is needed to process per-event rows, or fix the lookup for events created in Nextcloud. | 0 | C2, C8 | Other repo. Artem says the file name is enough; G1 confirms it with an event created in Nextcloud. |
-| TODO | G1 | Gate on the dev instance. Pass: an event created, changed and deleted in the synced calendar in Nextcloud reaches the other side through the feed without waiting for the timer sync, and a change in another calendar produces no row. Once a user can have a second synced calendar: a change there lands in the right calendar on the other side. | 0.5 | N10.1, N9.1, N9.2, S1 | Owed by everyone. needs Q2. |
+| TODO | G1 | Gate on the dev instance. Pass: an event created, changed and deleted in the synced calendar in Nextcloud reaches the other side through the feed without waiting for the timer sync, and a change in a calendar the sync service does not sync produces a row and changes nothing on the other side. Once a user can have a second synced calendar: a change there lands in the right calendar on the other side. | 0.5 | N10.1, N9.1, N9.2, S1 | Owed by everyone. needs Q2. |
 
 ## Cross-cutting follow-ups
 

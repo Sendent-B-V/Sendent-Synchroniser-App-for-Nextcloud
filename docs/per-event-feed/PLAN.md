@@ -32,23 +32,23 @@ Realistic range: 8 to 12 days. What moves it:
 
 ## Goal and scope
 
-In scope: one row per changed event in the user's synced calendar, with the event's file name and the change kind.
+In scope: one row per changed event in any calendar of a sync user, with the event's file name and the change kind.
 
-Out of scope: per-card rows for contacts, event content in the row, the event UID, sync tokens in the row, changes in calendars that are not synced, a batch endpoint, a signal for a too-old cursor.
+Out of scope: per-card rows for contacts, event content in the row, the event UID, sync tokens in the row, filtering by synced calendar in the app, a batch endpoint, a signal for a too-old cursor.
 
 ## Target design
 
 The contracts in CONTRACTS.md hold the exact shapes. In short:
 
 - A per-event row has the fields of a per-calendar row plus the event's file name and the change kind. The kind is created, updated or deleted. There is no UID and no event content.
-- Rows are written only for events in the user's synced calendar. One rule works out which calendar that is, and the list of sync users and the listener both use it.
-- A move to trash is sent as deleted, a restore as created, and a purge from trash sends nothing. A move into the synced calendar is created. A move out is deleted.
+- Rows are written for events in every calendar of a sync user. The list of synced calendars lives on the sync side, so the sync service filters on the calendar named in the row.
+- A move to trash is sent as deleted, a restore as created, and a purge from trash sends nothing. A move between calendars is deleted in the calendar the event left and created in the one it entered.
 - Per-calendar rows stay as they are. Per-event rows go in a separate append-only table.
 - Each row has its own sequence number. One endpoint returns both kinds in one list ordered by number, with one cursor.
 - The row is written in the user's transaction inside a savepoint. A failure is swallowed and logged and never breaks the save.
 - Per-event rows are kept for 3 days (proposal, Q6). Per-calendar rows are never removed. A cursor older than the kept rows gets a normal response; the timer sync covers the rest.
 - A user's per-event rows are removed when the user is deleted or leaves the active group.
-- Events the sync service itself writes into the synced calendar produce rows too. The sync service drops its own writes on its side.
+- Events the sync service itself writes into a calendar produce rows too. The sync service drops its own writes on its side.
 - Works on MySQL, MariaDB and Postgres. Minimum Nextcloud version is 32.
 
 ## Work breakdown
@@ -56,7 +56,7 @@ The contracts in CONTRACTS.md hold the exact shapes. In short:
 See TODO.md for the tasks. Areas:
 
 - Storage: the table and its mapper. 1 day.
-- Write path: from the calendar event to a row, synced calendar only. 3 days.
+- Write path: from the calendar event to a row. 3 days.
 - Read path: both kinds of row from one endpoint in one order. 1 day.
 - Housekeeping: retention cleanup and user removal. 1 day.
 
