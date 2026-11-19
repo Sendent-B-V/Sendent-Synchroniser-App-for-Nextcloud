@@ -165,7 +165,7 @@ Decisions this section makes, for review:
 
 ## C9: Which changes produce a per-event row (proposal, 16 November 2026)
 
-Rows are written only for events in the user's synced calendar, and only for users the feed already covers.
+Rows are written only for events in one of the user's synced calendars, and only for users the feed already covers. A user has one synced calendar today; see "More than one synced calendar" below.
 
 | Change | Row |
 |---|---|
@@ -175,8 +175,8 @@ Rows are written only for events in the user's synced calendar, and only for use
 | Event moved to trash | `deleted`, with the original file name |
 | Event restored from trash | `created`, with the original file name |
 | Event purged from trash | none |
-| Event moved into the synced calendar | `created` |
-| Event moved out of the synced calendar | `deleted`, with the file name after the move |
+| Event moved into a synced calendar | `created` |
+| Event moved out of a synced calendar | `deleted`, with the file name after the move |
 | Calendar trashed, restored or deleted | none at event level, see Q7 |
 | Subscription and federated calendars | none |
 | Contacts | none at card level; address-book rows stay as they are |
@@ -189,14 +189,22 @@ What we know about the synced calendar (read on 3a339c2, 18 November 2026):
 - The listener already has the changed calendar's URI and reads the user's row, so the check is a comparison of two URIs with no extra query.
 - A change made by a sharee arrives with the owner's principal and the calendar's own URI, not the sharee's `_shared_by_` view (run twice on Nextcloud 35 over CalDAV, 18 November 2026). Not run: the Calendar web UI as sharee, group shares, a sharee who is also a sync user.
 
-The synced calendar is worked out by one rule in one place. The list of sync users and the listener both use it, so the calendar the sync service is told about and the calendar that gets per-event rows cannot differ.
+The synced calendars are worked out by one rule in one place. The list of sync users and the listener both use it, so the calendar the sync service is told about and the calendars that get per-event rows cannot differ.
+
+More than one synced calendar (added 19 November 2026). The sync team is testing several synced calendars per user. The rule therefore returns a set of calendar URIs, and the check is "is this calendar one of them". Today the set always holds one URI, from the order above. A move between two synced calendars follows from the table: `deleted` in the one it left and `created` in the one it entered.
+
+Open, to ask Artem:
+
+- Where the list of a user's synced calendars lives: in the app's settings, or on the sync side. The app can only filter on a list it holds. Today it holds one value per user.
+- Whether the sync service uses the calendar named in the row (`u`) to know which calendar an event belongs to. With one synced calendar the file name is enough; with several it is not. The field is already in every row.
+- Which calendar the list of sync users reports as `calendar` once a user has several. Today it is the only one.
 
 Proposal for a setting that names a calendar that does not exist: the user gets no per-event rows and nothing is logged per change. Per-calendar rows are still written, so the timer sync is not affected. This matches what the app does today, where it reports the URI to the sync service without checking it (`lib/Service/SyncUserService.php:310-318`, read). A check on the admin page when the setting is saved would be the place to catch it, and is not part of this feature.
 
 Decisions this section makes, for review:
 
 - Changes in other calendars of the same user produce no per-event row.
-- One rule for the synced calendar, shared by the sync-user list and the listener.
+- One rule for the synced calendars, shared by the sync-user list and the listener. It returns a set, which holds one calendar today.
 - A setting that names a calendar that does not exist gives no per-event rows and no error.
 - A purge from trash is silent, because the trash step already sent `deleted`.
 - A failure while writing a per-event row never breaks the user's save.
