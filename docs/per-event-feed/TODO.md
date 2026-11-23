@@ -42,15 +42,15 @@ All of Phase 0 is one PR, the decision PR. Nothing below starts until the rows i
 
 | Status | Id | Task | Est | After | Notes |
 |---|---|---|---|---|---|
-| TODO | N6.1 | Migration for a separate append-only table of per-event rows, with the indexes the read and the cleanup need. Why: per-calendar rows are overwritten in place, per-event rows must not be. Files: new migration next to `lib/Migration/Version000004Date20260820.php`, `appinfo/info.xml`. | 0.5 | C8 | solo. Must run on MySQL, MariaDB and Postgres. |
+| WIP Kleon | N6.1 | Migration for a separate append-only table of per-event rows, with the indexes the read and the cleanup need. Why: per-calendar rows are overwritten in place, per-event rows must not be. Files: new migration next to `lib/Migration/Version000004Date20260820.php`, `appinfo/info.xml`. | 0.5 | C8 | solo. Must run on MySQL, MariaDB and Postgres. Pull request open, 23 November 2026. |
 | TODO | N6.2 | Entity and mapper for the new table: insert, read a page by sequence, highest sequence, delete older than a time, delete for one user. Files: new classes in `lib/Db/`, modelled on `DirtyCollection` and `DirtyCollectionMapper`. Unit tests included. | 0.5 | N6.1 | safe. |
 
 ## Phase 2: write path
 
 | Status | Id | Task | Est | After | Notes |
 |---|---|---|---|---|---|
-| TODO | N7.1 | Turn each of the six event-level changes into the file name and kind for a row, following contract C9. Covers the trash name, the silent purge, the restore and the move. Why: the listener reads only the calendar today. Files: `lib/Service/ChangeNotification/DavEventReferenceExtractor.php`, `lib/ChangeNotification/`. Unit tests included. | 1 | C8, C9 | safe. |
-| TODO | N7.2 | Decide per change whether the event is in the user's synced calendar. Why: scope is checked per user today, not per calendar. Files: `lib/Service/ChangeNotification/SyncScope.php`, `lib/Service/SyncUserService.php` for reading the setting. Unit tests included. | 0.5 | C9 | PR open, 19 November 2026. The one rule for the calendar reported in the list of sync users stays. The scope check has no caller: since 19 November 2026 the app does not filter by calendar, see contract C9. |
+| WIP Kleon | N7.1 | Turn each of the six event-level changes into the file name and kind for a row, following contract C9. Covers the trash name, the silent purge, the restore and the move. Why: the listener reads only the calendar today. Files: `lib/Service/ChangeNotification/DavEventReferenceExtractor.php`, `lib/ChangeNotification/`. Unit tests included. | 1 | C8, C9 | safe. Pull request open, 23 November 2026. |
+| WIP Kleon | N7.2 | Decide per change whether the event is in the user's synced calendar. Why: scope is checked per user today, not per calendar. Files: `lib/Service/ChangeNotification/SyncScope.php`, `lib/Service/SyncUserService.php` for reading the setting. Unit tests included. | 0.5 | C9 | PR open, 19 November 2026. The one rule for the calendar reported in the list of sync users stays. The scope check has no caller: since 19 November 2026 the app does not filter by calendar, see contract C9. |
 | TODO | N7.3 | Write the per-event row together with the per-calendar row, inside the same savepoint, with failures swallowed and logged as today. Why: a feed failure must never break the user's save. Files: `lib/Listener/DavChangeListener.php`, `lib/Service/ChangeNotification/ChangeLedgerService.php`. | 1 | N6.2, N7.1 | solo. Writes rows for every calendar of a sync user; no check for the synced calendar. |
 | TODO | N7.4 | Extend the re-stamp after commit to per-event rows. Why: a row written before the commit can otherwise sit below a cursor a reader already passed. Files: `lib/Service/ChangeNotification/ChangeLedgerService.php`, `lib/Service/ChangeNotification/PostCommitQueue.php`. | 0.5 | N7.3 | solo. |
 
@@ -59,7 +59,7 @@ All of Phase 0 is one PR, the decision PR. Nothing below starts until the rows i
 | Status | Id | Task | Est | After | Notes |
 |---|---|---|---|---|---|
 | TODO | N8.1 | Return per-event rows from `/notify/changes` in one sequence order with the per-calendar rows, under the existing fence and page limit, with one cursor. Files: `lib/Controller/ChangeFeedApiController.php`, the mapper from N6.2. Unit tests included. | 1 | N6.2, C8 | solo. Can be built against rows inserted by a test, in parallel with Phase 2. |
-| TODO | N8.2 | Answer a cursor that is older than the oldest kept row as contract C10 says. Needs a mark of the highest removed sequence that survives the cleanup. Files: `lib/Service/ChangeNotification/CursorService.php`, `lib/Controller/ChangeFeedApiController.php`. | 0.5 | N8.1, N9.1, C10 | solo. needs Q6. Dropped if Q6 is settled as proposed: no signal for a too-old cursor means there is nothing to build here. |
+| DONE | N8.2 | Answer a cursor that is older than the oldest kept row as contract C10 says. Needs a mark of the highest removed sequence that survives the cleanup. Files: `lib/Service/ChangeNotification/CursorService.php`, `lib/Controller/ChangeFeedApiController.php`. | 0 | N8.1, N9.1, C10 | Dropped 23 November 2026, nothing built: Q6 is settled with no signal for a too-old cursor. |
 
 ## Phase 4: housekeeping
 
