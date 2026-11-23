@@ -384,19 +384,25 @@ final class EventChangeTableFake {
 		};
 		$firstColumn = fn (array $row) => array_values($row)[0];
 
-		$result->method('fetch')->willReturnCallback($next);
-		$result->method('fetchAssociative')->willReturnCallback($next);
-		$result->method('fetchOne')->willReturnCallback(function () use ($next, $firstColumn) {
-			$row = $next();
-			return $row === false ? false : $firstColumn($row);
-		});
-		$result->method('fetchAll')->willReturnCallback($rest);
-		$result->method('fetchAllAssociative')->willReturnCallback($rest);
-		$result->method('fetchFirstColumn')->willReturnCallback(fn (): array => array_map($firstColumn, $rest()));
-		$result->method('closeCursor')->willReturn(true);
-		$this->refuseOtherMethods($result, IResult::class, [
-			'fetch', 'fetchAssociative', 'fetchOne', 'fetchAll', 'fetchAllAssociative', 'fetchFirstColumn', 'closeCursor',
-		]);
+		$answers = [
+			'fetch' => $next,
+			'fetchAssociative' => $next,
+			'fetchOne' => function () use ($next, $firstColumn) {
+				$row = $next();
+				return $row === false ? false : $firstColumn($row);
+			},
+			'fetchAll' => $rest,
+			'fetchAllAssociative' => $rest,
+			'fetchFirstColumn' => fn (): array => array_map($firstColumn, $rest()),
+			'closeCursor' => fn (): bool => true,
+		];
+		foreach ($answers as $method => $answer) {
+			// Nextcloud 32 does not have the newer fetch methods.
+			if (method_exists(IResult::class, $method)) {
+				$result->method($method)->willReturnCallback($answer);
+			}
+		}
+		$this->refuseOtherMethods($result, IResult::class, array_keys($answers));
 
 		return $result;
 	}
