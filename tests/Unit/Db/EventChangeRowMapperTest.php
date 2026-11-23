@@ -91,6 +91,14 @@ class EventChangeRowMapperTest extends TestCase {
 		$this->assertSame([10, 20], $this->numbers($this->mapper->page(0, 2)));
 	}
 
+	public function testPageReadsALimitBelowOneAsOne(): void {
+		$this->seed(20);
+		$this->seed(10);
+
+		$this->assertSame([10], $this->numbers($this->mapper->page(0, 0)));
+		$this->assertSame([10], $this->numbers($this->mapper->page(0, -5)));
+	}
+
 	public function testPageGivesFullRowsWithIntegerFields(): void {
 		$this->table->seed(self::ALICE, 'personal', 'one.ics', 'deleted', 1051, 1795000000);
 
