@@ -32,7 +32,7 @@ All of Phase 0 is one PR, the decision PR. Nothing below starts until the rows i
 | DONE | C3 | Settle Q3: UID in the row or not. | 0 | C1 | all. Settled 18 November 2026: no UID in the row. |
 | DONE | C4 | Settle Q4: what is sent when an event moves out of the synced calendar. | 0 | C1 | all. Settled 19 November 2026: sent as deleted, as Artem asked. |
 | DONE | C5 | Settle Q5: restore sent as created or as its own kind. | 0 | C1 | all. Settled 18 November 2026: sent as created. |
-| TODO | C6 | Settle Q6: retention period and the too-old cursor. | 0 | C1 | all. |
+| DONE | C6 | Settle Q6: retention period and the too-old cursor. | 0 | C1 | all. Settled 23 November 2026: 3 days, no signal for a too-old cursor, agreed by Maarten |
 | DONE | C7 | Settle Q7: explicit row for a deleted calendar or not. | 0 | C1 | all. Settled 18 November 2026: no extra row. |
 | TODO | C8 | Finish and agree contract C8, the row shape. | 0.5 | C3, C5 | all. |
 | TODO | C9 | Finish and agree contract C9, which changes produce a row. | 0.25 | C4, C7 | all. Changed 19 November 2026: every calendar of a sync user gets rows; the sync service filters. |

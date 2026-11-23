@@ -68,7 +68,7 @@ Answer: "created". No new kind. The sync service sees the state of a restored ev
 
 Depends on this: C8, N7.1.
 
-## Q6: How long are rows kept, and what does a reader with an older cursor get? (open)
+## Q6: How long are rows kept, and what does a reader with an older cursor get? (settled 23 November 2026)
 
 Per-calendar rows are overwritten in place and never grow. Per-event rows are appended, so they need a retention period and a cleanup.
 
@@ -84,7 +84,7 @@ What we know:
 - The sync service has a step that drops its own writes when they come back (`Application/Orchestration/SynchronizeEvents/Steps/FilterEventEchoStep.cs`, read at 590e3133). Not checked: that it also applies to rows from the feed.
 - Table size is not the limit. At an assumed 1,000 users with 30 changes a day each, own writes included, 3 days is about 90,000 small rows.
 
-Proposed answer: 3 days. The sync service can then be down for a whole weekend, from Friday evening to Monday morning, and still read every row when it comes back, without a full resync.
+Answer: 3 days, agreed by Maarten on 23 November 2026. The sync service can then be down for a whole weekend, from Friday evening to Monday morning, and still read every row when it comes back, without a full resync.
 
 A reader with an older cursor gets no special response. It receives the per-event rows that are still kept, and nothing says that older ones were removed.
 
@@ -204,7 +204,7 @@ Decisions this section makes, for review:
 
 ## C10: Retention and the too-old cursor (proposal, 16 November 2026)
 
-Follows the proposed answer to Q6 and changes with it.
+Follows Q6.
 
 - Per-event rows are kept for 3 days and then removed by the maintenance job. Per-calendar and per-address-book rows are never removed.
 - A request with a cursor older than the oldest kept per-event row is answered like any other request. The response has no extra field and no error.
