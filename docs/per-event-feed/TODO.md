@@ -34,9 +34,9 @@ All of Phase 0 is one PR, the decision PR. Nothing below starts until the rows i
 | DONE | C5 | Settle Q5: restore sent as created or as its own kind. | 0 | C1 | all. Settled 18 November 2026: sent as created. |
 | DONE | C6 | Settle Q6: retention period and the too-old cursor. | 0 | C1 | all. Settled 23 November 2026: 3 days, no signal for a too-old cursor, agreed by Maarten |
 | DONE | C7 | Settle Q7: explicit row for a deleted calendar or not. | 0 | C1 | all. Settled 18 November 2026: no extra row. |
-| TODO | C8 | Finish and agree contract C8, the row shape. | 0.5 | C3, C5 | all. |
-| TODO | C9 | Finish and agree contract C9, which changes produce a row. | 0.25 | C4, C7 | all. Changed 19 November 2026: every calendar of a sync user gets rows; the sync service filters. |
-| TODO | C10 | Write and agree contract C10, retention and the too-old cursor. | 0.25 | C6 | all. |
+| DONE | C8 | Finish and agree contract C8, the row shape. | 0.5 | C3, C5 | all. Agreed by Maarten 23 November 2026 |
+| DONE | C9 | Finish and agree contract C9, which changes produce a row. | 0.25 | C4, C7 | all. Changed 19 November 2026: every calendar of a sync user gets rows; the sync service filters. Agreed by Maarten 23 November 2026 |
+| DONE | C10 | Write and agree contract C10, retention and the too-old cursor. | 0.25 | C6 | all. Agreed by Maarten 23 November 2026 |
 
 ## Phase 1: storage
 

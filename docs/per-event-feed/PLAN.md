@@ -65,7 +65,7 @@ Unit tests with each task. One integration test on the CI matrix for every row o
 
 ## Dependencies and open questions
 
-Settled: Q1 to Q7. The contracts C8 to C10 hold proposals that wait for review.
+Settled: Q1 to Q7 and the contracts C8 to C10, the last of them on 23 November 2026.
 
 ## Risks
 

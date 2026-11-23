@@ -112,7 +112,7 @@ Answer: no extra row. The existing per-calendar row covers it.
 
 Depends on this: nothing if the answer is no.
 
-## C8: Row shape in /notify/changes (proposal, 16 November 2026)
+## C8: Row shape in /notify/changes (settled 23 November 2026)
 
 Route: `GET /apps/sendentsynchroniser/api/1.0/notify/changes`, unchanged.
 
@@ -165,7 +165,7 @@ Decisions this section makes, for review:
 - The three kinds, with no "moved" and no "restored".
 - The row holds no event content, no etag and no sync token.
 
-## C9: Which changes produce a per-event row (proposal, 16 November 2026, changed 19 November 2026)
+## C9: Which changes produce a per-event row (settled 23 November 2026)
 
 Rows are written for events in every calendar of a user the feed already covers. The app does not filter by calendar. The sync service filters on the calendar named in the row (`u`).
 
@@ -202,7 +202,7 @@ Decisions this section makes, for review:
 - A purge from trash is silent, because the trash step already sent `deleted`.
 - A failure while writing a per-event row never breaks the user's save.
 
-## C10: Retention and the too-old cursor (proposal, 16 November 2026)
+## C10: Retention and the too-old cursor (settled 23 November 2026)
 
 Follows Q6.
 
@@ -210,7 +210,7 @@ Follows Q6.
 - A request with a cursor older than the oldest kept per-event row is answered like any other request. The response has no extra field and no error.
 - The reader needs no new behaviour. Its timer sync covers changes whose per-event rows were removed.
 
-Proposal for the setting: the retention period is a fixed value in `lib/Constants.php`, not a setting an admin can change. The feed already does this for its other fixed limits, the overlap and the page size (`lib/Constants.php:68-72`, read), and keeps app settings for the values an admin is meant to tune. The maintenance job runs on every cron run (`lib/Cron/ChangeNotificationMaintenance.php:30`, read), so rows are removed within minutes of passing 3 days.
+The setting: the retention period is a fixed value in `lib/Constants.php`, not a setting an admin can change. The feed already does this for its other fixed limits, the overlap and the page size (`lib/Constants.php:68-72`, read), and keeps app settings for the values an admin is meant to tune. The maintenance job runs on every cron run (`lib/Cron/ChangeNotificationMaintenance.php:30`, read), so rows are removed within minutes of passing 3 days.
 
 Decisions this section makes, for review:
 
