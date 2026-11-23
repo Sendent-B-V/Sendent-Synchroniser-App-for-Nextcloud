@@ -184,7 +184,7 @@ Rows are written for events in every calendar of a user the feed already covers.
 
 Why the app does not filter by calendar (19 November 2026). The sync team is testing several synced calendars per user, and Artem said the list of a user's synced calendars lives on the sync side. The app can only filter on a list it holds, and it holds one value per user. So every calendar of a covered user gets per-event rows, and the sync service drops the rows for calendars it does not sync, as it drops per-calendar rows today. The field `u` is already in every row. With several synced calendars the sync service must read it to know which calendar an event belongs to; the file name alone is not enough.
 
-Not verified: what the sync service does with a per-event row for a calendar it does not sync. On the branch read (590e3133) the worker does not look at `u`. Gate G1 checks it.
+Confirmed by Artem on 23 November 2026: the sync side filters the feed rows on its own list of synced calendars, and Nextcloud sends every row. Not run by us: on the branch read (590e3133) the worker does not look at `u`. Gate G1 checks it.
 
 What we know about the calendar the app reports (read on 3a339c2, 18 November 2026):
 
