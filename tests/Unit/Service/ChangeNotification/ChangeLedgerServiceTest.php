@@ -6,6 +6,7 @@ namespace OCA\SendentSynchroniser\Tests\Unit\Service\ChangeNotification;
 use OCA\SendentSynchroniser\ChangeNotification\CollectionReference;
 use OCA\SendentSynchroniser\ChangeNotification\EventChange;
 use OCA\SendentSynchroniser\ChangeNotification\EventChangeKind;
+use OCA\SendentSynchroniser\ChangeNotification\EventStamp;
 use OCA\SendentSynchroniser\Db\DirtyCollectionMapper;
 use OCA\SendentSynchroniser\Db\EventChangeRowMapper;
 use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeLedgerService;
@@ -88,6 +89,26 @@ class ChangeLedgerServiceTest extends TestCase {
 	 */
 	private function steps(array $log, string $step): array {
 		return array_values(array_filter($log, static fn (array $entry): bool => $entry['step'] === $step));
+	}
+
+	/**
+	 * @param list<mixed> $stamps
+	 * @return list<EventStamp>
+	 */
+	private function eventStamps(array $stamps): array {
+		return array_values(array_filter($stamps, static fn ($stamp): bool => $stamp instanceof EventStamp));
+	}
+
+	/**
+	 * @param list<mixed> $stamps
+	 * @return list<array{ref: CollectionReference, seq: int}>
+	 */
+	private function calendarStamps(array $stamps): array {
+		return array_values(array_filter($stamps, static fn ($stamp): bool => is_array($stamp)));
+	}
+
+	private function eventStamp(string $calendarUri, string $fileName, EventChangeKind $kind, int $seq): EventStamp {
+		return new EventStamp($this->change($calendarUri, $fileName, $kind), $seq);
 	}
 
 	private function ref(string $uri, bool $structural = false): CollectionReference {
@@ -223,21 +244,64 @@ class ChangeLedgerServiceTest extends TestCase {
 		$this->assertSame([$wireValue], array_column($this->steps($log, 'event'), 'kind'));
 	}
 
-	public function testThePerCalendarRowIsStillWrittenAndIsTheOnlyStamp(): void {
+	public function testThePerCalendarRowIsStillWrittenAndKeepsItsOneStamp(): void {
 		$this->cursor->method('next')->willReturnOnConsecutiveCalls(10, 11);
 		$log = [];
 		$this->logTheWrites($log);
 
-		$stamps = $this->ledger->record(
+		$stamps = $this->calendarStamps($this->ledger->record(
 			[$this->ref('personal')],
 			[$this->change('personal', 'one.ics', EventChangeKind::Created)],
-		);
+		));
 
 		$calendarRows = $this->steps($log, 'calendar');
 		$this->assertCount(1, $calendarRows);
 		$this->assertCount(1, $stamps);
 		$this->assertSame('personal', $stamps[0]['ref']->collectionUri);
 		$this->assertSame($calendarRows[0]['seq'], $stamps[0]['seq']);
+	}
+
+	public function testEachPerEventRowGivesAStampWithItsChangeAndItsNumber(): void {
+		$this->cursor->method('next')->willReturnOnConsecutiveCalls(10, 11);
+		$log = [];
+		$this->logTheWrites($log);
+		$change = $this->change('personal', 'one.ics', EventChangeKind::Updated);
+
+		$stamps = $this->eventStamps($this->ledger->record([$this->ref('personal')], [$change]));
+
+		$this->assertCount(1, $stamps);
+		$this->assertSame($change, $stamps[0]->change);
+		$this->assertSame($this->steps($log, 'event')[0]['seq'], $stamps[0]->seq);
+	}
+
+	public function testTwoEventsInOneCalendarGiveTwoEventStamps(): void {
+		$this->cursor->method('next')->willReturnOnConsecutiveCalls(10, 11, 12);
+		$log = [];
+		$this->logTheWrites($log);
+
+		$stamps = $this->eventStamps($this->ledger->record(
+			[$this->ref('personal')],
+			[
+				$this->change('personal', 'one.ics', EventChangeKind::Updated),
+				$this->change('personal', 'two.ics', EventChangeKind::Created),
+			],
+		));
+
+		$bySeq = [];
+		foreach ($stamps as $stamp) {
+			$bySeq[$stamp->seq] = $stamp->change->fileName;
+		}
+		$this->assertEquals(array_column($this->steps($log, 'event'), 'file', 'seq'), $bySeq);
+		$this->assertCount(2, $bySeq);
+	}
+
+	public function testPerEventRowsWithoutAReferenceStillGiveTheirStamps(): void {
+		$this->cursor->method('next')->willReturn(10);
+
+		$stamps = $this->ledger->record([], [$this->change('personal', 'one.ics', EventChangeKind::Deleted)]);
+
+		$this->assertCount(1, $this->eventStamps($stamps));
+		$this->assertSame([], $this->calendarStamps($stamps));
 	}
 
 	public function testThePerEventRowTakesItsNumberBeforeThePerCalendarRow(): void {
@@ -276,7 +340,8 @@ class ChangeLedgerServiceTest extends TestCase {
 		);
 		$this->assertCount(2, $eventRows);
 		$this->assertCount(2, $calendarRows);
-		$this->assertCount(2, $stamps);
+		$this->assertCount(2, $this->calendarStamps($stamps));
+		$this->assertCount(2, $this->eventStamps($stamps));
 
 		$numbers = array_merge(array_column($eventRows, 'seq'), array_column($calendarRows, 'seq'));
 		sort($numbers);
@@ -349,5 +414,122 @@ class ChangeLedgerServiceTest extends TestCase {
 		$this->eventRows->expects($this->never())->method($this->anything());
 
 		$this->assertSame(1, $this->ledger->confirm([['ref' => $this->ref('personal'), 'seq' => 100]]));
+	}
+
+	// ── The second row for a per-event row a read has passed ────────────
+
+	public function testAPerEventRowBelowTheFenceGetsASecondRowWithANewNumber(): void {
+		// The row got 100 in our transaction. A read raised the fence to 120
+		// before we committed, so its cursor can be past 100.
+		$this->cursor->method('fence')->willReturn(120);
+		$this->cursor->method('next')->willReturn(121);
+		$log = [];
+		$this->logTheWrites($log);
+
+		$added = $this->ledger->confirmEventRows([
+			$this->eventStamp('personal', 'one.ics', EventChangeKind::Updated, 100),
+		]);
+
+		$this->assertSame(1, $added);
+		$this->assertSame([[
+			'step' => 'event',
+			'principal' => 'principals/users/alice',
+			'calendar' => 'personal',
+			'file' => 'one.ics',
+			'kind' => 'updated',
+			'seq' => 121,
+			'time' => 1755676800,
+		]], $this->steps($log, 'event'));
+	}
+
+	public function testAPerEventRowAtTheFenceGetsASecondRow(): void {
+		$this->cursor->method('fence')->willReturn(100);
+		$this->cursor->method('next')->willReturn(101);
+		$this->eventRows->expects($this->once())->method('append')
+			->with('principals/users/alice', 'personal', 'one.ics', 'created', 101, 1755676800);
+
+		$added = $this->ledger->confirmEventRows([
+			$this->eventStamp('personal', 'one.ics', EventChangeKind::Created, 100),
+		]);
+
+		$this->assertSame(1, $added);
+	}
+
+	public function testAPerEventRowAboveTheFenceGetsNoSecondRow(): void {
+		$this->cursor->method('fence')->willReturn(100);
+		$this->cursor->expects($this->never())->method('next');
+		$this->eventRows->expects($this->never())->method('append');
+
+		$added = $this->ledger->confirmEventRows([
+			$this->eventStamp('personal', 'one.ics', EventChangeKind::Updated, 101),
+		]);
+
+		$this->assertSame(0, $added);
+	}
+
+	public function testOnlyTheRowsAtOrBelowTheFenceGetASecondRow(): void {
+		$this->cursor->method('fence')->willReturn(120);
+		$this->cursor->method('next')->willReturn(121);
+		$log = [];
+		$this->logTheWrites($log);
+
+		$added = $this->ledger->confirmEventRows([
+			$this->eventStamp('personal', 'passed.ics', EventChangeKind::Updated, 100),
+			$this->eventStamp('personal', 'not-passed.ics', EventChangeKind::Updated, 125),
+		]);
+
+		$this->assertSame(1, $added);
+		$this->assertSame(['passed.ics'], array_column($this->steps($log, 'event'), 'file'));
+	}
+
+	public function testTwoEventsInOneCalendarGetTwoSecondRowsEachWithItsOwnNumber(): void {
+		$this->cursor->method('fence')->willReturn(120);
+		$this->cursor->method('next')->willReturnOnConsecutiveCalls(121, 122);
+		$log = [];
+		$this->logTheWrites($log);
+
+		$added = $this->ledger->confirmEventRows([
+			$this->eventStamp('personal', 'one.ics', EventChangeKind::Updated, 100),
+			$this->eventStamp('personal', 'two.ics', EventChangeKind::Deleted, 101),
+		]);
+
+		$rows = $this->steps($log, 'event');
+		$this->assertSame(2, $added);
+		$this->assertEquals(
+			['one.ics' => 'updated', 'two.ics' => 'deleted'],
+			array_column($rows, 'kind', 'file'),
+		);
+		$numbers = array_column($rows, 'seq');
+		sort($numbers);
+		$this->assertSame([121, 122], $numbers);
+	}
+
+	public function testASecondRowNeverTouchesThePerCalendarRows(): void {
+		$this->cursor->method('fence')->willReturn(120);
+		$this->cursor->method('next')->willReturn(121);
+		$this->mapper->expects($this->never())->method('record');
+
+		$this->ledger->confirmEventRows([
+			$this->eventStamp('personal', 'one.ics', EventChangeKind::Updated, 100),
+		]);
+	}
+
+	public function testWithoutAKnownFenceNoSecondRowIsAdded(): void {
+		// No distributed cache: fence() is 0, as for the per-calendar rows.
+		$this->cursor->method('fence')->willReturn(0);
+		$this->eventRows->expects($this->never())->method('append');
+
+		$added = $this->ledger->confirmEventRows([
+			$this->eventStamp('personal', 'one.ics', EventChangeKind::Updated, 5),
+		]);
+
+		$this->assertSame(0, $added);
+	}
+
+	public function testNoEventStampsMeansNoSecondRow(): void {
+		$this->cursor->expects($this->never())->method('next');
+		$this->eventRows->expects($this->never())->method('append');
+
+		$this->assertSame(0, $this->ledger->confirmEventRows([]));
 	}
 }

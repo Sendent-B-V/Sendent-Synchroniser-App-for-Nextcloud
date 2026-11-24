@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace OCA\SendentSynchroniser\Tests\Unit\Service\ChangeNotification;
 
 use OCA\SendentSynchroniser\Db\DirtyCollectionMapper;
+use OCA\SendentSynchroniser\Db\EventChangeRowMapper;
 use OCA\SendentSynchroniser\Db\SequenceMapper;
 use OCA\SendentSynchroniser\Service\ChangeNotification\AfterCommit;
 use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeNotificationConfig;
@@ -32,6 +33,9 @@ class CursorServiceTest extends TestCase {
 	/** @var DirtyCollectionMapper&MockObject */
 	private $ledger;
 
+	/** @var EventChangeRowMapper&MockObject the per-event table; empty unless a test fills it */
+	private $eventRows;
+
 	/** @var ChangeNotificationConfig&MockObject */
 	private $config;
 
@@ -44,6 +48,7 @@ class CursorServiceTest extends TestCase {
 		$this->memcache = $this->createMock(IMemcache::class);
 		$this->sequence = $this->createMock(SequenceMapper::class);
 		$this->ledger = $this->createMock(DirtyCollectionMapper::class);
+		$this->eventRows = $this->createMock(EventChangeRowMapper::class);
 		$this->config = $this->createMock(ChangeNotificationConfig::class);
 		$this->serverConfig = $this->createMock(IConfig::class);
 	}
@@ -62,6 +67,7 @@ class CursorServiceTest extends TestCase {
 			$this->config,
 			// No open transaction: deferred floor writes run immediately.
 			new AfterCommit($this->createMock(IDBConnection::class), new NullLogger()),
+			$this->eventRows,
 		);
 	}
 
@@ -279,6 +285,7 @@ class CursorServiceTest extends TestCase {
 			new AfterCommit($db, new NullLogger(), function (callable $work) use (&$endOfRequest): void {
 				$endOfRequest[] = $work;
 			}),
+			$this->eventRows,
 		);
 
 		$written = [];
@@ -317,11 +324,120 @@ class CursorServiceTest extends TestCase {
 			$this->config,
 			new AfterCommit($db, new NullLogger(), static function (callable $work): void {
 			}),
+			$this->eventRows,
 		);
 
 		$this->assertSame(self::GAP + 2, $service->next());
 		$this->assertSame(self::GAP + 3, $service->next());
 		$this->assertSame(self::GAP + 4, $service->next());
+	}
+
+	// ── The per-event table holds the highest number ────────────────────
+
+	public function testARestartedCounterIsReseededAboveThePerEventTable(): void {
+		// The cache lost the counter. The highest number is in the per-event
+		// table: 7000, above the 5000 of the per-calendar table.
+		$this->givenFloor(1000);
+		$this->ledger->method('maxSeq')->willReturn(5000);
+		$this->eventRows->method('maxSeq')->willReturn(7000);
+		$seed = 7000 + self::GAP;
+		$this->memcache->method('inc')->willReturnOnConsecutiveCalls(1, $seed + 2);
+		$this->memcache->expects($this->once())
+			->method('cas')
+			->with($this->anything(), 1, $seed + 1)
+			->willReturn(true);
+		$this->config->expects($this->once())->method('raiseSeqFloor')->with($seed);
+
+		$this->assertSame($seed + 2, $this->service()->next());
+	}
+
+	public function testACounterBetweenTheTwoTablesIsReseeded(): void {
+		// The cache came back from an old snapshot at 6000. That is above the
+		// per-calendar table, so only the per-event table shows the fault.
+		$this->givenFloor(1000);
+		$this->ledger->method('maxSeq')->willReturn(5000);
+		$this->eventRows->method('maxSeq')->willReturn(7000);
+		$this->memcache->method('inc')->willReturnOnConsecutiveCalls(6001, 7000 + self::GAP + 2);
+		$this->memcache->method('cas')->willReturn(true);
+
+		$this->assertGreaterThan(7000, $this->service()->next());
+	}
+
+	public function testAFailedIncFallsBackToTheDatabaseAboveThePerEventTable(): void {
+		$this->givenFloor(1000);
+		$this->memcache->method('inc')->willReturn(false);
+		$this->ledger->method('maxSeq')->willReturn(5000);
+		$this->eventRows->method('maxSeq')->willReturn(7000);
+		$this->sequence->method('next')->willReturnOnConsecutiveCalls(3, 7001);
+		$this->sequence->expects($this->once())->method('reseedAbove')->with(7000);
+
+		$this->assertSame(7001, $this->service()->next());
+	}
+
+	public function testACacheLessInstanceIsLiftedAboveThePerEventTable(): void {
+		$this->givenFloor(0);
+		$this->ledger->method('maxSeq')->willReturn(5000);
+		$this->eventRows->method('maxSeq')->willReturn(7000);
+		$this->sequence->method('next')->willReturnOnConsecutiveCalls(7, 7001);
+		$this->sequence->expects($this->once())->method('reseedAbove')->with(7000);
+
+		$this->assertSame(7001, $this->service(false)->next());
+	}
+
+	public function testTheTablesNeverLowerAFloorThatIsAboveThem(): void {
+		// The floor is 9000 and the tables hold 7000 at most. A number
+		// between the two must still be refused.
+		$this->givenFloor(9000);
+		$this->ledger->method('maxSeq')->willReturn(5000);
+		$this->eventRows->method('maxSeq')->willReturn(7000);
+		$this->sequence->method('next')->willReturnOnConsecutiveCalls(8000, 9001);
+		$this->sequence->expects($this->once())->method('reseedAbove')->with(9000);
+
+		$this->assertSame(9001, $this->service(false)->next());
+	}
+
+	public function testThePerCalendarTableStillCountsWhenItIsTheHigherOne(): void {
+		$this->givenFloor(1000);
+		$this->ledger->method('maxSeq')->willReturn(7000);
+		$this->eventRows->method('maxSeq')->willReturn(5000);
+		$seed = 7000 + self::GAP;
+		$this->memcache->method('inc')->willReturnOnConsecutiveCalls(1, $seed + 2);
+		$this->memcache->expects($this->once())
+			->method('cas')
+			->with($this->anything(), 1, $seed + 1)
+			->willReturn(true);
+
+		$this->assertSame($seed + 2, $this->service()->next());
+	}
+
+	public function testAHealthyCounterAboveTheTwoTablesIsNotReseeded(): void {
+		$this->givenFloor(1000);
+		$this->ledger->method('maxSeq')->willReturn(1040);
+		$this->eventRows->method('maxSeq')->willReturn(1041);
+		$this->memcache->method('inc')->willReturn(1042);
+		$this->memcache->expects($this->never())->method('cas');
+		$this->sequence->expects($this->never())->method('next');
+
+		$this->assertSame(1042, $this->service()->next());
+	}
+
+	public function testAFasterWriterOfAPerEventRowIsNotMistakenForARolledBackCounter(): void {
+		// As the test for the per-calendar table above: the table must be
+		// read before the increment, not after.
+		$this->givenFloor(1000);
+		$incremented = false;
+		$this->memcache->method('inc')->willReturnCallback(function () use (&$incremented): int {
+			$incremented = true;
+			return 1101;
+		});
+		$this->eventRows->method('maxSeq')->willReturnCallback(
+			function () use (&$incremented): int {
+				return $incremented ? 1102 : 1100;
+			}
+		);
+		$this->memcache->expects($this->never())->method('cas');
+
+		$this->assertSame(1101, $this->service()->next());
 	}
 
 	public function testCurrentReadsTheCounter(): void {
@@ -337,6 +453,16 @@ class CursorServiceTest extends TestCase {
 		// has_more a Connector pages the same page forever.
 		$this->memcache->method('get')->willReturn('5000');
 		$this->ledger->method('maxSeq')->willReturn(5002);
+
+		$this->assertSame(5002, $this->service()->current());
+	}
+
+	public function testCurrentCoversANumberThatOnlyAPerEventRowHolds(): void {
+		// A second row got 5002 from the database while the cache failed.
+		// No per-calendar row has that number.
+		$this->memcache->method('get')->willReturn('5000');
+		$this->ledger->method('maxSeq')->willReturn(4990);
+		$this->eventRows->method('maxSeq')->willReturn(5002);
 
 		$this->assertSame(5002, $this->service()->current());
 	}
