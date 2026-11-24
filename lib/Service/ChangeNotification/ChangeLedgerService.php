@@ -4,8 +4,10 @@ declare(strict_types=1);
 namespace OCA\SendentSynchroniser\Service\ChangeNotification;
 
 use OCA\SendentSynchroniser\ChangeNotification\CollectionReference;
+use OCA\SendentSynchroniser\ChangeNotification\EventChange;
 use OCA\SendentSynchroniser\Db\DirtyCollection;
 use OCA\SendentSynchroniser\Db\DirtyCollectionMapper;
+use OCA\SendentSynchroniser\Db\EventChangeRowMapper;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IDBConnection;
 
@@ -14,7 +16,8 @@ use OCP\IDBConnection;
  * reads it from its own cursor, so a lost or duplicated hint only ever costs
  * one extra idempotent check. Cost: one cursor op plus one upsert per
  * collection reference (a DAV event yields one ref, or two for a
- * cross-calendar move).
+ * cross-calendar move). A calendar event change also appends one per-event
+ * row for each change.
  *
  * record() runs inside the DAV backend's open transaction, so the ledger row
  * commits or rolls back together with the user's write. confirm() runs after
@@ -29,6 +32,7 @@ class ChangeLedgerService {
 		private CursorService $cursor,
 		private ITimeFactory $time,
 		private IDBConnection $db,
+		private EventChangeRowMapper $eventRows,
 	) {}
 
 	/**
@@ -38,11 +42,20 @@ class ChangeLedgerService {
 	 * failed statement on PostgreSQL aborts the whole transaction, and the
 	 * backend's commit then rolls back the user's calendar or contact write.
 	 *
+	 * The per-event rows:
+	 * - One row for each change, in the same savepoint as the per-calendar
+	 *   rows. All rows stay or none stays.
+	 * - Each row has its own sequence number. The row of a change gets a
+	 *   lower number than the per-calendar row of the same calendar.
+	 * - Not built yet: the new number after commit for a per-event row. The
+	 *   contract requires it; today such a row gets no stamp.
+	 *
 	 * @param CollectionReference[] $refs
+	 * @param list<EventChange> $eventChanges
 	 * @return list<Stamp> one per reference, with the sequence it got
 	 */
-	public function record(array $refs): array {
-		if ($refs === []) {
+	public function record(array $refs, array $eventChanges = []): array {
+		if ($refs === [] && $eventChanges === []) {
 			return [];
 		}
 
@@ -51,6 +64,17 @@ class ChangeLedgerService {
 
 		$this->db->beginTransaction();
 		try {
+			// The per-event rows go first, so they get the lower numbers.
+			foreach ($eventChanges as $change) {
+				$this->eventRows->append(
+					$change->calendar->principalUri,
+					$change->calendar->collectionUri,
+					$change->fileName,
+					$change->kind->value,
+					$this->cursor->next(),
+					$now,
+				);
+			}
 			foreach ($refs as $ref) {
 				$seq = $this->cursor->next();
 				$this->mapper->record($ref, $seq, $now);

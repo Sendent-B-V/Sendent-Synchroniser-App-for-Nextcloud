@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace OCA\SendentSynchroniser\Listener;
 
 use OCA\SendentSynchroniser\ChangeNotification\CollectionReference;
+use OCA\SendentSynchroniser\ChangeNotification\EventChange;
 use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeLedgerService;
 use OCA\SendentSynchroniser\Service\ChangeNotification\DavEventReferenceExtractor;
 use OCA\SendentSynchroniser\Service\ChangeNotification\PostCommitQueue;
@@ -62,7 +63,12 @@ class DavChangeListener implements IEventListener {
 				return;
 			}
 
-			$this->afterCommit->add($this->ledger->record($refs));
+			// A change counts only when its calendar is in scope, as for $refs.
+			$changes = array_values(array_filter(
+				$this->eventChanges($event),
+				fn (EventChange $change): bool => $this->scope->includes($change->calendar),
+			));
+			$this->afterCommit->add($this->ledger->record($refs, $changes));
 		} catch (\Throwable $e) {
 			// Log the first failure per request at ERROR with the trace; any
 			// further events in the same request degrade to a terse warning so
@@ -132,6 +138,41 @@ class DavChangeListener implements IEventListener {
 			|| $event instanceof \OCA\DAV\Events\AddressBookDeletedEvent
 			|| $event instanceof \OCA\DAV\Events\AddressBookShareUpdatedEvent) {
 			return $this->one($this->extractor->fromAddressBookRow($event->getAddressBookData(), true));
+		}
+
+		return [];
+	}
+
+	/**
+	 * The per-event changes one DAV event carries, before the scope check.
+	 * Only the six calendar object events give changes. Contacts,
+	 * calendar-level events, subscription events and unknown events give
+	 * nothing.
+	 *
+	 * @return list<EventChange>
+	 */
+	private function eventChanges(Event $event): array {
+		if ($event instanceof \OCP\Calendar\Events\CalendarObjectCreatedEvent) {
+			return $this->extractor->eventCreated($event->getCalendarData(), $event->getObjectData());
+		}
+		if ($event instanceof \OCP\Calendar\Events\CalendarObjectUpdatedEvent) {
+			return $this->extractor->eventUpdated($event->getCalendarData(), $event->getObjectData());
+		}
+		if ($event instanceof \OCP\Calendar\Events\CalendarObjectDeletedEvent) {
+			return $this->extractor->eventDeleted($event->getCalendarData(), $event->getObjectData());
+		}
+		if ($event instanceof \OCP\Calendar\Events\CalendarObjectMovedToTrashEvent) {
+			return $this->extractor->eventMovedToTrash($event->getCalendarData(), $event->getObjectData());
+		}
+		if ($event instanceof \OCP\Calendar\Events\CalendarObjectRestoredEvent) {
+			return $this->extractor->eventRestored($event->getCalendarData(), $event->getObjectData());
+		}
+		if ($event instanceof \OCP\Calendar\Events\CalendarObjectMovedEvent) {
+			return $this->extractor->eventMoved(
+				$event->getSourceCalendarData(),
+				$event->getTargetCalendarData(),
+				$event->getObjectData(),
+			);
 		}
 
 		return [];
