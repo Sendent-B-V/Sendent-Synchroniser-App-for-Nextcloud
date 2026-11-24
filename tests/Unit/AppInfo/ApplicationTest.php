@@ -44,6 +44,14 @@ class ApplicationTest extends TestCase {
 		$this->assertContains(\OCA\DAV\Events\CardUpdatedEvent::class, $events);
 	}
 
+	public function testTheSubscriptionEventsAreNeverRegistered(): void {
+		// A subscription is not a user calendar. Its events must not reach
+		// the change feed.
+		foreach ($this->changeEventsRegistered(true) as $event) {
+			$this->assertStringNotContainsString('CachedCalendarObject', $event);
+		}
+	}
+
 	public function testAServerWithoutTheCalendarObjectEventsRecordsNothing(): void {
 		// Recording only contacts and collection changes would let the
 		// Connector rely on a feed that silently misses calendar edits. On

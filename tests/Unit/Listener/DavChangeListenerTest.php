@@ -7,14 +7,21 @@ use OCA\DAV\Events\AddressBookDeletedEvent;
 use OCA\DAV\Events\CalendarCreatedEvent;
 use OCA\DAV\Events\CardUpdatedEvent;
 use OCA\SendentSynchroniser\ChangeNotification\CollectionReference;
+use OCA\SendentSynchroniser\ChangeNotification\EventChange;
+use OCA\SendentSynchroniser\Db\DirtyCollectionMapper;
+use OCA\SendentSynchroniser\Db\EventChangeRowMapper;
 use OCA\SendentSynchroniser\Listener\DavChangeListener;
 use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeLedgerService;
+use OCA\SendentSynchroniser\Service\ChangeNotification\CursorService;
 use OCA\SendentSynchroniser\Service\ChangeNotification\DavEventReferenceExtractor;
 use OCA\SendentSynchroniser\Service\ChangeNotification\PostCommitQueue;
 use OCA\SendentSynchroniser\Service\ChangeNotification\SyncScope;
+use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\EventDispatcher\Event;
+use OCP\IDBConnection;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
 class DavChangeListenerTest extends TestCase {
@@ -39,6 +46,9 @@ class DavChangeListenerTest extends TestCase {
 		'principaluri' => 'principals/users/bob',
 		'synctoken' => 312,
 	];
+
+	/** The key of a calendar object row that tells the file is in the trash. */
+	private const DELETED_AT = '{http://nextcloud.com/ns}deleted-at';
 
 	/** @var ChangeLedgerService&MockObject */
 	private $ledger;
@@ -242,5 +252,190 @@ class DavChangeListenerTest extends TestCase {
 		$this->listener->handle($this->calendarObjectCreatedEvent(42, self::CALENDAR, [], ['uri' => 'a.ics']));
 
 		$this->addToAssertionCount(1);
+	}
+
+	// ── Per-event changes ───────────────────────────────────────────────
+
+	/**
+	 * @param class-string<Event> $class one of the calendar object events with the four-argument constructor
+	 * @param array<string, mixed> $objectData
+	 */
+	private function calendarObjectEvent(string $class, array $objectData): Event {
+		return new $class(42, self::CALENDAR, [], $objectData);
+	}
+
+	/**
+	 * Handles the event and expects one call to the ledger.
+	 *
+	 * @return list<array{string, string, string}> calendar, file name and kind of each change the ledger got
+	 */
+	private function captureRecordedChanges(Event $event): array {
+		$captured = [];
+		$this->ledger->expects($this->once())->method('record')->willReturnCallback(
+			function (array $refs, array $eventChanges = []) use (&$captured): array {
+				foreach ($eventChanges as $change) {
+					$this->assertInstanceOf(EventChange::class, $change);
+					$captured[] = [$change->calendar->collectionUri, $change->fileName, $change->kind->value];
+				}
+				return [];
+			}
+		);
+		$this->listener->handle($event);
+
+		return $captured;
+	}
+
+	public function testACreatedEventGivesACreatedChange(): void {
+		$changes = $this->captureRecordedChanges($this->calendarObjectEvent(
+			\OCP\Calendar\Events\CalendarObjectCreatedEvent::class,
+			['uri' => 'a.ics'],
+		));
+
+		$this->assertSame([['personal', 'a.ics', 'created']], $changes);
+	}
+
+	public function testAnUpdatedEventGivesAnUpdatedChange(): void {
+		$changes = $this->captureRecordedChanges($this->calendarObjectEvent(
+			\OCP\Calendar\Events\CalendarObjectUpdatedEvent::class,
+			['uri' => 'a.ics'],
+		));
+
+		$this->assertSame([['personal', 'a.ics', 'updated']], $changes);
+	}
+
+	public function testADeletedEventOfALiveFileGivesADeletedChange(): void {
+		$changes = $this->captureRecordedChanges($this->calendarObjectEvent(
+			\OCP\Calendar\Events\CalendarObjectDeletedEvent::class,
+			['uri' => 'a.ics', self::DELETED_AT => null],
+		));
+
+		$this->assertSame([['personal', 'a.ics', 'deleted']], $changes);
+	}
+
+	public function testAPurgeFromTheTrashGivesNoChangeButStillOneCallToTheLedger(): void {
+		// The trash step sent "deleted" before. The per-calendar row stays.
+		$changes = $this->captureRecordedChanges($this->calendarObjectEvent(
+			\OCP\Calendar\Events\CalendarObjectDeletedEvent::class,
+			['uri' => 'a-deleted.ics', self::DELETED_AT => 1755676800],
+		));
+
+		$this->assertSame([], $changes);
+	}
+
+	public function testAMovedToTrashEventGivesADeletedChange(): void {
+		$changes = $this->captureRecordedChanges($this->calendarObjectEvent(
+			\OCP\Calendar\Events\CalendarObjectMovedToTrashEvent::class,
+			['uri' => 'a.ics'],
+		));
+
+		$this->assertSame([['personal', 'a.ics', 'deleted']], $changes);
+	}
+
+	public function testARestoredEventGivesACreatedChange(): void {
+		$changes = $this->captureRecordedChanges($this->calendarObjectEvent(
+			\OCP\Calendar\Events\CalendarObjectRestoredEvent::class,
+			['uri' => 'a.ics'],
+		));
+
+		$this->assertSame([['personal', 'a.ics', 'created']], $changes);
+	}
+
+	public function testAMovedEventGivesTwoChangesInOneCallToTheLedger(): void {
+		$changes = $this->captureRecordedChanges($this->calendarObjectMovedEvent(
+			42,
+			self::CALENDAR,
+			43,
+			self::OTHER_CALENDAR,
+			[],
+			[],
+			['uri' => 'a.ics']
+		));
+
+		$this->assertSame([['personal', 'a.ics', 'deleted'], ['work', 'a.ics', 'created']], $changes);
+	}
+
+	public function testOnlyTheSideOfAMoveInScopeGivesAChange(): void {
+		$this->listener = $this->listenerWithScope(
+			static fn (CollectionReference $ref): bool => $ref->collectionUri === 'work'
+		);
+
+		$changes = $this->captureRecordedChanges($this->calendarObjectMovedEvent(
+			42,
+			self::CALENDAR,
+			43,
+			self::OTHER_CALENDAR,
+			[],
+			[],
+			['uri' => 'a.ics']
+		));
+
+		$this->assertSame([['work', 'a.ics', 'created']], $changes);
+	}
+
+	public function testAContactEventGivesNoPerEventChange(): void {
+		$changes = $this->captureRecordedChanges(
+			new CardUpdatedEvent(7, self::ADDRESS_BOOK, [], ['uri' => 'c.vcf'])
+		);
+
+		$this->assertSame([], $changes);
+	}
+
+	public function testACalendarLevelEventGivesNoPerEventChange(): void {
+		$changes = $this->captureRecordedChanges(new CalendarCreatedEvent(42, self::CALENDAR));
+
+		$this->assertSame([], $changes);
+	}
+
+	public function testAFailedPerEventWriteIsLoggedOnceAndNeverBreaksTheDavWrite(): void {
+		// The real ledger, with a per-event table that fails on each write.
+		$eventRows = $this->createMock(EventChangeRowMapper::class);
+		$eventRows->method('append')->willThrowException(new \RuntimeException('db down'));
+		$next = 9;
+		$cursor = $this->createMock(CursorService::class);
+		$cursor->method('next')->willReturnCallback(static function () use (&$next): int {
+			return ++$next;
+		});
+		$db = $this->createMock(IDBConnection::class);
+		$db->expects($this->once())->method('rollBack');
+		$db->expects($this->never())->method('commit');
+		$ledger = new ChangeLedgerService(
+			$this->createMock(DirtyCollectionMapper::class),
+			$cursor,
+			$this->createMock(ITimeFactory::class),
+			$db,
+			$eventRows,
+		);
+
+		$logger = $this->createMock(LoggerInterface::class);
+		$logger->expects($this->once())->method('error');
+		$logger->expects($this->never())->method('warning');
+		$this->postCommit->expects($this->never())->method('add');
+		$scope = $this->createMock(SyncScope::class);
+		$scope->method('includes')->willReturn(true);
+		$listener = new DavChangeListener($ledger, $this->postCommit, new DavEventReferenceExtractor(), $scope, $logger);
+
+		$listener->handle($this->calendarObjectCreatedEvent(42, self::CALENDAR, [], ['uri' => 'a.ics']));
+	}
+
+	public function testSubscriptionEventsNeverReachTheEventLevelCode(): void {
+		// The app does not register these events. The id is the id of a
+		// user calendar on purpose: the two tables have separate id ranges.
+		$extractor = $this->createMock(DavEventReferenceExtractor::class);
+		$extractor->expects($this->never())->method($this->anything());
+		$this->ledger->expects($this->never())->method('record');
+		$this->postCommit->expects($this->never())->method('add');
+		$scope = $this->createMock(SyncScope::class);
+		$scope->method('includes')->willReturn(true);
+		$listener = new DavChangeListener($this->ledger, $this->postCommit, $extractor, $scope, new NullLogger());
+
+		$subscription = ['id' => 42, 'uri' => 'holidays', 'principaluri' => 'principals/users/alice'];
+		$classes = [
+			\OCA\DAV\Events\CachedCalendarObjectCreatedEvent::class,
+			\OCA\DAV\Events\CachedCalendarObjectUpdatedEvent::class,
+			\OCA\DAV\Events\CachedCalendarObjectDeletedEvent::class,
+		];
+		foreach ($classes as $class) {
+			$listener->handle(new $class(42, $subscription, [], ['uri' => 'a.ics']));
+		}
 	}
 }

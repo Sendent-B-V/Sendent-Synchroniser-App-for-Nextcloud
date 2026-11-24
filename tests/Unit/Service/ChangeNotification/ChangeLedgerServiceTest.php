@@ -4,11 +4,15 @@ declare(strict_types=1);
 namespace OCA\SendentSynchroniser\Tests\Unit\Service\ChangeNotification;
 
 use OCA\SendentSynchroniser\ChangeNotification\CollectionReference;
+use OCA\SendentSynchroniser\ChangeNotification\EventChange;
+use OCA\SendentSynchroniser\ChangeNotification\EventChangeKind;
 use OCA\SendentSynchroniser\Db\DirtyCollectionMapper;
+use OCA\SendentSynchroniser\Db\EventChangeRowMapper;
 use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeLedgerService;
 use OCA\SendentSynchroniser\Service\ChangeNotification\CursorService;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IDBConnection;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
@@ -26,6 +30,9 @@ class ChangeLedgerServiceTest extends TestCase {
 	/** @var IDBConnection&MockObject */
 	private $db;
 
+	/** @var EventChangeRowMapper&MockObject */
+	private $eventRows;
+
 	private ChangeLedgerService $ledger;
 
 	protected function setUp(): void {
@@ -35,7 +42,52 @@ class ChangeLedgerServiceTest extends TestCase {
 		$this->time = $this->createMock(ITimeFactory::class);
 		$this->time->method('getTime')->willReturn(1755676800);
 		$this->db = $this->createMock(IDBConnection::class);
-		$this->ledger = new ChangeLedgerService($this->mapper, $this->cursor, $this->time, $this->db);
+		$this->eventRows = $this->createMock(EventChangeRowMapper::class);
+		$this->ledger = new ChangeLedgerService($this->mapper, $this->cursor, $this->time, $this->db, $this->eventRows);
+	}
+
+	private function change(string $calendarUri, string $fileName, EventChangeKind $kind): EventChange {
+		return new EventChange($this->ref($calendarUri), $fileName, $kind);
+	}
+
+	/**
+	 * Makes the two mappers and the connection write each call to one list.
+	 *
+	 * @param list<array<string, mixed>> $log
+	 */
+	private function logTheWrites(array &$log): void {
+		$this->db->method('beginTransaction')->willReturnCallback(function () use (&$log): void {
+			$log[] = ['step' => 'begin'];
+		});
+		$this->db->method('commit')->willReturnCallback(function () use (&$log): void {
+			$log[] = ['step' => 'commit'];
+		});
+		$this->eventRows->method('append')->willReturnCallback(
+			function (string $principalUri, string $calendarUri, string $eventFileName, string $kind, int $seq, int $time) use (&$log): void {
+				$log[] = [
+					'step' => 'event',
+					'principal' => $principalUri,
+					'calendar' => $calendarUri,
+					'file' => $eventFileName,
+					'kind' => $kind,
+					'seq' => $seq,
+					'time' => $time,
+				];
+			}
+		);
+		$this->mapper->method('record')->willReturnCallback(
+			function (CollectionReference $ref, int $seq) use (&$log): void {
+				$log[] = ['step' => 'calendar', 'calendar' => $ref->collectionUri, 'seq' => $seq];
+			}
+		);
+	}
+
+	/**
+	 * @param list<array<string, mixed>> $log
+	 * @return list<array<string, mixed>>
+	 */
+	private function steps(array $log, string $step): array {
+		return array_values(array_filter($log, static fn (array $entry): bool => $entry['step'] === $step));
 	}
 
 	private function ref(string $uri, bool $structural = false): CollectionReference {
@@ -126,5 +178,176 @@ class ChangeLedgerServiceTest extends TestCase {
 		$this->mapper->expects($this->never())->method('record');
 
 		$this->assertSame(0, $this->ledger->confirm([['ref' => $this->ref('personal'), 'seq' => 5]]));
+	}
+
+	// ── Per-event rows ──────────────────────────────────────────────────
+
+	public function testAnEventChangeAppendsOneRowWithEveryColumn(): void {
+		$this->cursor->method('next')->willReturnOnConsecutiveCalls(10, 11);
+		$log = [];
+		$this->logTheWrites($log);
+
+		$this->ledger->record(
+			[$this->ref('personal')],
+			[$this->change('personal', 'one.ics', EventChangeKind::Updated)],
+		);
+
+		$this->assertSame([[
+			'step' => 'event',
+			'principal' => 'principals/users/alice',
+			'calendar' => 'personal',
+			'file' => 'one.ics',
+			'kind' => 'updated',
+			'seq' => 10,
+			'time' => 1755676800,
+		]], $this->steps($log, 'event'));
+	}
+
+	/** @return array<string, array{EventChangeKind, string}> */
+	public static function kinds(): array {
+		return [
+			'created' => [EventChangeKind::Created, 'created'],
+			'updated' => [EventChangeKind::Updated, 'updated'],
+			'deleted' => [EventChangeKind::Deleted, 'deleted'],
+		];
+	}
+
+	#[DataProvider('kinds')]
+	public function testTheKindIsWrittenAsItsWireValue(EventChangeKind $kind, string $wireValue): void {
+		$this->cursor->method('next')->willReturnOnConsecutiveCalls(10, 11);
+		$log = [];
+		$this->logTheWrites($log);
+
+		$this->ledger->record([$this->ref('personal')], [$this->change('personal', 'one.ics', $kind)]);
+
+		$this->assertSame([$wireValue], array_column($this->steps($log, 'event'), 'kind'));
+	}
+
+	public function testThePerCalendarRowIsStillWrittenAndIsTheOnlyStamp(): void {
+		$this->cursor->method('next')->willReturnOnConsecutiveCalls(10, 11);
+		$log = [];
+		$this->logTheWrites($log);
+
+		$stamps = $this->ledger->record(
+			[$this->ref('personal')],
+			[$this->change('personal', 'one.ics', EventChangeKind::Created)],
+		);
+
+		$calendarRows = $this->steps($log, 'calendar');
+		$this->assertCount(1, $calendarRows);
+		$this->assertCount(1, $stamps);
+		$this->assertSame('personal', $stamps[0]['ref']->collectionUri);
+		$this->assertSame($calendarRows[0]['seq'], $stamps[0]['seq']);
+	}
+
+	public function testThePerEventRowTakesItsNumberBeforeThePerCalendarRow(): void {
+		$this->cursor->method('next')->willReturnOnConsecutiveCalls(10, 11);
+		$log = [];
+		$this->logTheWrites($log);
+
+		$this->ledger->record(
+			[$this->ref('personal')],
+			[$this->change('personal', 'one.ics', EventChangeKind::Updated)],
+		);
+
+		$eventSeq = $this->steps($log, 'event')[0]['seq'];
+		$calendarSeq = $this->steps($log, 'calendar')[0]['seq'];
+		$this->assertLessThan($calendarSeq, $eventSeq);
+	}
+
+	public function testAMoveWritesFourRowsEachWithItsOwnNumber(): void {
+		$this->cursor->method('next')->willReturnOnConsecutiveCalls(10, 11, 12, 13);
+		$log = [];
+		$this->logTheWrites($log);
+
+		$stamps = $this->ledger->record(
+			[$this->ref('personal'), $this->ref('work')],
+			[
+				$this->change('personal', 'one.ics', EventChangeKind::Deleted),
+				$this->change('work', 'one.ics', EventChangeKind::Created),
+			],
+		);
+
+		$eventRows = $this->steps($log, 'event');
+		$calendarRows = $this->steps($log, 'calendar');
+		$this->assertEquals(
+			['personal' => 'deleted', 'work' => 'created'],
+			array_column($eventRows, 'kind', 'calendar'),
+		);
+		$this->assertCount(2, $eventRows);
+		$this->assertCount(2, $calendarRows);
+		$this->assertCount(2, $stamps);
+
+		$numbers = array_merge(array_column($eventRows, 'seq'), array_column($calendarRows, 'seq'));
+		sort($numbers);
+		$this->assertSame([10, 11, 12, 13], $numbers);
+
+		// In each calendar the per-event row has the lower number.
+		$eventSeq = array_column($eventRows, 'seq', 'calendar');
+		$calendarSeq = array_column($calendarRows, 'seq', 'calendar');
+		$this->assertLessThan($calendarSeq['personal'], $eventSeq['personal']);
+		$this->assertLessThan($calendarSeq['work'], $eventSeq['work']);
+	}
+
+	public function testBothKindsOfRowShareOneSavepoint(): void {
+		$this->cursor->method('next')->willReturnOnConsecutiveCalls(10, 11);
+		$this->db->expects($this->never())->method('rollBack');
+		$log = [];
+		$this->logTheWrites($log);
+
+		$this->ledger->record(
+			[$this->ref('personal')],
+			[$this->change('personal', 'one.ics', EventChangeKind::Updated)],
+		);
+
+		$order = array_column($log, 'step');
+		$this->assertCount(4, $order);
+		$this->assertSame('begin', $order[0]);
+		$this->assertSame('commit', $order[3]);
+		$this->assertContains('event', $order);
+		$this->assertContains('calendar', $order);
+	}
+
+	public function testAFailedPerEventWriteRollsBackTheSavepointAndRethrows(): void {
+		$this->cursor->method('next')->willReturnOnConsecutiveCalls(10, 11);
+		$this->eventRows->method('append')->willThrowException(new \RuntimeException('db error'));
+		$this->db->expects($this->once())->method('beginTransaction');
+		$this->db->expects($this->never())->method('commit');
+		$this->db->expects($this->once())->method('rollBack');
+
+		$this->expectException(\RuntimeException::class);
+		$this->ledger->record(
+			[$this->ref('personal')],
+			[$this->change('personal', 'one.ics', EventChangeKind::Updated)],
+		);
+	}
+
+	public function testAFailedPerCalendarWriteAlsoDropsThePerEventRow(): void {
+		$this->cursor->method('next')->willReturnOnConsecutiveCalls(10, 11);
+		$this->mapper->method('record')->willThrowException(new \RuntimeException('db error'));
+		$this->db->expects($this->once())->method('beginTransaction');
+		$this->db->expects($this->never())->method('commit');
+		$this->db->expects($this->once())->method('rollBack');
+
+		$this->expectException(\RuntimeException::class);
+		$this->ledger->record(
+			[$this->ref('personal')],
+			[$this->change('personal', 'one.ics', EventChangeKind::Updated)],
+		);
+	}
+
+	public function testRecordWithoutEventChangesAppendsNoPerEventRow(): void {
+		$this->cursor->method('next')->willReturn(10);
+		$this->eventRows->expects($this->never())->method('append');
+
+		$this->ledger->record([$this->ref('personal')]);
+	}
+
+	public function testConfirmDoesNotTouchThePerEventRows(): void {
+		$this->cursor->method('fence')->willReturn(120);
+		$this->cursor->method('next')->willReturn(121);
+		$this->eventRows->expects($this->never())->method($this->anything());
+
+		$this->assertSame(1, $this->ledger->confirm([['ref' => $this->ref('personal'), 'seq' => 100]]));
 	}
 }
