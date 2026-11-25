@@ -8,6 +8,7 @@ use OCA\SendentSynchroniser\ChangeNotification\EventChange;
 use OCA\SendentSynchroniser\ChangeNotification\EventStamp;
 use OCA\SendentSynchroniser\Db\DirtyCollection;
 use OCA\SendentSynchroniser\Db\DirtyCollectionMapper;
+use OCA\SendentSynchroniser\Db\EventChangeRow;
 use OCA\SendentSynchroniser\Db\EventChangeRowMapper;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\IDBConnection;
@@ -158,9 +159,30 @@ class ChangeLedgerService {
 		return count($this->record([], $overtaken));
 	}
 
-	/** @return DirtyCollection[] */
+	/**
+	 * The rows of the two tables above $since in one list, lowest number
+	 * first, at most $limit rows. A row that does not fit is left out.
+	 *
+	 * @return list<DirtyCollection|EventChangeRow>
+	 */
 	public function rows(int $since, int $limit): array {
-		return $this->mapper->page($since, $limit);
+		$rows = $this->mapper->page($since, $limit);
+		$eventRows = $this->eventRows->page($since, $limit);
+
+		$rows = array_merge($rows, $eventRows);
+		usort($rows, function ($a, $b) {
+			return $this->numberOf($a) <=> $this->numberOf($b);
+		});
+
+		return array_slice($rows, 0, $limit);
+	}
+
+	/** The sequence number of a row of either table. */
+	private function numberOf(DirtyCollection|EventChangeRow $row): int {
+		if ($row instanceof EventChangeRow) {
+			return $row->getSequenceNumber();
+		}
+		return $row->getChangeSeq();
 	}
 
 	public function countCollections(): int {
