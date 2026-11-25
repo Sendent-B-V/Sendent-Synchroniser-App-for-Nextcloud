@@ -182,9 +182,7 @@ class ChangeLedgerService {
 		if ($row instanceof EventChangeRow) {
 			return $row->getSequenceNumber();
 		}
-		else {
-			return $row->getChangeSeq();
-		}
+		return $row->getChangeSeq();
 	}
 
 	public function countCollections(): int {
