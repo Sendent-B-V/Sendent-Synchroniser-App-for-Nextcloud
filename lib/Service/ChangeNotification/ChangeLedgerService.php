@@ -5,6 +5,7 @@ namespace OCA\SendentSynchroniser\Service\ChangeNotification;
 
 use OCA\SendentSynchroniser\ChangeNotification\CollectionReference;
 use OCA\SendentSynchroniser\ChangeNotification\EventChange;
+use OCA\SendentSynchroniser\ChangeNotification\EventStamp;
 use OCA\SendentSynchroniser\Db\DirtyCollection;
 use OCA\SendentSynchroniser\Db\DirtyCollectionMapper;
 use OCA\SendentSynchroniser\Db\EventChangeRowMapper;
@@ -47,12 +48,13 @@ class ChangeLedgerService {
 	 *   rows. All rows stay or none stays.
 	 * - Each row has its own sequence number. The row of a change gets a
 	 *   lower number than the per-calendar row of the same calendar.
-	 * - Not built yet: the new number after commit for a per-event row. The
-	 *   contract requires it; today such a row gets no stamp.
+	 * - Each row gives one EventStamp with its number. A row that a read has
+	 *   passed gets a second row after the commit; see confirmEventRows().
 	 *
 	 * @param CollectionReference[] $refs
 	 * @param list<EventChange> $eventChanges
-	 * @return list<Stamp> one per reference, with the sequence it got
+	 * @return list<Stamp|EventStamp> one Stamp per reference and one
+	 *                                EventStamp per per-event row
 	 */
 	public function record(array $refs, array $eventChanges = []): array {
 		if ($refs === [] && $eventChanges === []) {
@@ -66,14 +68,16 @@ class ChangeLedgerService {
 		try {
 			// The per-event rows go first, so they get the lower numbers.
 			foreach ($eventChanges as $change) {
+				$seq = $this->cursor->next();
 				$this->eventRows->append(
 					$change->calendar->principalUri,
 					$change->calendar->collectionUri,
 					$change->fileName,
 					$change->kind->value,
-					$this->cursor->next(),
+					$seq,
 					$now,
 				);
+				$stamps[] = new EventStamp($change, $seq);
 			}
 			foreach ($refs as $ref) {
 				$seq = $this->cursor->next();
@@ -124,6 +128,34 @@ class ChangeLedgerService {
 		}
 
 		return count($this->record($overtaken));
+	}
+
+	/**
+	 * Must run after the commit, as confirm(). A per-event row at or below
+	 * the fence gets a second row for the same change, with a new number.
+	 * No row is changed. A row above the fence gets nothing.
+	 *
+	 * @param list<EventStamp> $eventStamps
+	 * @return int how many second rows were added
+	 */
+	public function confirmEventRows(array $eventStamps): int {
+		if ($eventStamps === []) {
+			return 0;
+		}
+
+		$fence = $this->cursor->fence();
+		$overtaken = [];
+		foreach ($eventStamps as $stamp) {
+			if ($stamp->seq <= $fence) {
+				$overtaken[] = $stamp->change;
+			}
+		}
+
+		if ($overtaken === []) {
+			return 0;
+		}
+
+		return count($this->record([], $overtaken));
 	}
 
 	/** @return DirtyCollection[] */

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace OCA\SendentSynchroniser\Service\ChangeNotification;
 
+use OCA\SendentSynchroniser\ChangeNotification\EventStamp;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -20,6 +21,9 @@ class PostCommitQueue {
 	/** @var array<string, Stamp> highest stamp per collection */
 	private array $stamps = [];
 
+	/** @var list<EventStamp> one per per-event row, never merged */
+	private array $eventStamps = [];
+
 	private bool $queued = false;
 
 	public function __construct(
@@ -29,9 +33,19 @@ class PostCommitQueue {
 		private LoggerInterface $logger,
 	) {}
 
-	/** @param list<Stamp> $stamps */
+	/**
+	 * Holds the stamps until the commit. Stamps of one calendar become one.
+	 * Each EventStamp stays its own entry, also two in one calendar.
+	 *
+	 * @param list<Stamp|EventStamp> $stamps
+	 */
 	public function add(array $stamps): void {
 		foreach ($stamps as $stamp) {
+			// An EventStamp has no key: each one is kept, never merged.
+			if ($stamp instanceof EventStamp) {
+				$this->eventStamps[] = $stamp;
+				continue;
+			}
 			$key = $stamp['ref']->key();
 			// The row ends up at the highest stamp this request gave it, so
 			// that is the one a reader could have read past.
@@ -40,7 +54,7 @@ class PostCommitQueue {
 			}
 		}
 
-		if ($this->stamps === [] || $this->queued) {
+		if (($this->stamps === [] && $this->eventStamps === []) || $this->queued) {
 			return;
 		}
 
@@ -55,7 +69,9 @@ class PostCommitQueue {
 	private function process(): void {
 		$stamps = array_values($this->stamps);
 		$this->stamps = [];
-		if ($stamps === []) {
+		$eventStamps = $this->eventStamps;
+		$this->eventStamps = [];
+		if ($stamps === [] && $eventStamps === []) {
 			return;
 		}
 
@@ -64,6 +80,16 @@ class PostCommitQueue {
 			$this->ledger->confirm($stamps);
 		} catch (\Throwable $e) {
 			$this->logger->error('Failed to confirm recorded DAV changes: ' . $e->getMessage(), [
+				'exception' => $e,
+				'app' => 'sendentsynchroniser',
+			]);
+		}
+
+		// Its own try: a failure here must not stop the hint.
+		try {
+			$this->ledger->confirmEventRows($eventStamps);
+		} catch (\Throwable $e) {
+			$this->logger->error('Failed to confirm event rows: ' . $e->getMessage(), [
 				'exception' => $e,
 				'app' => 'sendentsynchroniser',
 			]);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace OCA\SendentSynchroniser\Service\ChangeNotification;
 
 use OCA\SendentSynchroniser\Db\DirtyCollectionMapper;
+use OCA\SendentSynchroniser\Db\EventChangeRowMapper;
 use OCA\SendentSynchroniser\Db\SequenceMapper;
 use OCP\ICacheFactory;
 use OCP\IConfig;
@@ -71,6 +72,7 @@ class CursorService {
 		private DirtyCollectionMapper $ledger,
 		private ChangeNotificationConfig $config,
 		private AfterCommit $afterCommit,
+		private EventChangeRowMapper $eventRows,
 	) {}
 
 	public function next(): int {
@@ -83,7 +85,7 @@ class CursorService {
 		// earlier increment, so a healthy counter always lands above it. Read
 		// after, a faster writer that took the next number and committed in
 		// between would look like a counter that went backwards.
-		$ledgerMax = $this->ledger->maxSeq();
+		$rowMax = $this->highestRowNumber();
 
 		// Memcached reports a failed increment as false; Redis throws
 		// (RedisException on a dropped connection). Both mean the same thing.
@@ -93,7 +95,7 @@ class CursorService {
 		}
 
 		$established = max($this->config->seqFloor(), $this->knownFloor);
-		$floor = max($established, $ledgerMax);
+		$floor = max($established, $rowMax);
 		if ($established > 0 && $value > $floor) {
 			return $value;
 		}
@@ -102,7 +104,7 @@ class CursorService {
 		// this instance never established a floor (fresh install, or an
 		// upgrade from a version without one). In the second case the value
 		// may be fine, but there is nothing to prove it, so jump forward.
-		$seed = max($ledgerMax, $floor, $value) + self::RESEED_GAP;
+		$seed = max($rowMax, $floor, $value) + self::RESEED_GAP;
 		for ($i = 0; $i < self::RESEED_RETRIES && $value <= $seed; $i++) {
 			// cas() fails when a concurrent request raced the reseed with its
 			// own inc(); re-inc and re-check rather than trusting a single
@@ -129,6 +131,14 @@ class CursorService {
 		}
 
 		return $value;
+	}
+
+	/**
+	 * The highest sequence number of a committed row, in the per-calendar
+	 * table or the per-event table. 0 when the two tables are empty.
+	 */
+	private function highestRowNumber(): int {
+		return max($this->ledger->maxSeq(), $this->eventRows->maxSeq());
 	}
 
 	/** @return int|false false when the cache failed, whichever way it signals that */
@@ -161,7 +171,7 @@ class CursorService {
 			}
 		}
 
-		return max($counter, $this->ledger->maxSeq());
+		return max($counter, $this->highestRowNumber());
 	}
 
 	/**
@@ -218,7 +228,7 @@ class CursorService {
 			// A cache-less instance checks once per process: its only source is
 			// this table, which cannot fall behind itself. It can only lag the
 			// ledger when the instance used a cache before.
-			$floor = max($floor, $this->ledger->maxSeq());
+			$floor = max($floor, $this->highestRowNumber());
 			$this->databaseSequenceChecked = true;
 		}
 
