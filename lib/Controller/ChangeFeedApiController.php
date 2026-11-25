@@ -4,6 +4,8 @@ declare(strict_types=1);
 namespace OCA\SendentSynchroniser\Controller;
 
 use OCA\SendentSynchroniser\Constants;
+use OCA\SendentSynchroniser\Db\DirtyCollection;
+use OCA\SendentSynchroniser\Db\EventChangeRow;
 use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeFeedGuard;
 use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeLedgerService;
 use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeNotificationConfig;
@@ -98,10 +100,9 @@ class ChangeFeedApiController extends ApiController {
 		$highest = $since;
 		$refs = [];
 		foreach ($rows as $row) {
-			$highest = max($highest, (int)$row->getChangeSeq());
-			// q lets the Connector skip a collection version it already handled
-			// when its overlap re-reads the row.
-			$refs[] = $row->toReference($since)->jsonSerialize() + ['q' => (int)$row->getChangeSeq()];
+			$ref = $this->wireRow($row, $since);
+			$highest = max($highest, $ref['q']);
+			$refs[] = $ref;
 		}
 		$cursor = max($since, min($highest, $fence));
 
@@ -112,5 +113,29 @@ class ChangeFeedApiController extends ApiController {
 			'refs' => $refs,
 			'has_more' => $hasMore,
 		]);
+	}
+
+	/**
+	 * One row as the feed sends it. A per-event row has o and k; a
+	 * per-calendar or address-book row does not.
+	 *
+	 * @return array{p: string, t: string, u: string, c: bool, q: int, o?: string, k?: string}
+	 */
+	private function wireRow(DirtyCollection|EventChangeRow $row, int $since): array {
+		if ($row instanceof EventChangeRow) {
+			return [
+				'p' => $row->getPrincipalUri(),
+				't' => 'caldav',
+				'u' => $row->getCalendarUri(),
+				'c' => false,
+				'o' => $row->getEventFileName(),
+				'k' => $row->getKind(),
+				'q' => (int)$row->getSequenceNumber(),
+			];
+		}
+
+		// q lets the Connector skip a collection version it already handled
+		// when its overlap re-reads the row.
+		return $row->toReference($since)->jsonSerialize() + ['q' => (int)$row->getChangeSeq()];
 	}
 }
