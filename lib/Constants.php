@@ -71,6 +71,9 @@ class Constants {
 	public const CN_CHANGES_LIMIT_MAX = 1000;
 	public const CN_CHANGES_LIMIT_DEFAULT = 500;
 
+	// TODO: CN_EVENT_ROW_RETENTION, how long a per-event row is kept, in
+	// seconds. The contract gives the period in days.
+
 	// Durable lower bound for the cache counter: every value it legitimately
 	// hands out is above this. A counter value at or below it means the counter
 	// was lost (cache restart/eviction) or fell behind the DB fallback.
