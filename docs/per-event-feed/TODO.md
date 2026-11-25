@@ -58,14 +58,14 @@ All of Phase 0 is one PR, the decision PR. Nothing below starts until the rows i
 
 | Status | Id | Task | Est | After | Notes |
 |---|---|---|---|---|---|
-| TODO | N8.1 | Return per-event rows from `/notify/changes` in one sequence order with the per-calendar rows, under the existing fence and page limit, with one cursor. Files: `lib/Controller/ChangeFeedApiController.php`, the mapper from N6.2. Unit tests included. | 1 | N6.2, C8 | solo. Can be built against rows inserted by a test, in parallel with Phase 2. The cursor limit already reads the two tables (N7.4); do not add that again. |
+| WIP Kleon | N8.1 | Return per-event rows from `/notify/changes` in one sequence order with the per-calendar rows, under the existing fence and page limit, with one cursor. Files: `lib/Controller/ChangeFeedApiController.php`, the mapper from N6.2. Unit tests included. | 1 | N6.2, C8 | solo. Can be built against rows inserted by a test, in parallel with Phase 2. The cursor limit already reads the two tables (N7.4); do not add that again. Branch pushed, 25 November 2026. |
 | DONE | N8.2 | Answer a cursor that is older than the oldest kept row as contract C10 says. Needs a mark of the highest removed sequence that survives the cleanup. Files: `lib/Service/ChangeNotification/CursorService.php`, `lib/Controller/ChangeFeedApiController.php`. | 0 | N8.1, N9.1, C10 | Dropped 23 November 2026, nothing built: Q6 is settled with no signal for a too-old cursor. |
 
 ## Phase 4: housekeeping
 
 | Status | Id | Task | Est | After | Notes |
 |---|---|---|---|---|---|
-| TODO | N9.1 | Remove per-event rows older than the retention period in the maintenance job. Files: `lib/Cron/ChangeNotificationMaintenance.php`, `lib/Service/ChangeNotification/ChangeNotificationConfig.php`. | 0.5 | N6.2, C10 | solo. needs Q6. |
+| WIP Kleon | N9.1 | Remove per-event rows older than the retention period in the maintenance job. Files: `lib/Cron/ChangeNotificationMaintenance.php`, `lib/Constants.php`. | 0.5 | N6.2, C10 | solo. The period is a fixed constant, not a setting (C10). Built 25 November 2026, branch not pushed yet. |
 | TODO | N9.2 | Remove a user's per-event rows when the user is deleted or leaves the active group. Why: the rows carry file names and would otherwise outlive the user until retention. Files: `lib/AppInfo/Application.php`, a listener in `lib/Listener/`. | 0.5 | N6.2 | solo. |
 
 ## Phase 5: tests, docs and gate
