@@ -23,4 +23,9 @@ class ConstantsTest extends TestCase {
 		$this->assertSame('sendent-synchronization', Constants::TOKEN_NAME);
 		$this->assertSame('sendentsynchroniser', Constants::TOKEN_NAME_LEGACY);
 	}
+
+	public function testPerEventRowsAreKeptForThreeDays(): void {
+		// In seconds: the mapper compares with a time in seconds.
+		$this->assertSame(259200, Constants::CN_EVENT_ROW_RETENTION);
+	}
 }

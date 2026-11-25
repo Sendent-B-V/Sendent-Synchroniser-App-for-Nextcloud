@@ -71,6 +71,9 @@ class Constants {
 	public const CN_CHANGES_LIMIT_MAX = 1000;
 	public const CN_CHANGES_LIMIT_DEFAULT = 500;
 
+	// How long a per-event row is kept in seconds (3 days)
+	public const CN_EVENT_ROW_RETENTION = 259200;
+
 	// Durable lower bound for the cache counter: every value it legitimately
 	// hands out is above this. A counter value at or below it means the counter
 	// was lost (cache restart/eviction) or fell behind the DB fallback.
