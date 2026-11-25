@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 namespace OCA\SendentSynchroniser\Cron;
 
+use OCA\SendentSynchroniser\Constants;
 use OCA\SendentSynchroniser\Db\EventChangeRowMapper;
 use OCA\SendentSynchroniser\Db\SequenceMapper;
 use OCA\SendentSynchroniser\Service\ChangeNotification\NotifyPushTransport;
@@ -53,8 +54,14 @@ class ChangeNotificationMaintenance extends TimedJob {
 			]);
 		}
 
-		// TODO: the third step, the removal of old per-event rows. Find the
-		// limit time from the clock of the job, then give it to the mapper.
-		// A failure here is logged as an error and goes no further.
+		try {
+			$limitTime = $this->time->getTime() - Constants::CN_EVENT_ROW_RETENTION;
+			$this->eventRows->deleteWrittenBefore($limitTime);
+		} catch (\Throwable $e) {
+			$this->logger->error('Event-row prune failed: ' . $e->getMessage(), [
+				'exception' => $e,
+				'app' => 'sendentsynchroniser',
+			]);
+		}
 	}
 }
