@@ -33,13 +33,13 @@ Realistic range: 8 to 12 days. What moves it:
 
 In scope: one row per changed event in any calendar of a sync user, with the event's file name and the change kind.
 
-Out of scope: per-card rows for contacts, event content in the row, the event UID, sync tokens in the row, filtering by synced calendar in the app, a batch endpoint, a signal for a too-old cursor.
+Out of scope: per-card rows for contacts, event content in the row, sync tokens in the row, filtering by synced calendar in the app, a batch endpoint, a signal for a too-old cursor.
 
 ## Target design
 
 The contracts in CONTRACTS.md hold the exact shapes. In short:
 
-- A per-event row has the fields of a per-calendar row plus the event's file name and the change kind. The kind is created, updated or deleted. There is no UID and no event content.
+- A per-event row has the fields of a per-calendar row plus the event's file name and the change kind. The kind is created, updated or deleted. There is no event content. From 26 November 2026 the row can also hold the event UID, as an optional field; the first decision was no UID.
 - Rows are written for events in every calendar of a sync user. The list of synced calendars lives on the sync side, so the sync service filters on the calendar named in the row.
 - A move to trash is sent as deleted, a restore as created, and a purge from trash sends nothing. A move between calendars is deleted in the calendar the event left and created in the one it entered.
 - Per-calendar rows stay as they are. Per-event rows go in a separate append-only table.

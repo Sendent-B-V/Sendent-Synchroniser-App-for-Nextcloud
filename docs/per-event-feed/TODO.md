@@ -29,7 +29,7 @@ All of Phase 0 is one PR, the decision PR. Nothing below starts until the rows i
 |---|---|---|---|---|---|
 | DONE | C1 | Settle Q1: build per-event rows, or token read on the existing row. | 0 | | all. Settled 16 November 2026: per-event rows are built. |
 | DONE | C2 | Settle Q2: can the sync service process a row for an event created in Nextcloud. | 0 | | all. Settled 18 November 2026: Artem says the file name is enough. |
-| DONE | C3 | Settle Q3: UID in the row or not. | 0 | C1 | all. Settled 18 November 2026: no UID in the row. |
+| DONE | C3 | Settle Q3: UID in the row or not. | 0 | C1 | all. Settled 18 November 2026: no UID in the row. Changed 26 November 2026: the UID goes in as an optional field, task N9.3. |
 | DONE | C4 | Settle Q4: what is sent when an event moves out of the synced calendar. | 0 | C1 | all. Settled 19 November 2026: sent as deleted, as Artem asked. |
 | DONE | C5 | Settle Q5: restore sent as created or as its own kind. | 0 | C1 | all. Settled 18 November 2026: sent as created. |
 | DONE | C6 | Settle Q6: retention period and the too-old cursor. | 0 | C1 | all. Settled 23 November 2026: 3 days, no signal for a too-old cursor, agreed by Maarten |
@@ -67,6 +67,7 @@ All of Phase 0 is one PR, the decision PR. Nothing below starts until the rows i
 |---|---|---|---|---|---|
 | DONE | N9.1 | Remove per-event rows older than the retention period in the maintenance job. Files: `lib/Cron/ChangeNotificationMaintenance.php`, `lib/Constants.php`. | 0.5 | N6.2, C10 | solo. The period is a fixed constant, not a setting (C10). Done 25 November 2026, pull request 51. |
 | WIP Kleon | N9.2 | Remove a user's per-event rows when the user is deleted or leaves the active group. Why: the rows carry file names and would otherwise outlive the user until retention. Files: `lib/AppInfo/Application.php`, a listener in `lib/Listener/`. | 0.5 | N6.2 | solo. |
+| TODO | N9.3 | Add the event UID to the per-event row as the optional field `i` (contract C8, Q3). Why: the sync team asked for it for callbacks on their side; agreed 26 November 2026. Covers: a new migration with a column that can be empty, the UID from each of the six event kinds, one read of the UID from the database for a restore, the write path, and the read endpoint, which leaves the field out when the row has no UID. Files: `lib/Migration/`, `lib/Db/EventChangeRow.php`, `lib/Db/EventChangeRowMapper.php`, `lib/ChangeNotification/EventChange.php`, `lib/Service/ChangeNotification/DavEventReferenceExtractor.php`, `lib/Service/ChangeNotification/ChangeLedgerService.php`, `lib/Controller/ChangeFeedApiController.php`. Unit tests included. | 1 | N8.1, C8 | solo. The last implementation task. A failed read of the UID must not stop the row or the user's save. Rows written before the migration have no UID. The field name `i` is not confirmed by Artem yet. Not verified: that the UID is in the event data of all five other kinds on Nextcloud 32 and 33. |
 
 ## Phase 5: tests, docs and gate
 

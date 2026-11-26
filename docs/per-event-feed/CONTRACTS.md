@@ -34,13 +34,17 @@ Answer: yes. Artem confirmed on 18 November 2026 that the file name is enough. T
 
 Depends on this: S1, G1.
 
-## Q3: Does the row carry the event UID? (settled 18 November 2026)
+## Q3: Does the row carry the event UID? (settled 18 November 2026, changed 26 November 2026)
 
 The UID was asked for as "ideally". The sync service reads by file name.
 
 What we know: five of the six events carry the UID (run). The restore event does not (run). To fill it we read one column of the event row in the same transaction.
 
-Answer: no. The row adds only the file name and the kind. Artem confirmed the file name is enough (Q2), so the UID has no use in the row, and the restore event needs no extra read.
+First answer, 18 November 2026: no. The row adds only the file name and the kind. Artem confirmed the file name is enough (Q2), and the restore event then needs no extra read.
+
+Answer now: yes. On 24 November 2026 the sync team asked for the UID again, for callbacks on their side. Kleon and Artem agreed on 26 November 2026 to add it. The per-event tables and the read endpoint were already merged without it, so the UID is added by a separate task (N9.3) and is an optional field. Contract C8 has the field.
+
+Not known to us: what the callbacks do with the UID. Not built and not run yet: the read of the UID for a restore.
 
 Depends on this: C8, N7.1.
 
@@ -123,6 +127,17 @@ A per-event row has the same five fields plus:
 - `o`: the event's file name inside the calendar, for example `one.ics`. Not a full path.
 - `k`: the change kind. One of `created`, `updated`, `deleted`.
 
+A per-event row can also have (added 26 November 2026, see Q3):
+
+- `i`: the UID of the event, as it is in the event's data. The field name is our proposal; Artem has not confirmed the name yet.
+
+`i` is optional. A reader must accept a per-event row without it. The field is absent, not empty, in these cases:
+
+- The row was written before the app version that adds the UID.
+- The app could not read the UID. This can happen for a restore, where the UID is not in the Nextcloud event and is read from the database.
+
+A row is never held back because the UID is missing. One event has one UID, also when it has changed occurrences, so one row has at most one `i`.
+
 A row is a per-event row when it has both `o` and `k`. A row without them is a per-calendar or per-address-book row. There is no separate marker. The sync service already reads rows this way (`Application/ChangeFeed/NextcloudChangeFeedWorker.cs:234`, read).
 
 Sequence numbers and order:
@@ -148,18 +163,19 @@ Shared test vector. User alice saved a contact and then changed the event `one.i
   "cursor": 1052,
   "refs": [
     { "p": "principals/users/alice", "t": "carddav", "u": "contacts", "c": false, "q": 1049 },
-    { "p": "principals/users/alice", "t": "caldav", "u": "personal", "c": false, "q": 1051, "o": "one.ics", "k": "updated" },
+    { "p": "principals/users/alice", "t": "caldav", "u": "personal", "c": false, "q": 1051, "o": "one.ics", "k": "updated", "i": "5f2c9a1e-7b3d-4c60-9a41-2d8e6f0b1c77" },
     { "p": "principals/users/alice", "t": "caldav", "u": "personal", "c": false, "q": 1052 }
   ],
   "has_more": false
 }
 ```
 
-The second row is the per-event row. The third is the per-calendar row for the same change. `c` is always false on a per-event row. The order of keys inside a row carries no meaning.
+The second row is the per-event row. The third is the per-calendar row for the same change. `c` is always false on a per-event row. The order of keys inside a row carries no meaning. Until task N9.3 is merged, the app sends this row without `i`.
 
 Decisions this section makes, for review:
 
-- The field names `o` and `k`, and no UID in the row.
+- The field names `o` and `k`.
+- The UID in the optional field `i`, absent when it is not known (changed 26 November 2026; first decision was no UID).
 - A reader tells the two kinds of row apart by the presence of `o` and `k`.
 - Each row has its own sequence number, and the order between a per-event row and its per-calendar row is not guaranteed.
 - The three kinds, with no "moved" and no "restored".
