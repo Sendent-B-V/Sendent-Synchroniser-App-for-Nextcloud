@@ -10,6 +10,7 @@ use OCP\IUserManager;
 use \Psr\Log\LoggerInterface;
 use OCA\SendentSynchroniser\Constants;
 use OCA\SendentSynchroniser\Db\SyncUserMapper;
+use OCA\SendentSynchroniser\Service\ChangeNotification\EventRowCleaner;
 
 class SyncUserService {
 
@@ -40,9 +41,12 @@ class SyncUserService {
 	/** @var SchedulingSuppressionService */
 	private $schedulingSuppression;
 
+	/** @var EventRowCleaner */
+	private $eventRowCleaner;
+
     public function __construct(IAccountManager $accountManager, $AppName, IAppConfig $appConfig, IGroupManager $groupManager, LoggerInterface $logger,
 		Iprovider $tokenProvider, IUserManager $userManager, SyncUserMapper $syncUserMapper,
-		SchedulingSuppressionService $schedulingSuppression) {
+		SchedulingSuppressionService $schedulingSuppression, EventRowCleaner $eventRowCleaner) {
 
 		$this->accountManager = $accountManager;
 		$this->appName = $AppName;
@@ -53,6 +57,7 @@ class SyncUserService {
         $this->syncUserMapper = $syncUserMapper;
 		$this->userManager = $userManager;
 		$this->schedulingSuppression = $schedulingSuppression;
+		$this->eventRowCleaner = $eventRowCleaner;
 
 	}
 
@@ -88,6 +93,8 @@ class SyncUserService {
             // Set user status to invalid
             $syncUsers[0]->setActive($retractConsent);
             $this->syncUserMapper->update($syncUsers[0]);
+
+			$this->eventRowCleaner->removeForUser($userId);
 
 			$response = [
 				'status' => 'success',

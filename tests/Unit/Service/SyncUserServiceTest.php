@@ -6,8 +6,10 @@ namespace OCA\SendentSynchroniser\Tests\Unit\Service;
 use OC\Authentication\Token\IProvider;
 use OC\Authentication\Token\IToken;
 use OCA\SendentSynchroniser\Constants;
+use OCA\SendentSynchroniser\Db\EventChangeRowMapper;
 use OCA\SendentSynchroniser\Db\SyncUser;
 use OCA\SendentSynchroniser\Db\SyncUserMapper;
+use OCA\SendentSynchroniser\Service\ChangeNotification\EventRowCleaner;
 use OCA\SendentSynchroniser\Service\SchedulingSuppressionService;
 use OCA\SendentSynchroniser\Service\SyncUserService;
 use OCP\Accounts\IAccountManager;
@@ -16,6 +18,7 @@ use OCP\IGroupManager;
 use OCP\IUserManager;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
 class SyncUserServiceTest extends TestCase {
@@ -25,6 +28,8 @@ class SyncUserServiceTest extends TestCase {
 	private SchedulingSuppressionService&MockObject $suppression;
 	private IAppConfig&MockObject $appConfig;
 	private IGroupManager&MockObject $groupManager;
+	private EventChangeRowMapper&MockObject $eventRows;
+	private LoggerInterface&MockObject $cleanerLogger;
 	private SyncUserService $svc;
 
 	protected function setUp(): void {
@@ -33,6 +38,8 @@ class SyncUserServiceTest extends TestCase {
 		$this->suppression = $this->createMock(SchedulingSuppressionService::class);
 		$this->appConfig = $this->createMock(IAppConfig::class);
 		$this->groupManager = $this->createMock(IGroupManager::class);
+		$this->eventRows = $this->createMock(EventChangeRowMapper::class);
+		$this->cleanerLogger = $this->createMock(LoggerInterface::class);
 		$this->svc = new SyncUserService(
 			$this->createMock(IAccountManager::class),
 			'sendentsynchroniser',
@@ -42,7 +49,8 @@ class SyncUserServiceTest extends TestCase {
 			$this->tokenProvider,
 			$this->createMock(IUserManager::class),
 			$this->mapper,
-			$this->suppression
+			$this->suppression,
+			new EventRowCleaner($this->eventRows, $this->cleanerLogger)
 		);
 	}
 
@@ -85,6 +93,33 @@ class SyncUserServiceTest extends TestCase {
 
 		$this->svc->invalidateUser('alice');
 		$this->assertSame([1, 2], $invalidated);
+	}
+
+	public function testInvalidateUserRemovesThePerEventRowsOfTheUser(): void {
+		$this->givenSyncUser(0);
+		$this->tokenProvider->method('getTokenByUser')->willReturn([]);
+
+		$this->eventRows->expects($this->once())
+			->method('deleteForPrincipal')
+			->with('principals/users/alice')
+			->willReturn(3);
+
+		$this->svc->invalidateUser('alice');
+	}
+
+	public function testInvalidateUserStillSetsTheStatusWhenTheRemovalFails(): void {
+		$syncUser = $this->givenSyncUser(0);
+		$this->tokenProvider->method('getTokenByUser')->willReturn([]);
+		$this->eventRows->method('deleteForPrincipal')
+			->willThrowException(new \RuntimeException('database is away'));
+
+		$this->mapper->expects($this->once())->method('update')->with($syncUser);
+		$this->cleanerLogger->expects($this->once())->method('error');
+
+		$response = $this->svc->invalidateUser('alice');
+
+		$this->assertSame('success', $response['status']);
+		$this->assertSame(Constants::USER_STATUS_INACTIVE, $syncUser->getActive());
 	}
 
 	public function testInvalidateUserLeavesResetOfferUntouched(): void {

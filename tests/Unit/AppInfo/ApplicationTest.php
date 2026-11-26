@@ -5,13 +5,14 @@ namespace OCA\SendentSynchroniser\Tests\Unit\AppInfo;
 
 use OCA\SendentSynchroniser\AppInfo\Application;
 use OCA\SendentSynchroniser\Listener\DavChangeListener;
+use OCA\SendentSynchroniser\Listener\UserGoneListener;
 use OCP\AppFramework\Bootstrap\IRegistrationContext;
 use PHPUnit\Framework\TestCase;
 
 class ApplicationTest extends TestCase {
 
-	/** @return list<string> the events DavChangeListener was registered for */
-	private function changeEventsRegistered(bool $serverSupported): array {
+	/** @return list<string> the events the listener was registered for */
+	private function changeEventsRegistered(bool $serverSupported, string $listenerClass = DavChangeListener::class): array {
 		$app = new class($serverSupported) extends Application {
 			public function __construct(private bool $supported) {
 				parent::__construct();
@@ -25,8 +26,8 @@ class ApplicationTest extends TestCase {
 		$events = [];
 		$context = $this->createMock(IRegistrationContext::class);
 		$context->method('registerEventListener')->willReturnCallback(
-			function (string $event, string $listener) use (&$events): void {
-				if ($listener === DavChangeListener::class) {
+			function (string $event, string $listener) use (&$events, $listenerClass): void {
+				if ($listener === $listenerClass) {
 					$events[] = $event;
 				}
 			}
@@ -58,5 +59,13 @@ class ApplicationTest extends TestCase {
 		// NC 28/29 it would also run nested transactions without savepoints,
 		// where a failed ledger write fails the user's own DAV write.
 		$this->assertSame([], $this->changeEventsRegistered(false));
+	}
+
+	public function testADeletedUserAndAUserRemovedFromAGroupReachTheUserGoneListener(): void {
+		$events = $this->changeEventsRegistered(true, UserGoneListener::class);
+
+		$this->assertContains(\OCP\User\Events\UserDeletedEvent::class, $events);
+		$this->assertContains(\OCP\Group\Events\UserRemovedEvent::class, $events);
+		$this->assertCount(2, $events);
 	}
 }

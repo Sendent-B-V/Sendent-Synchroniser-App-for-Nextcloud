@@ -45,6 +45,16 @@ class Application extends App implements IBootstrap {
 		if ($this->changeNotificationsSupported()) {
 			$this->registerChangeListeners($context);
 		}
+		// Not inside the check above: file names must not stay after the user
+		// is gone, on any server.
+		$context->registerEventListener(
+			\OCP\User\Events\UserDeletedEvent::class,
+			\OCA\SendentSynchroniser\Listener\UserGoneListener::class,
+		);
+		$context->registerEventListener(
+			\OCP\Group\Events\UserRemovedEvent::class,
+			\OCA\SendentSynchroniser\Listener\UserGoneListener::class,
+		);
 		$context->registerNotifierService(Notifier::class);
 	}
 
