@@ -217,7 +217,7 @@ class SettingsController extends ApiController {
 	 * 
 	 * Saves new active groups list
 	 * 
-	 * @param string $newSendentGroups
+	 * @param string[] $newSendentGroups
 	 * 
 	 */
 	public function setActiveGroups($newSendentGroups) {
@@ -228,8 +228,7 @@ class SettingsController extends ApiController {
 		$deletedGroup = array_diff($sendentGroups, $newSendentGroups);
 
 		// Invalidate users of the deleted group if they are not member of any other active groups
-		if (count($deletedGroup) > 0) {
-			$gid = $deletedGroup[array_keys($deletedGroup)[0]];
+		foreach ($deletedGroup as $gid) {
 			$ncGroup = $this->groupManager->get($gid);
 
 			 if ($ncGroup === null) {
