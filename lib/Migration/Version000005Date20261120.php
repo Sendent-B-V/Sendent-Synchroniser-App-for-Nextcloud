@@ -80,7 +80,7 @@ class Version000005Date20261120 extends SimpleMigrationStep {
 			$table->setPrimaryKey(['id']);
 
 			// One index for the feed read, one for the cleanup.
-			// No index on principal_uri: the delete for one user is rare.
+			// The index on principal_uri is added by a later migration.
 			$table->addIndex(['sequence_number'], 'sndntsync_evt_changes_seq_ix');
 			$table->addIndex(['written_time'], 'sndntsync_evt_changes_wtime_ix');
 		}
