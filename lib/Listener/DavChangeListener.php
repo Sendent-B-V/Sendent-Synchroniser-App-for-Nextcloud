@@ -8,6 +8,7 @@ use OCA\SendentSynchroniser\ChangeNotification\EventChange;
 use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeLedgerService;
 use OCA\SendentSynchroniser\Service\ChangeNotification\DavEventReferenceExtractor;
 use OCA\SendentSynchroniser\Service\ChangeNotification\PostCommitQueue;
+use OCA\SendentSynchroniser\Service\ChangeNotification\RestoredEventUidReader;
 use OCA\SendentSynchroniser\Service\ChangeNotification\SyncScope;
 use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
@@ -54,6 +55,7 @@ class DavChangeListener implements IEventListener {
 		private DavEventReferenceExtractor $extractor,
 		private SyncScope $scope,
 		private LoggerInterface $logger,
+		private RestoredEventUidReader $restoredUid,
 	) {}
 
 	public function handle(Event $event): void {
@@ -149,6 +151,9 @@ class DavChangeListener implements IEventListener {
 	 * calendar-level events, subscription events and unknown events give
 	 * nothing.
 	 *
+	 * The restore event has no UID, so the UID is read here and given to the
+	 * extractor.
+	 *
 	 * @return list<EventChange>
 	 */
 	private function eventChanges(Event $event): array {
@@ -165,7 +170,8 @@ class DavChangeListener implements IEventListener {
 			return $this->extractor->eventMovedToTrash($event->getCalendarData(), $event->getObjectData());
 		}
 		if ($event instanceof \OCP\Calendar\Events\CalendarObjectRestoredEvent) {
-			return $this->extractor->eventRestored($event->getCalendarData(), $event->getObjectData());
+			$uid = $this->restoredUid->uidFor($event->getCalendarId(), $event->getObjectData());
+			return $this->extractor->eventRestored($event->getCalendarData(), $event->getObjectData(), $uid);
 		}
 		if ($event instanceof \OCP\Calendar\Events\CalendarObjectMovedEvent) {
 			return $this->extractor->eventMoved(

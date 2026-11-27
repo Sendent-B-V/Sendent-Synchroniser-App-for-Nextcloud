@@ -51,6 +51,41 @@ class EventChangeRowMapperTest extends TestCase {
 		$this->assertSame(1795000000, $row['written_time']);
 	}
 
+	public function testAppendStoresTheUidOfTheEvent(): void {
+		$this->mapper->append(self::ALICE, 'personal', 'one.ics', 'updated', 1051, 1795000000, 'uid-of-one');
+
+		$this->assertCount(1, $this->table->rows);
+		$this->assertSame('uid-of-one', $this->table->rows[0]['event_uid']);
+	}
+
+	public function testAppendWithoutAUidStoresNoValueAndNotAnEmptyText(): void {
+		$this->mapper->append(self::ALICE, 'personal', 'one.ics', 'updated', 1051, 1795000000);
+		$this->mapper->append(self::ALICE, 'personal', 'two.ics', 'updated', 1052, 1795000000, null);
+
+		$this->assertSame([null, null], array_column($this->table->rows, 'event_uid'));
+	}
+
+	public function testPageGivesTheUidOfEachRow(): void {
+		// The first row is as a row written before the column was there.
+		$this->table->seed(self::ALICE, 'personal', 'old.ics', 'updated', 1051, 1795000000);
+		$this->table->seed(self::ALICE, 'personal', 'new.ics', 'updated', 1052, 1795000000, 'uid-of-new');
+
+		$rows = $this->mapper->page(1000, 100);
+
+		$this->assertCount(2, $rows);
+		$this->assertNull($rows[0]->getEventUid());
+		$this->assertSame('uid-of-new', $rows[1]->getEventUid());
+	}
+
+	public function testARowWrittenWithAUidReadsBackWithIt(): void {
+		$this->mapper->append(self::ALICE, 'personal', 'one.ics', 'created', 1051, 1795000000, 'uid-of-one');
+
+		$rows = $this->mapper->page(1000, 100);
+
+		$this->assertCount(1, $rows);
+		$this->assertSame('uid-of-one', $rows[0]->getEventUid());
+	}
+
 	public function testAppendForTheSameEventAddsASecondRow(): void {
 		$this->mapper->append(self::ALICE, 'personal', 'one.ics', 'created', 1051, 1795000000);
 		$this->mapper->append(self::ALICE, 'personal', 'one.ics', 'updated', 1053, 1795000060);

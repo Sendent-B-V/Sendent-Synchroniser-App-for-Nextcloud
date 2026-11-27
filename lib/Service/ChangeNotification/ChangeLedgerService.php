@@ -51,6 +51,8 @@ class ChangeLedgerService {
 	 *   lower number than the per-calendar row of the same calendar.
 	 * - Each row gives one EventStamp with its number. A row that a read has
 	 *   passed gets a second row after the commit; see confirmEventRows().
+	 * - A row holds the UID of its change. A change with no UID gives a row
+	 *   with no UID.
 	 *
 	 * @param CollectionReference[] $refs
 	 * @param list<EventChange> $eventChanges
@@ -77,6 +79,7 @@ class ChangeLedgerService {
 					$change->kind->value,
 					$seq,
 					$now,
+					$change->uid,
 				);
 				$stamps[] = new EventStamp($change, $seq);
 			}
@@ -134,7 +137,8 @@ class ChangeLedgerService {
 	/**
 	 * Must run after the commit, as confirm(). A per-event row at or below
 	 * the fence gets a second row for the same change, with a new number.
-	 * No row is changed. A row above the fence gets nothing.
+	 * No row is changed. A row above the fence gets nothing. The second row
+	 * holds the same UID as the first.
 	 *
 	 * @param list<EventStamp> $eventStamps
 	 * @return int how many second rows were added

@@ -21,6 +21,9 @@ class EventChangeRowMapper extends QBMapper {
 	/**
 	 * Adds one row and sets every column. Never changes a row that is
 	 * already there, also not a row for the same event.
+	 *
+	 * @param string|null $eventUid the UID of the event, or null when it is
+	 *                              not known. Null is stored as an empty column.
 	 */
 	public function append(
 		string $principalUri,
@@ -29,6 +32,7 @@ class EventChangeRowMapper extends QBMapper {
 		string $kind,
 		int $sequenceNumber,
 		int $writtenTime,
+		?string $eventUid = null,
 	): void {
 		$qb = $this->db->getQueryBuilder();
 		$qb->insert(self::TABLE)->values([
@@ -38,6 +42,7 @@ class EventChangeRowMapper extends QBMapper {
 			'kind' => $qb->createNamedParameter($kind),
 			'sequence_number' => $qb->createNamedParameter($sequenceNumber, IQueryBuilder::PARAM_INT),
 			'written_time' => $qb->createNamedParameter($writtenTime, IQueryBuilder::PARAM_INT),
+			'event_uid' => $qb->createNamedParameter($eventUid),
 		]);
 		$qb->executeStatement();
 	}
@@ -52,7 +57,7 @@ class EventChangeRowMapper extends QBMapper {
 	public function page(int $since, int $limit): array {
 		$qb = $this->db->getQueryBuilder();
 
-		$qb->select('id', 'principal_uri', 'calendar_uri', 'event_file_name', 'kind', 'sequence_number', 'written_time')
+		$qb->select('id', 'principal_uri', 'calendar_uri', 'event_file_name', 'kind', 'sequence_number', 'written_time', 'event_uid')
 			->from(self::TABLE)
 			->where($qb->expr()->gt('sequence_number', $qb->createNamedParameter($since, IQueryBuilder::PARAM_INT)))
 			->orderBy('sequence_number', 'ASC')

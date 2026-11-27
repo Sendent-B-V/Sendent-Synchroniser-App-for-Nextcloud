@@ -119,8 +119,9 @@ class ChangeFeedEventRowsTest extends TestCase {
 	}
 
 	/** Adds a per-event row. Add rows of one kind in number order. */
-	private function eventRow(int $seq, string $fileName = 'one.ics', string $kind = 'updated', string $calendar = 'personal'): void {
+	private function eventRow(int $seq, string $fileName = 'one.ics', string $kind = 'updated', string $calendar = 'personal', ?string $uid = null): void {
 		$row = new EventChangeRow();
+		$row->setEventUid($uid);
 		$row->setPrincipalUri(self::ALICE);
 		$row->setCalendarUri($calendar);
 		$row->setEventFileName($fileName);
@@ -160,7 +161,7 @@ class ChangeFeedEventRowsTest extends TestCase {
 		// Alice saved a contact, then changed one.ics in her calendar "personal".
 		$this->fence(1052);
 		$this->calendarRow(1049, 'contacts', 'carddav');
-		$this->eventRow(1051, 'one.ics', 'updated');
+		$this->eventRow(1051, 'one.ics', 'updated', 'personal', '5f2c9a1e-7b3d-4c60-9a41-2d8e6f0b1c77');
 		$this->calendarRow(1052, 'personal', 'caldav');
 
 		$data = $this->read(1000);
@@ -172,9 +173,64 @@ class ChangeFeedEventRowsTest extends TestCase {
 		$this->assertSame(['v', 'instance', 'cursor', 'refs', 'has_more'], array_keys($data));
 		$this->assertSame(self::keysSorted([
 			['p' => self::ALICE, 't' => 'carddav', 'u' => 'contacts', 'c' => false, 'q' => 1049],
-			['p' => self::ALICE, 't' => 'caldav', 'u' => 'personal', 'c' => false, 'q' => 1051, 'o' => 'one.ics', 'k' => 'updated'],
+			['p' => self::ALICE, 't' => 'caldav', 'u' => 'personal', 'c' => false, 'q' => 1051, 'o' => 'one.ics', 'k' => 'updated', 'i' => '5f2c9a1e-7b3d-4c60-9a41-2d8e6f0b1c77'],
 			['p' => self::ALICE, 't' => 'caldav', 'u' => 'personal', 'c' => false, 'q' => 1052],
 		]), self::keysSorted($data['refs']));
+	}
+
+	// ── The UID of the event ────────────────────────────────────────────
+
+	public function testAPerEventRowWithAUidHasTheUidField(): void {
+		$this->fence(2000);
+		$this->eventRow(1001, 'one.ics', 'created', 'personal', 'uid-of-one');
+
+		$refs = $this->read(1000)['refs'];
+
+		$this->assertSame('uid-of-one', $refs[0]['i'] ?? null);
+		$this->assertSame(['c', 'i', 'k', 'o', 'p', 'q', 't', 'u'], array_keys(self::keysSorted($refs)[0]));
+	}
+
+	public function testAPerEventRowWithoutAUidHasNoUidField(): void {
+		// A row written before the UID column was there reads back as null.
+		$this->fence(2000);
+		$this->eventRow(1001, 'one.ics', 'created', 'personal', null);
+
+		$refs = $this->read(1000)['refs'];
+
+		$this->assertArrayNotHasKey('i', $refs[0]);
+		$this->assertSame(['c', 'k', 'o', 'p', 'q', 't', 'u'], array_keys(self::keysSorted($refs)[0]));
+	}
+
+	public function testAnEmptyUidInTheRowIsLeftOut(): void {
+		// The write path never stores '', but the response must not send it.
+		$this->fence(2000);
+		$this->eventRow(1001, 'one.ics', 'created', 'personal', '');
+
+		$this->assertArrayNotHasKey('i', $this->read(1000)['refs'][0]);
+	}
+
+	public function testRowsWithAndWithoutAUidInOneResponse(): void {
+		$this->fence(2000);
+		$this->eventRow(1001, 'old.ics', 'updated', 'personal', null);
+		$this->eventRow(1002, 'new.ics', 'updated', 'personal', 'uid-of-new');
+
+		$refs = $this->read(1000)['refs'];
+
+		$this->assertArrayNotHasKey('i', $refs[0]);
+		$this->assertSame('uid-of-new', $refs[1]['i'] ?? null);
+	}
+
+	public function testAPerCalendarRowAndAnAddressBookRowHaveNoUidField(): void {
+		$this->fence(2000);
+		$this->calendarRow(1001, 'contacts', 'carddav');
+		$this->eventRow(1002, 'one.ics', 'updated', 'personal', 'uid-of-one');
+		$this->calendarRow(1003, 'personal', 'caldav');
+
+		$refs = $this->read(1000)['refs'];
+
+		$this->assertArrayNotHasKey('i', $refs[0]);
+		$this->assertArrayHasKey('i', $refs[1]);
+		$this->assertArrayNotHasKey('i', $refs[2]);
 	}
 
 	public function testOnlyPerEventRows(): void {

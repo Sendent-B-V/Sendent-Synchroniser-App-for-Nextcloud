@@ -29,8 +29,18 @@ class EventChangeRowTest extends TestCase {
 		$this->assertSame(1795000000, $row->getWrittenTime());
 	}
 
+	public function testFromRowMapsTheUid(): void {
+		$with = EventChangeRow::fromRow(['id' => '7', 'event_uid' => 'uid-of-one']);
+		$without = EventChangeRow::fromRow(['id' => '8', 'event_uid' => null]);
+
+		$this->assertSame('uid-of-one', $with->getEventUid());
+		$this->assertNull($without->getEventUid());
+	}
+
 	public function testAPropertyMapsToItsColumnName(): void {
 		$row = new EventChangeRow();
+
+		$this->assertSame('event_uid', $row->propertyToColumn('eventUid'));
 
 		$this->assertSame('event_file_name', $row->propertyToColumn('eventFileName'));
 		$this->assertSame('sequence_number', $row->propertyToColumn('sequenceNumber'));

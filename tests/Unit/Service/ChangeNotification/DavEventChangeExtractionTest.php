@@ -230,6 +230,111 @@ class DavEventChangeExtractionTest extends TestCase {
 		));
 	}
 
+	// ── The UID of the event ────────────────────────────────────────────
+
+	/** The short row of a restore event: no id and no uid. */
+	private static function restoredRow(): array {
+		return [
+			'calendardata' => "BEGIN:VCALENDAR\r\nEND:VCALENDAR\r\n",
+			'uri' => 'meeting.ics',
+			'calendarid' => 42,
+			'calendartype' => 0,
+			'component' => 'VEVENT',
+		];
+	}
+
+	/** @return array<string, array{string}> */
+	public static function methodsWithTheUidInTheObjectRow(): array {
+		return [
+			'created' => ['eventCreated'],
+			'updated' => ['eventUpdated'],
+			'deleted' => ['eventDeleted'],
+			'moved to trash' => ['eventMovedToTrash'],
+		];
+	}
+
+	/** @return array<string, array{mixed}> */
+	public static function uidsThatAreNotUsable(): array {
+		return [
+			'null' => [null],
+			'empty' => [''],
+			'integer' => [1001],
+			'array' => [['b7c1f0e2-meeting']],
+			'true' => [true],
+		];
+	}
+
+	#[DataProvider('methodsWithTheUidInTheObjectRow')]
+	public function testTheChangeHoldsTheUidOfTheObjectRow(string $method): void {
+		$changes = $this->extractor->$method(self::calendar(), self::object());
+
+		$this->assertCount(1, $changes);
+		$this->assertSame('b7c1f0e2-meeting', $changes[0]->uid);
+	}
+
+	public function testBothRowsOfAMoveHoldTheUid(): void {
+		$changes = $this->extractor->eventMoved(
+			self::calendar('principals/users/alice', 'personal', 42),
+			self::calendar('principals/users/alice', 'work', 43),
+			self::object('meeting.ics', null, 43),
+		);
+
+		$this->assertCount(2, $changes);
+		$this->assertSame('b7c1f0e2-meeting', $changes[0]->uid);
+		$this->assertSame('b7c1f0e2-meeting', $changes[1]->uid);
+	}
+
+	public function testARestoreHoldsTheUidTheCallerGives(): void {
+		$changes = $this->extractor->eventRestored(self::calendar(), self::restoredRow(), 'b7c1f0e2-meeting');
+
+		$this->assertCount(1, $changes);
+		$this->assertChange($changes[0], 'principals/users/alice', 'personal', 'meeting.ics', EventChangeKind::Created);
+		$this->assertSame('b7c1f0e2-meeting', $changes[0]->uid);
+	}
+
+	public function testARestoreWithoutAUidStillGivesTheChange(): void {
+		foreach ([null, ''] as $uid) {
+			$changes = $this->extractor->eventRestored(self::calendar(), self::restoredRow(), $uid);
+
+			$this->assertCount(1, $changes);
+			$this->assertChange($changes[0], 'principals/users/alice', 'personal', 'meeting.ics', EventChangeKind::Created);
+			$this->assertNull($changes[0]->uid);
+		}
+	}
+
+	#[DataProvider('methodsWithTheUidInTheObjectRow')]
+	public function testAnObjectRowWithoutTheUidKeyStillGivesTheChange(string $method): void {
+		$object = self::object();
+		unset($object['uid']);
+
+		$changes = $this->extractor->$method(self::calendar(), $object);
+
+		$this->assertCount(1, $changes);
+		$this->assertSame('meeting.ics', $changes[0]->fileName);
+		$this->assertNull($changes[0]->uid);
+	}
+
+	#[DataProvider('uidsThatAreNotUsable')]
+	public function testAUidThatIsNotUsableCountsAsNoUid(mixed $uid): void {
+		$object = array_merge(self::object(), ['uid' => $uid]);
+
+		foreach (array_column(self::methodsWithTheUidInTheObjectRow(), 0) as $method) {
+			$changes = $this->extractor->$method(self::calendar(), $object);
+
+			$this->assertCount(1, $changes, $method);
+			$this->assertNull($changes[0]->uid, $method);
+		}
+
+		$moved = $this->extractor->eventMoved(
+			self::calendar('principals/users/alice', 'personal', 42),
+			self::calendar('principals/users/alice', 'work', 43),
+			$object,
+		);
+		$this->assertCount(2, $moved);
+		$this->assertNull($moved[0]->uid);
+		$this->assertNull($moved[1]->uid);
+	}
+
 	// ── Rows that yield nothing, for every single-calendar event ────────
 
 	/** @return array<string, array{string}> */

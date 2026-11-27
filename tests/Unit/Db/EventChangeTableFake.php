@@ -23,11 +23,13 @@ final class EventChangeTableFake {
 
 	public const TABLE = 'sndntsync_evt_changes';
 
-	private const COLUMNS = ['id', 'principal_uri', 'calendar_uri', 'event_file_name', 'kind', 'sequence_number', 'written_time'];
+	private const COLUMNS = ['id', 'principal_uri', 'calendar_uri', 'event_file_name', 'kind', 'sequence_number', 'written_time', 'event_uid'];
+	/** Columns that can be NULL. An insert that leaves one out stores NULL. */
+	private const NULLABLE_COLUMNS = ['event_uid'];
 	private const INT_COLUMNS = ['id', 'sequence_number', 'written_time'];
-	private const MAX_LENGTH = ['principal_uri' => 255, 'calendar_uri' => 255, 'event_file_name' => 255, 'kind' => 8];
+	private const MAX_LENGTH = ['principal_uri' => 255, 'calendar_uri' => 255, 'event_file_name' => 255, 'kind' => 8, 'event_uid' => 255];
 
-	/** @var list<array<string, int|string>> rows in the order they were written */
+	/** @var list<array<string, int|string|null>> rows in the order they were written */
 	public array $rows = [];
 
 	private int $lastId = 0;
@@ -49,7 +51,7 @@ final class EventChangeTableFake {
 	}
 
 	/** Writes a row directly, without the mapper. */
-	public function seed(string $principalUri, string $calendarUri, string $eventFileName, string $kind, int $sequenceNumber, int $writtenTime): void {
+	public function seed(string $principalUri, string $calendarUri, string $eventFileName, string $kind, int $sequenceNumber, int $writtenTime, ?string $eventUid = null): void {
 		$this->rows[] = [
 			'id' => ++$this->lastId,
 			'principal_uri' => $principalUri,
@@ -58,6 +60,7 @@ final class EventChangeTableFake {
 			'kind' => $kind,
 			'sequence_number' => $sequenceNumber,
 			'written_time' => $writtenTime,
+			'event_uid' => $eventUid,
 		];
 	}
 
@@ -330,7 +333,7 @@ final class EventChangeTableFake {
 
 		// A driver can give integers as text. The fake always does.
 		return array_map(
-			fn (array $row): array => array_map(fn (string $column): string => (string)$row[$column], $columns),
+			fn (array $row): array => array_map(fn (string $column): ?string => $row[$column] === null ? null : (string)$row[$column], $columns),
 			$rows
 		);
 	}
@@ -352,6 +355,10 @@ final class EventChangeTableFake {
 		$row = ['id' => $query->values['id'] ?? $this->lastId + 1];
 		foreach (array_diff(self::COLUMNS, ['id']) as $column) {
 			$value = $query->values[$column] ?? null;
+			if ($value === null && in_array($column, self::NULLABLE_COLUMNS, true)) {
+				$row[$column] = null;
+				continue;
+			}
 			if ($value === null) {
 				throw $this->failure('refuses the insert: ' . $column . ' is NOT NULL and has no default.');
 			}
