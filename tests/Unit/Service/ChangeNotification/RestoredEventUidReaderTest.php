@@ -72,6 +72,39 @@ class RestoredEventUidReaderTest extends TestCase {
 		$this->assertSame('uid-of-other', $this->reader->uidFor(77, self::restoredRow('other.ics')));
 	}
 
+	/** @return array<string, array{mixed, int}> the type in the row, the type the backend must get */
+	public static function calendarTypes(): array {
+		return [
+			'calendar' => [0, 0],
+			'subscription' => [1, 1],
+			'a number as text' => ['1', 1],
+			'null' => [null, 0],
+			'not a number' => ['x', 0],
+		];
+	}
+
+	#[DataProvider('calendarTypes')]
+	public function testAsksForTheKindOfCalendarTheRowNames(mixed $typeInTheRow, int $expected): void {
+		$row = array_merge(self::restoredRow(), ['calendartype' => $typeInTheRow]);
+		$this->backend->expects($this->once())
+			->method('getCalendarObject')
+			->with(42, 'meeting.ics', $this->identicalTo($expected))
+			->willReturn(self::backendRow('b7c1f0e2-meeting'));
+
+		$this->assertSame('b7c1f0e2-meeting', $this->reader->uidFor(42, $row));
+	}
+
+	public function testARowWithoutTheKindAsksForANormalCalendar(): void {
+		$row = self::restoredRow();
+		unset($row['calendartype']);
+		$this->backend->expects($this->once())
+			->method('getCalendarObject')
+			->with(42, 'meeting.ics', $this->identicalTo(0))
+			->willReturn(self::backendRow('b7c1f0e2-meeting'));
+
+		$this->assertSame('b7c1f0e2-meeting', $this->reader->uidFor(42, $row));
+	}
+
 	public function testGivesNullWhenTheBackendFindsNoEvent(): void {
 		$this->backend->expects($this->once())->method('getCalendarObject')->willReturn(null);
 
