@@ -150,6 +150,7 @@ class EventChangeDuplicateNumberTest extends TestCase {
 			new DavEventReferenceExtractor(),
 			$scope,
 			$logger,
+			$this->createMock(\OCA\SendentSynchroniser\Service\ChangeNotification\RestoredEventUidReader::class),
 		);
 
 		$this->db->beginTransaction();

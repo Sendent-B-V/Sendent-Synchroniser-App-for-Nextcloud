@@ -64,7 +64,7 @@ class ChangeLedgerServiceTest extends TestCase {
 			$log[] = ['step' => 'commit'];
 		});
 		$this->eventRows->method('append')->willReturnCallback(
-			function (string $principalUri, string $calendarUri, string $eventFileName, string $kind, int $seq, int $time) use (&$log): void {
+			function (string $principalUri, string $calendarUri, string $eventFileName, string $kind, int $seq, int $time, ?string $uid = null) use (&$log): void {
 				$log[] = [
 					'step' => 'event',
 					'principal' => $principalUri,
@@ -73,6 +73,7 @@ class ChangeLedgerServiceTest extends TestCase {
 					'kind' => $kind,
 					'seq' => $seq,
 					'time' => $time,
+					'uid' => $uid,
 				];
 			}
 		);
@@ -221,6 +222,7 @@ class ChangeLedgerServiceTest extends TestCase {
 			'kind' => 'updated',
 			'seq' => 10,
 			'time' => 1755676800,
+			'uid' => null,
 		]], $this->steps($log, 'event'));
 	}
 
@@ -439,6 +441,7 @@ class ChangeLedgerServiceTest extends TestCase {
 			'kind' => 'updated',
 			'seq' => 121,
 			'time' => 1755676800,
+			'uid' => null,
 		]], $this->steps($log, 'event'));
 	}
 
@@ -531,5 +534,96 @@ class ChangeLedgerServiceTest extends TestCase {
 		$this->eventRows->expects($this->never())->method('append');
 
 		$this->assertSame(0, $this->ledger->confirmEventRows([]));
+	}
+
+	// ── The UID of the event ────────────────────────────────────────────
+
+	private function changeWithUid(string $calendarUri, string $fileName, EventChangeKind $kind, ?string $uid): EventChange {
+		return new EventChange($this->ref($calendarUri), $fileName, $kind, $uid);
+	}
+
+	public function testThePerEventRowHoldsTheUidOfItsChange(): void {
+		$this->cursor->method('next')->willReturnOnConsecutiveCalls(10, 11);
+		$log = [];
+		$this->logTheWrites($log);
+
+		$this->ledger->record(
+			[$this->ref('personal')],
+			[$this->changeWithUid('personal', 'one.ics', EventChangeKind::Updated, 'uid-of-one')],
+		);
+
+		$this->assertSame(['uid-of-one'], array_column($this->steps($log, 'event'), 'uid'));
+	}
+
+	public function testEachRowHoldsTheUidOfItsOwnChange(): void {
+		// A change with no UID is between two changes that have one.
+		$this->cursor->method('next')->willReturnOnConsecutiveCalls(10, 11, 12, 13);
+		$log = [];
+		$this->logTheWrites($log);
+
+		$this->ledger->record(
+			[$this->ref('personal')],
+			[
+				$this->changeWithUid('personal', 'one.ics', EventChangeKind::Updated, 'uid-of-one'),
+				$this->changeWithUid('personal', 'two.ics', EventChangeKind::Created, null),
+				$this->changeWithUid('personal', 'three.ics', EventChangeKind::Deleted, 'uid-of-three'),
+			],
+		);
+
+		$rows = $this->steps($log, 'event');
+		$this->assertCount(3, $rows);
+		$this->assertSame(
+			['one.ics' => 'uid-of-one', 'two.ics' => null, 'three.ics' => 'uid-of-three'],
+			array_combine(array_column($rows, 'file'), array_map(static fn (array $row) => $row['uid'], $rows)),
+		);
+	}
+
+	public function testBothRowsOfAMoveHoldTheUid(): void {
+		$this->cursor->method('next')->willReturnOnConsecutiveCalls(10, 11, 12, 13);
+		$log = [];
+		$this->logTheWrites($log);
+
+		$this->ledger->record(
+			[$this->ref('personal'), $this->ref('work')],
+			[
+				$this->changeWithUid('personal', 'one.ics', EventChangeKind::Deleted, 'uid-of-one'),
+				$this->changeWithUid('work', 'one.ics', EventChangeKind::Created, 'uid-of-one'),
+			],
+		);
+
+		$this->assertSame(['uid-of-one', 'uid-of-one'], array_column($this->steps($log, 'event'), 'uid'));
+	}
+
+	public function testTheSecondRowHoldsTheSameUidAsTheFirst(): void {
+		// A read passed row 100 before it was committed.
+		$this->cursor->method('fence')->willReturn(120);
+		$this->cursor->method('next')->willReturn(121);
+		$log = [];
+		$this->logTheWrites($log);
+
+		$added = $this->ledger->confirmEventRows([
+			new EventStamp($this->changeWithUid('personal', 'one.ics', EventChangeKind::Updated, 'uid-of-one'), 100),
+		]);
+
+		$this->assertSame(1, $added);
+		$rows = $this->steps($log, 'event');
+		$this->assertCount(1, $rows);
+		$this->assertSame(121, $rows[0]['seq']);
+		$this->assertSame('uid-of-one', $rows[0]['uid']);
+	}
+
+	public function testTheSecondRowOfAChangeWithoutAUidHasNoUid(): void {
+		$this->cursor->method('fence')->willReturn(120);
+		$this->cursor->method('next')->willReturn(121);
+		$log = [];
+		$this->logTheWrites($log);
+
+		$this->ledger->confirmEventRows([
+			new EventStamp($this->changeWithUid('personal', 'one.ics', EventChangeKind::Updated, null), 100),
+		]);
+
+		$rows = $this->steps($log, 'event');
+		$this->assertCount(1, $rows);
+		$this->assertNull($rows[0]['uid']);
 	}
 }

@@ -15,6 +15,7 @@ use OCA\SendentSynchroniser\Service\ChangeNotification\ChangeLedgerService;
 use OCA\SendentSynchroniser\Service\ChangeNotification\CursorService;
 use OCA\SendentSynchroniser\Service\ChangeNotification\DavEventReferenceExtractor;
 use OCA\SendentSynchroniser\Service\ChangeNotification\PostCommitQueue;
+use OCA\SendentSynchroniser\Service\ChangeNotification\RestoredEventUidReader;
 use OCA\SendentSynchroniser\Service\ChangeNotification\SyncScope;
 use OCP\AppFramework\Utility\ITimeFactory;
 use OCP\EventDispatcher\Event;
@@ -56,6 +57,9 @@ class DavChangeListenerTest extends TestCase {
 	/** @var PostCommitQueue&MockObject */
 	private $postCommit;
 
+	/** @var RestoredEventUidReader&MockObject */
+	private $restoredUid;
+
 	private DavChangeListener $listener;
 
 	protected function setUp(): void {
@@ -65,6 +69,7 @@ class DavChangeListenerTest extends TestCase {
 		}
 		$this->ledger = $this->createMock(ChangeLedgerService::class);
 		$this->postCommit = $this->createMock(PostCommitQueue::class);
+		$this->restoredUid = $this->createMock(RestoredEventUidReader::class);
 		$this->listener = $this->listenerWithScope(static fn (): bool => true);
 	}
 
@@ -79,6 +84,7 @@ class DavChangeListenerTest extends TestCase {
 			new DavEventReferenceExtractor(),
 			$scope,
 			new NullLogger(),
+			$this->restoredUid,
 		);
 	}
 
@@ -340,6 +346,107 @@ class DavChangeListenerTest extends TestCase {
 		$this->assertSame([['personal', 'a.ics', 'created']], $changes);
 	}
 
+	// ── The UID of the event ────────────────────────────────────────────
+
+	/**
+	 * Handles the event and expects one call to the ledger.
+	 *
+	 * @return list<string|null> the UID of each change the ledger got
+	 */
+	private function captureRecordedUids(Event $event): array {
+		$captured = [];
+		$this->ledger->expects($this->once())->method('record')->willReturnCallback(
+			function (array $refs, array $eventChanges = []) use (&$captured): array {
+				foreach ($eventChanges as $change) {
+					$captured[] = $change->uid;
+				}
+				return [];
+			}
+		);
+		$this->listener->handle($event);
+
+		return $captured;
+	}
+
+	public function testARestoredEventGetsItsUidFromTheReader(): void {
+		// The restore event of Nextcloud has no uid in its object data.
+		$objectData = ['uri' => 'a.ics', 'calendarid' => 42, 'calendartype' => 0];
+		$this->restoredUid->expects($this->once())
+			->method('uidFor')
+			->with(42, $objectData)
+			->willReturn('uid-of-a');
+
+		$uids = $this->captureRecordedUids($this->calendarObjectEvent(
+			\OCP\Calendar\Events\CalendarObjectRestoredEvent::class,
+			$objectData,
+		));
+
+		$this->assertSame(['uid-of-a'], $uids);
+	}
+
+	public function testARestoredEventWithoutAUidIsStillRecorded(): void {
+		$this->restoredUid->method('uidFor')->willReturn(null);
+
+		$uids = $this->captureRecordedUids($this->calendarObjectEvent(
+			\OCP\Calendar\Events\CalendarObjectRestoredEvent::class,
+			['uri' => 'a.ics'],
+		));
+
+		$this->assertSame([null], $uids);
+	}
+
+	public function testARestoreOutOfScopeDoesNotReadTheUid(): void {
+		$this->listener = $this->listenerWithScope(static fn (): bool => false);
+		$this->restoredUid->expects($this->never())->method('uidFor');
+		$this->ledger->expects($this->never())->method('record');
+
+		$this->listener->handle($this->calendarObjectEvent(
+			\OCP\Calendar\Events\CalendarObjectRestoredEvent::class,
+			['uri' => 'a.ics'],
+		));
+	}
+
+	public function testTheOtherKindsTakeTheUidFromTheEventAndDoNotUseTheReader(): void {
+		$this->restoredUid->expects($this->never())->method('uidFor');
+		$classes = [
+			\OCP\Calendar\Events\CalendarObjectCreatedEvent::class,
+			\OCP\Calendar\Events\CalendarObjectUpdatedEvent::class,
+			\OCP\Calendar\Events\CalendarObjectDeletedEvent::class,
+			\OCP\Calendar\Events\CalendarObjectMovedToTrashEvent::class,
+		];
+
+		$uids = [];
+		$this->ledger->method('record')->willReturnCallback(
+			function (array $refs, array $eventChanges = []) use (&$uids): array {
+				foreach ($eventChanges as $change) {
+					$uids[] = $change->uid;
+				}
+				return [];
+			}
+		);
+		foreach ($classes as $class) {
+			$this->listener->handle($this->calendarObjectEvent($class, ['uri' => 'a.ics', 'uid' => 'uid-of-a']));
+		}
+
+		$this->assertSame(['uid-of-a', 'uid-of-a', 'uid-of-a', 'uid-of-a'], $uids);
+	}
+
+	public function testBothChangesOfAMoveHoldTheUid(): void {
+		$this->restoredUid->expects($this->never())->method('uidFor');
+
+		$uids = $this->captureRecordedUids($this->calendarObjectMovedEvent(
+			42,
+			self::CALENDAR,
+			43,
+			self::OTHER_CALENDAR,
+			[],
+			[],
+			['uri' => 'a.ics', 'uid' => 'uid-of-a']
+		));
+
+		$this->assertSame(['uid-of-a', 'uid-of-a'], $uids);
+	}
+
 	public function testAMovedEventGivesTwoChangesInOneCallToTheLedger(): void {
 		$changes = $this->captureRecordedChanges($this->calendarObjectMovedEvent(
 			42,
@@ -412,7 +519,7 @@ class DavChangeListenerTest extends TestCase {
 		$this->postCommit->expects($this->never())->method('add');
 		$scope = $this->createMock(SyncScope::class);
 		$scope->method('includes')->willReturn(true);
-		$listener = new DavChangeListener($ledger, $this->postCommit, new DavEventReferenceExtractor(), $scope, $logger);
+		$listener = new DavChangeListener($ledger, $this->postCommit, new DavEventReferenceExtractor(), $scope, $logger, $this->restoredUid);
 
 		$listener->handle($this->calendarObjectCreatedEvent(42, self::CALENDAR, [], ['uri' => 'a.ics']));
 	}
@@ -426,7 +533,7 @@ class DavChangeListenerTest extends TestCase {
 		$this->postCommit->expects($this->never())->method('add');
 		$scope = $this->createMock(SyncScope::class);
 		$scope->method('includes')->willReturn(true);
-		$listener = new DavChangeListener($this->ledger, $this->postCommit, $extractor, $scope, new NullLogger());
+		$listener = new DavChangeListener($this->ledger, $this->postCommit, $extractor, $scope, new NullLogger(), $this->restoredUid);
 
 		$subscription = ['id' => 42, 'uri' => 'holidays', 'principaluri' => 'principals/users/alice'];
 		$classes = [

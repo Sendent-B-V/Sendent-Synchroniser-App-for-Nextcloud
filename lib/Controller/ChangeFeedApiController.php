@@ -116,14 +116,21 @@ class ChangeFeedApiController extends ApiController {
 	}
 
 	/**
+	 * The name of the field that holds the UID of the event. The name is in
+	 * this one place only.
+	 */
+	private const UID_FIELD = 'i';
+
+	/**
 	 * One row as the feed sends it. A per-event row has o and k; a
-	 * per-calendar or address-book row does not.
+	 * per-calendar or address-book row does not. A per-event row also has
+	 * the UID field when the row holds a UID. If not, the field is left out.
 	 *
-	 * @return array{p: string, t: string, u: string, c: bool, q: int, o?: string, k?: string}
+	 * @return array{p: string, t: string, u: string, c: bool, q: int, o?: string, k?: string, i?: string}
 	 */
 	private function wireRow(DirtyCollection|EventChangeRow $row, int $since): array {
 		if ($row instanceof EventChangeRow) {
-			return [
+			$wireRow = [
 				'p' => $row->getPrincipalUri(),
 				't' => 'caldav',
 				'u' => $row->getCalendarUri(),
@@ -132,6 +139,13 @@ class ChangeFeedApiController extends ApiController {
 				'k' => $row->getKind(),
 				'q' => (int)$row->getSequenceNumber(),
 			];
+
+			// The UID field is added only when the row holds a UID.
+			$uid = $row->getEventUid();
+			if (is_string($uid) && $uid !== '') {
+				$wireRow[self::UID_FIELD] = $uid;
+			}
+			return $wireRow;
 		}
 
 		// q lets the Connector skip a collection version it already handled

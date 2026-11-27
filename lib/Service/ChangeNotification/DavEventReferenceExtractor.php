@@ -54,6 +54,8 @@ class DavEventReferenceExtractor {
 	// - They never throw on bad input; the caller runs inside the user's own
 	//   DAV transaction.
 	// - Nothing here looks at which calendar is synced.
+	// - A change holds the UID of its event when the UID is usable, else
+	//   null. A missing UID never removes a change.
 	//
 	// Subscription events (the CachedCalendarObject* classes) and contact
 	// events must not be passed to these methods.
@@ -67,7 +69,7 @@ class DavEventReferenceExtractor {
 	 *                           the calendar does not count or the object row
 	 *                           has no usable file name
 	 */
-	private function changeFor(?array $calendarRow, ?array $objectRow, EventChangeKind $kind): array {
+	private function changeFor(?array $calendarRow, ?array $objectRow, EventChangeKind $kind, ?string $callerUid = null): array {
 		$calendarReference = $this->fromRow($calendarRow, Constants::COLLECTION_TYPE_CALDAV, false);
 		if (!is_array($objectRow)) {
 			return [];
@@ -75,10 +77,23 @@ class DavEventReferenceExtractor {
 		if (!is_string($objectRow['uri'] ?? null) || $objectRow['uri'] === '') {
 			return [];
 		}
+		// The caller's UID wins. With none, the UID of the row is used.
+		$candidate = $callerUid ?? ($objectRow['uid'] ?? null);
+		$uid = $this->usableUid($candidate);
 		if ($calendarReference !== null) {
-			return [new EventChange($calendarReference, $objectRow['uri'], $kind)];
+			return [new EventChange($calendarReference, $objectRow['uri'], $kind, $uid)];
 		}
 		return [];
+	}
+
+	/**
+	 * The UID as a change can hold it: a string that is not empty, else null.
+	 */
+	private function usableUid(mixed $value): ?string {
+		if (!is_string($value) || $value === '') {
+			return null;
+		}
+		return $value;
 	}
 
 	/**
@@ -141,14 +156,16 @@ class DavEventReferenceExtractor {
 	/**
 	 * An event file restored from the trash bin. The object row was read after
 	 * Nextcloud renamed the file back, so its 'uri' is the name the file has
-	 * in the calendar now. The row is a short one (no id, no deleted-at).
+	 * in the calendar now. The row is a short one (no id, no uid, no
+	 * deleted-at), so the caller gives the UID.
 	 *
 	 * @param array<string, mixed>|null $calendarRow
 	 * @param array<string, mixed>|null $objectRow
+	 * @param string|null $uid the UID the caller read, or null when it has none
 	 * @return list<EventChange> one Created change with the restored file name, or nothing
 	 */
-	public function eventRestored(?array $calendarRow, ?array $objectRow): array {
-		return $this->changeFor($calendarRow, $objectRow, EventChangeKind::Created);
+	public function eventRestored(?array $calendarRow, ?array $objectRow, ?string $uid = null): array {
+		return $this->changeFor($calendarRow, $objectRow, EventChangeKind::Created, $uid);
 	}
 
 	/**
@@ -163,7 +180,7 @@ class DavEventReferenceExtractor {
 	 * @param array<string, mixed>|null $objectRow
 	 * @return list<EventChange> Deleted for the source calendar, then Created
 	 *                           for the target calendar, both with the file
-	 *                           name as it is after the move
+	 *                           name as it is after the move and the same UID
 	 */
 	public function eventMoved(?array $sourceCalendarRow, ?array $targetCalendarRow, ?array $objectRow): array {
 		$changes = [];

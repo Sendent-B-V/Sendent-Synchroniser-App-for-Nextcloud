@@ -15,5 +15,7 @@ final class EventChange {
 		/** The file name inside that calendar, e.g. "meeting.ics". Never a trash name. */
 		public readonly string $fileName,
 		public readonly EventChangeKind $kind,
+		/** The UID of the event, or null when it is not known. Never an empty string. */
+		public readonly ?string $uid = null,
 	) {}
 }
