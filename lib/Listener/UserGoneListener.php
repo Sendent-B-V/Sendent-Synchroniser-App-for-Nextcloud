@@ -9,6 +9,7 @@ use OCP\EventDispatcher\Event;
 use OCP\EventDispatcher\IEventListener;
 use OCP\Group\Events\UserRemovedEvent;
 use OCP\User\Events\UserDeletedEvent;
+use Psr\Log\LoggerInterface;
 
 /**
  * Removes the per-event rows of a user who was deleted, or who left a group
@@ -21,18 +22,26 @@ class UserGoneListener implements IEventListener {
 	public function __construct(
 		private EventRowCleaner $cleaner,
 		private SyncUserService $syncUsers,
+		private LoggerInterface $logger,
 	) {
 	}
 
 	public function handle(Event $event): void {
-		if ($event instanceof UserDeletedEvent) {
-			$userId = $event->getUser()->getUID();
-			$this->cleaner->removeForUser($userId);
-		} else if ($event instanceof UserRemovedEvent) {
-			$userId = $event->getUser()->getUID();
-			if (!$this->syncUsers->isValidUser($userId)) {
+		try {
+			if ($event instanceof UserDeletedEvent) {
+				$userId = $event->getUser()->getUID();
 				$this->cleaner->removeForUser($userId);
+			} else if ($event instanceof UserRemovedEvent) {
+				$userId = $event->getUser()->getUID();
+				if (!$this->syncUsers->isValidUser($userId)) {
+					$this->cleaner->removeForUser($userId);
+				}
 			}
+		} catch (\Throwable $e) {
+			$this->logger->error('Failed to check or remove the per-event rows of a user: ' . $e->getMessage(), [
+				'exception' => $e,
+				'app' => 'sendentsynchroniser',
+			]);
 		}
 	}
 }

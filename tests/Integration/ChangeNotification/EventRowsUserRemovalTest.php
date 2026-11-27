@@ -66,6 +66,7 @@ class EventRowsUserRemovalTest extends TestCase {
 		$listener = new UserGoneListener(
 			new EventRowCleaner($this->eventRows, new NullLogger()),
 			$this->createMock(SyncUserService::class),
+			new NullLogger(),
 		);
 		$user = $this->createMock(IUser::class);
 		$user->method('getUID')->willReturn(self::GONE);

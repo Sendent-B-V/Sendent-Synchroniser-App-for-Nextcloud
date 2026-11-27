@@ -34,6 +34,7 @@ class UserGoneListenerTest extends TestCase {
 		$this->listener = new UserGoneListener(
 			new EventRowCleaner($this->eventRows, $this->logger),
 			$this->syncUsers,
+			$this->logger,
 		);
 	}
 
@@ -100,6 +101,19 @@ class UserGoneListenerTest extends TestCase {
 		$this->eventRows->method('deleteForPrincipal')
 			->willThrowException(new \RuntimeException('database is away'));
 		$this->logger->expects($this->once())->method('error');
+
+		$this->listener->handle($this->removedFromGroup('alice'));
+	}
+
+	public function testAFailedSyncStatusCheckDoesNotStopTheGroupChange(): void {
+		// The check reads the database before the cleaner runs. Nextcloud
+		// does not catch what a listener throws.
+		$this->syncUsers->method('isValidUser')
+			->willThrowException(new \RuntimeException('database is away'));
+
+		$this->logger->expects($this->once())->method('error');
+		// The status is not known, so the rows stay for the retention.
+		$this->eventRows->expects($this->never())->method('deleteForPrincipal');
 
 		$this->listener->handle($this->removedFromGroup('alice'));
 	}
